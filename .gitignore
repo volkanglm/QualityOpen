@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# ─── Sensitive / private ─────────────────────────────────────────────────────
+.env
+ignore/
+Rakipler/
+sos.md
