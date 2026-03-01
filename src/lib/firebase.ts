@@ -291,7 +291,10 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
       error?: string;
       error_description?: string;
     };
-    if (tokens.error) throw new Error(tokens.error_description ?? tokens.error);
+    if (tokens.error) {
+      console.error("[OAuth] Token exchange error response:", tokenText);
+      throw new Error(tokens.error_description ?? tokens.error);
+    }
     if (!tokens.id_token) throw new Error("No id_token in token response");
 
     if (tokens.refresh_token) saveRefreshToken(tokens.refresh_token);
@@ -329,7 +332,10 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
       error?: { message: string };
     };
 
-    if (idpData.error) throw new Error(idpData.error.message);
+    if (idpData.error) {
+      console.error("[OAuth] signInWithIdp error response:", idpText);
+      throw new Error(idpData.error.message);
+    }
     if (!idpData.localId || !idpData.idToken) throw new Error("signInWithIdp returned invalid data");
 
     if (idpData.refreshToken) saveFirebaseRefreshToken(idpData.refreshToken);
