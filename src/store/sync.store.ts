@@ -1,0 +1,159 @@
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { pushLatestBackup, pushScheduledBackup, DriveError } from "@/lib/drive";
+import { writeSnapshotToDb } from "@/lib/db";
+import type { SyncState, SyncStatus, BackupSchedule } from "@/types";
+
+// ─── Schedule intervals in ms ─────────────────────────────────────────────────
+const SCHEDULE_MS: Record<BackupSchedule, number> = {
+  manual:  Infinity,
+  daily:   86_400_000,
+  weekly:  604_800_000,
+  monthly: 2_592_000_000,
+};
+
+// ─── Store interface ──────────────────────────────────────────────────────────
+
+interface SyncStore extends SyncState {
+  syncNow:       (token: string) => Promise<void>;
+  backupNow:     (token: string) => Promise<void>;
+  setSchedule:   (s: BackupSchedule) => void;
+  checkSchedule: (token: string) => Promise<void>;
+  resetDrive:    () => void;
+  _setStatus:    (s: SyncStatus, error?: string) => void;
+}
+
+export const useSyncStore = create<SyncStore>()(
+  persist(
+    (set, get) => ({
+      status:           "idle",
+      driveDisabled:    false,
+      lastSyncAt:       null,
+      lastBackupAt:     null,
+      backupSchedule:   "daily",
+      errorMessage:     null,
+      driveFolderId:    null,
+
+      _setStatus: (status, errorMessage = undefined) =>
+        set({ status, errorMessage }),
+
+      setSchedule:  (schedule) => set({ backupSchedule: schedule }),
+      resetDrive:   ()         => set({ driveDisabled: false }),
+
+      syncNow: async (token) => {
+        const { _setStatus } = get();
+        _setStatus("syncing");
+        try {
+          // 1. Read current app data from Zustand (imported lazily to avoid circular deps)
+          const { useProjectStore } = await import("@/store/project.store");
+          const { projects, documents, codes, segments, memos } =
+            useProjectStore.getState();
+
+          const payload = {
+            version:    "1.0",
+            exportedAt: new Date().toISOString(),
+            projects,
+            documents,
+            codes,
+            segments,
+            memos,
+          };
+
+          // 2. Write to IndexedDB first (offline-first)
+          await writeSnapshotToDb({ projects, documents, codes, segments, memos });
+
+          // 3. Push to Google Drive
+          await pushLatestBackup(token, payload);
+
+          set({ status: "success", lastSyncAt: Date.now(), errorMessage: null });
+
+          // Auto-reset to idle after 3 seconds
+          setTimeout(() => {
+            if (useSyncStore.getState().status === "success") {
+              set({ status: "idle" });
+            }
+          }, 3000);
+        } catch (err) {
+          // 401/403 = Drive API not enabled or token lacks drive.file scope
+          // Local (IndexedDB) snapshot was already saved above — treat as success
+          if (err instanceof DriveError && (err.statusCode === 401 || err.statusCode === 403)) {
+            set({ status: "idle", lastSyncAt: Date.now(), errorMessage: null, driveDisabled: true });
+            return;
+          }
+          const msg =
+            err instanceof DriveError
+              ? `Drive error ${err.statusCode}`
+              : err instanceof Error
+              ? err.message
+              : "Sync failed";
+          _setStatus("error", msg);
+        }
+      },
+
+      backupNow: async (token) => {
+        const { _setStatus } = get();
+        _setStatus("syncing");
+        try {
+          const { useProjectStore } = await import("@/store/project.store");
+          const { projects, documents, codes, segments, memos } =
+            useProjectStore.getState();
+
+          const payload = {
+            version:    "1.0",
+            exportedAt: new Date().toISOString(),
+            projects,
+            documents,
+            codes,
+            segments,
+            memos,
+          };
+
+          await writeSnapshotToDb({ projects, documents, codes, segments, memos });
+          await pushScheduledBackup(token, payload);
+
+          set({ status: "success", lastBackupAt: Date.now(), errorMessage: null });
+
+          setTimeout(() => {
+            if (useSyncStore.getState().status === "success") {
+              set({ status: "idle" });
+            }
+          }, 3000);
+        } catch (err) {
+          if (err instanceof DriveError && (err.statusCode === 401 || err.statusCode === 403)) {
+            set({ status: "idle", lastBackupAt: Date.now(), errorMessage: null, driveDisabled: true });
+            return;
+          }
+          const msg =
+            err instanceof DriveError
+              ? `Drive error ${err.statusCode}`
+              : err instanceof Error
+              ? err.message
+              : "Backup failed";
+          _setStatus("error", msg);
+        }
+      },
+
+      checkSchedule: async (token) => {
+        const { backupSchedule, lastBackupAt, backupNow } = get();
+        if (backupSchedule === "manual") return;
+        const intervalMs = SCHEDULE_MS[backupSchedule];
+        const now        = Date.now();
+        const last       = lastBackupAt ?? 0;
+        if (now - last >= intervalMs) {
+          await backupNow(token);
+        }
+      },
+    }),
+    {
+      name: "qo-sync-state",
+      // Only persist these keys — not transient status
+      partialize: (s) => ({
+        lastSyncAt:     s.lastSyncAt,
+        lastBackupAt:   s.lastBackupAt,
+        backupSchedule: s.backupSchedule,
+        driveFolderId:  s.driveFolderId,
+        driveDisabled:  s.driveDisabled,
+      }),
+    }
+  )
+);
