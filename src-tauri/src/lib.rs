@@ -29,12 +29,15 @@ fn start_oauth_listener(app: AppHandle) -> Result<u16, String> {
 
             let callback_url = format!("http://127.0.0.1:{port}{path}");
 
+            // Emit the event BEFORE writing the HTTP response so the main window
+            // receives oauth-callback before the auth window's window.close() fires.
+            let _ = app.emit("oauth-callback", callback_url);
+
             let html = "\
                 <html><head><title>QualityOpen</title></head>\
                 <body style=\"font-family:system-ui;text-align:center;padding-top:80px;background:#09090b;color:#fafafa\">\
                 <h2 style=\"font-weight:600\">✓ Giriş başarılı</h2>\
                 <p style=\"color:#a1a1aa\">QualityOpen'a dönebilirsiniz. Bu sekmeyi kapatabilirsiniz.</p>\
-                <script>window.close()</script>\
                 </body></html>";
 
             let _ = write!(
@@ -43,8 +46,6 @@ fn start_oauth_listener(app: AppHandle) -> Result<u16, String> {
                 html.len(),
                 html
             );
-
-            let _ = app.emit("oauth-callback", callback_url);
         }
     });
 

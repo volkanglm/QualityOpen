@@ -22,16 +22,6 @@ export interface ClaimsResult {
 
 // ─── Firebase initialization ─────────────────────────────────────────────────
 
-// MOCK: Completely hide IndexedDB from Firebase to prevent internal deadlocks
-// (Firebase Heartbeat and Telemetry try to use IndexedDB even with inMemoryPersistence)
-try {
-  Object.defineProperty(window, 'indexedDB', {
-    get: () => undefined
-  });
-} catch (e) {
-  console.warn("[AuthBoot] Failed to disable window.indexedDB", e);
-}
-
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
