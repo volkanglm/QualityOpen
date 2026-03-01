@@ -1,0 +1,272 @@
+import { useEffect, Component, type ReactNode, type ErrorInfo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { TitleBar } from "@/components/layout/TitleBar";
+import { PanelLayout } from "@/components/layout/PanelLayout";
+import { SyncStatus } from "@/components/layout/SyncStatus";
+import { OfflineBadge } from "@/components/layout/OfflineBadge";
+import { LoginPage } from "@/pages/LoginPage";
+import { PaywallPage } from "@/pages/PaywallPage";
+import { CommandPalette } from "@/components/command/CommandPalette";
+import { ToastContainer } from "@/components/ui/Toast";
+import { useAppStore } from "@/store/app.store";
+import { useProjectStore } from "@/store/project.store";
+import { useAuthStore, initAuthListener, initNetworkWatcher } from "@/store/auth.store";
+import { AppLogo } from "@/components/ui/AppLogo";
+import { useSyncStore } from "@/store/sync.store";
+import { AiChatPanel } from "@/components/chat/AiChatPanel";
+import { importFile, getFileCategory } from "@/lib/fileImport";
+import "./index.css";
+
+// ─── Error Boundary ────────────────────────────────────────────────────────────
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  componentDidCatch(error: Error, info: ErrorInfo) { console.error("App crash:", error, info); }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ position: "fixed", inset: 0, background: "#09090b", color: "#ef4444", fontFamily: "monospace", fontSize: 12, padding: 24, overflow: "auto", zIndex: 99999 }}>
+          <p style={{ color: "#fafafa", marginBottom: 8, fontSize: 14, fontWeight: 600 }}>QualityOpen — Render Hatası</p>
+          <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+            {(this.state.error as Error).message}{"\n\n"}
+            {(this.state.error as Error).stack}
+          </pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// ─── Schedule checker ─────────────────────────────────────────────────────────
+const SCHEDULE_CHECK_INTERVAL = 10 * 60 * 1000;
+
+// ─── Splash screen ────────────────────────────────────────────────────────────
+
+function SplashScreen() {
+  return (
+    <motion.div
+      key="splash"
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
+      className="fixed inset-0 flex flex-col items-center justify-center gap-4 z-[9999]"
+      style={{ background: "var(--bg-primary)" }}
+      onClick={() => useAuthStore.setState({ booting: false })}
+    >
+      {/* Logo + name */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+        className="flex flex-col items-center gap-3"
+      >
+        <AppLogo size={52} variant="badge" />
+        <span
+          className="text-sm font-semibold tracking-tight"
+          style={{ color: "var(--text-primary)" }}
+        >
+          QualityOpen
+        </span>
+      </motion.div>
+
+      {/* Thin progress bar at bottom */}
+      <motion.div
+        className="absolute bottom-0 left-0 h-[1px] w-full"
+        style={{ background: "var(--text-muted)", originX: 0 }}
+        initial={{ scaleX: 0 }}
+        animate={{ scaleX: 1 }}
+        transition={{ duration: 2.5, ease: "easeInOut" }}
+      />
+    </motion.div>
+  );
+}
+
+// ─── Main App ─────────────────────────────────────────────────────────────────
+
+export default function App() {
+  const { theme, commandPaletteOpen, setCommandPaletteOpen } = useAppStore();
+  const { user, accessToken, booting, initialized } = useAuthStore();
+  const { checkSchedule } = useSyncStore();
+
+  /* Sync theme token to <html> */
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
+
+  useEffect(() => {
+    let unsubAuth: () => void = () => { };
+    let unsubNetwork: () => void = () => { };
+    try {
+      unsubAuth = initAuthListener();
+      unsubNetwork = initNetworkWatcher();
+    } catch (e) {
+      console.error("Critical error in initAuthListener:", e);
+    }
+    return () => { unsubAuth(); unsubNetwork(); };
+  }, []);
+
+  /* Tauri OS file-drop handler (fires when user drags files from Finder) */
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+
+    const setup = async () => {
+      try {
+        unlisten = await listen<{ paths: string[] }>(
+          "tauri://file-drop",
+          async (event) => {
+            const path = event.payload?.paths?.[0];
+            if (!path) return;
+
+            const { activeProjectId, setActiveDocument, setActiveView } =
+              useAppStore.getState();
+            if (!activeProjectId) return;
+
+            try {
+              // Read file via Rust (base64-encoded)
+              const b64 = await invoke<string>("read_file_base64", { path });
+              const name = path.split("/").pop() ?? path;
+
+              // Determine mime type from extension
+              const ext = name.split(".").pop()?.toLowerCase() ?? "";
+              const mimeMap: Record<string, string> = {
+                pdf: "application/pdf", txt: "text/plain",
+                docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                doc: "application/msword",
+                mp4: "video/mp4", mov: "video/quicktime", webm: "video/webm",
+                jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
+                gif: "image/gif", webp: "image/webp",
+              };
+              const mime = mimeMap[ext] ?? "application/octet-stream";
+
+              // Decode base64 → File
+              const raw = atob(b64);
+              const ia = new Uint8Array(raw.length);
+              for (let i = 0; i < raw.length; i++) ia[i] = raw.charCodeAt(i);
+              const file = new File([ia], name, { type: mime });
+
+              // Import via existing logic
+              const imported = await importFile(file);
+              const cat = getFileCategory(file);
+              const docType = cat === "video" ? "video" : cat === "image" ? "image" : "document";
+
+              const { createDocument, updateDocument } = useProjectStore.getState();
+              const newDoc = createDocument(activeProjectId, imported.name || name, docType);
+              updateDocument(newDoc.id, {
+                content: imported.content,
+                format: imported.format,
+                wordCount: imported.wordCount,
+              });
+              setActiveDocument(newDoc.id);
+              setActiveView("coding");
+            } catch (err) {
+              console.error("Tauri file drop import failed:", err);
+            }
+          }
+        );
+      } catch {
+        // Not running in Tauri (e.g. browser dev) — no-op
+      }
+    };
+
+    void setup();
+    return () => { unlisten?.(); };
+  }, []);
+
+  /* Global CMD+K / CTRL+K listener */
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setCommandPaletteOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [setCommandPaletteOpen]);
+
+  /* Scheduled backup check */
+  useEffect(() => {
+    if (!accessToken) return;
+    checkSchedule(accessToken);
+    const id = window.setInterval(() => checkSchedule(accessToken), SCHEDULE_CHECK_INTERVAL);
+    return () => window.clearInterval(id);
+  }, [accessToken, checkSchedule]);
+
+  // ── Gate logic ──────────────────────────────────────────────────────────────
+  //
+  // booting          → SplashScreen
+  // !initialized     → null (prevent login flicker)
+  // !user            → LoginPage
+  // user + !false    → Main app  (null = still loading → show optimistically)
+  // user + false     → PaywallPage (only when explicitly no license)
+  //
+  const showMain = initialized && !booting && !!user;
+  const showPaywall = false; // license gate deactivated until backend is ready
+  const showLogin = initialized && !booting && !user;
+  const showLoading = !initialized && !booting; // should rarely happen with splashing
+
+  return (
+    <ErrorBoundary>
+      <div
+        className="flex h-screen w-screen flex-col overflow-hidden"
+        style={{ background: "var(--bg-primary)" }}
+      >
+        {/* ── Splash (covers everything while booting) ── */}
+        {booting && <SplashScreen />}
+
+        {/* ── Auth / License gate ── */}
+        {showLogin && <LoginPage />}
+        {showPaywall && <PaywallPage />}
+        {showLoading && (
+          <div className="fixed inset-0 flex items-center justify-center" style={{ background: "var(--bg-primary)" }}>
+            <div className="h-4 w-4 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: "var(--accent)" }} />
+          </div>
+        )}
+        {showMain && (
+          <ErrorBoundary>
+            <TitleBar />
+            <div className="flex flex-1 min-h-0 overflow-hidden">
+              <PanelLayout />
+            </div>
+          </ErrorBoundary>
+        )}
+
+        {/* ── Global overlays (always mounted) ── */}
+
+        {/* Sync status widget — visible when signed in */}
+        <AnimatePresence>
+          {user && !booting && (
+            <motion.div
+              key="sync"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 12 }}
+              transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+            >
+              <SyncStatus />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Offline badge — bottom-left, subtle */}
+        <OfflineBadge />
+
+        {/* ⌘K Command Palette */}
+        <AnimatePresence>
+          {commandPaletteOpen && (
+            <CommandPalette key="cmd-palette" />
+          )}
+        </AnimatePresence>
+
+        {/* AI Chat Panel */}
+        <AiChatPanel />
+
+        {/* Toast notifications */}
+        <ToastContainer />
+      </div>
+    </ErrorBoundary>
+  );
+}
