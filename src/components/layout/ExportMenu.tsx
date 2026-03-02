@@ -9,9 +9,10 @@ import {
   ChevronDown,
   Loader2,
 } from "lucide-react";
-import { useAppStore }     from "@/store/app.store";
+import { useT } from "@/hooks/useT";
+import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
-import { useToastStore }   from "@/store/toast.store";
+import { useToastStore } from "@/store/toast.store";
 import {
   exportCSV,
   exportExcel,
@@ -24,55 +25,56 @@ import {
 type ExportFormat = "csv" | "excel" | "word" | "png" | "jpeg";
 
 const MENU_ITEMS: {
-  id:       ExportFormat;
-  label:    string;
-  sub:      string;
-  icon:     React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+  id: ExportFormat;
+  label: string;
+  sub: string;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   divider?: boolean;
 }[] = [
-  {
-    id:    "excel",
-    label: "Excel",
-    sub:   "Segmentler, kodlar, hiyerarşi",
-    icon:  FileSpreadsheet,
-  },
-  {
-    id:    "csv",
-    label: "CSV",
-    sub:   "Tüm segmentleri düz metin",
-    icon:  Table2,
-  },
-  {
-    id:      "word",
-    label:   "Word (APA 7)",
-    sub:     "Alıntılar + otomatik atıf",
-    icon:    FileText,
-    divider: true,
-  },
-  {
-    id:    "png",
-    label: "PNG",
-    sub:   "Aktif grafiği görsel olarak kaydet",
-    icon:  FileImage,
-  },
-  {
-    id:    "jpeg",
-    label: "JPEG",
-    sub:   "Aktif grafiği JPEG olarak kaydet",
-    icon:  FileImage,
-  },
-];
+    {
+      id: "excel",
+      label: "Excel",
+      sub: "Segmentler, kodlar, hiyerarşi",
+      icon: FileSpreadsheet,
+    },
+    {
+      id: "csv",
+      label: "CSV",
+      sub: "Tüm segmentleri düz metin",
+      icon: Table2,
+    },
+    {
+      id: "word",
+      label: "Word (APA 7)",
+      sub: "Alıntılar + otomatik atıf",
+      icon: FileText,
+      divider: true,
+    },
+    {
+      id: "png",
+      label: "PNG",
+      sub: "Aktif grafiği görsel olarak kaydet",
+      icon: FileImage,
+    },
+    {
+      id: "jpeg",
+      label: "JPEG",
+      sub: "Aktif grafiği JPEG olarak kaydet",
+      icon: FileImage,
+    },
+  ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ExportMenu() {
-  const [open,    setOpen]    = useState(false);
+  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState<ExportFormat | null>(null);
-  const menuRef               = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const { activeProjectId, activeView } = useAppStore();
   const { projects, documents, codes, segments } = useProjectStore();
   const { push } = useToastStore();
+  const t = useT();
 
   const project = projects.find((p) => p.id === activeProjectId);
 
@@ -100,8 +102,8 @@ export function ExportMenu() {
     const payload = {
       project,
       documents: documents.filter((d) => d.projectId === project.id),
-      codes:     codes.filter((c)     => c.projectId === project.id),
-      segments:  segments.filter((s)  => s.projectId === project.id),
+      codes: codes.filter((c) => c.projectId === project.id),
+      segments: segments.filter((s) => s.projectId === project.id),
     };
 
     try {
@@ -153,9 +155,9 @@ export function ExportMenu() {
         disabled={disabled}
         className="flex h-6 items-center gap-1.5 px-2.5 rounded-[var(--radius-sm)] text-[11px] font-medium transition-colors"
         style={{
-          color:      disabled ? "var(--text-disabled)" : open ? "var(--accent)" : "var(--text-secondary)",
+          color: disabled ? "var(--text-disabled)" : open ? "var(--accent)" : "var(--text-secondary)",
           background: open ? "var(--accent-subtle)" : "transparent",
-          cursor:     disabled ? "not-allowed" : "pointer",
+          cursor: disabled ? "not-allowed" : "pointer",
         }}
         onMouseEnter={(e) => {
           if (!disabled && !open)
@@ -171,7 +173,7 @@ export function ExportMenu() {
         ) : (
           <Upload className="h-3.5 w-3.5" />
         )}
-        <span>Aktar</span>
+        <span>{t("center.import")}</span>
         <ChevronDown
           className="h-3 w-3 transition-transform"
           style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
@@ -183,20 +185,20 @@ export function ExportMenu() {
         {open && (
           <motion.div
             initial={{ opacity: 0, y: -6, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0,  scale: 1    }}
-            exit={{    opacity: 0, y: -6, scale: 0.96, transition: { duration: 0.12 } }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.96, transition: { duration: 0.12 } }}
             transition={{ duration: 0.15, ease: [0.2, 0, 0, 1] }}
             style={{
-              position:    "absolute",
-              top:         "calc(100% + 6px)",
-              right:       0,
-              zIndex:      120,
-              background:  "var(--bg-secondary)",
-              border:      "1px solid var(--border)",
-              borderRadius:"var(--radius-lg)",
-              boxShadow:   "var(--float-shadow)",
-              minWidth:    220,
-              overflow:    "hidden",
+              position: "absolute",
+              top: "calc(100% + 6px)",
+              right: 0,
+              zIndex: 120,
+              background: "var(--bg-secondary)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-lg)",
+              boxShadow: "var(--float-shadow)",
+              minWidth: 220,
+              overflow: "hidden",
             }}
           >
             {/* Header */}
@@ -205,7 +207,7 @@ export function ExportMenu() {
               style={{ borderColor: "var(--border-subtle)" }}
             >
               <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
-                Dışa Aktar
+                {t("center.import")}
               </p>
               {project && (
                 <p className="text-[11px] mt-0.5 truncate" style={{ color: "var(--text-disabled)" }}>
@@ -217,7 +219,7 @@ export function ExportMenu() {
             {/* Items */}
             <div className="py-1">
               {MENU_ITEMS.map((item) => {
-                const Icon    = item.icon;
+                const Icon = item.icon;
                 const isLoading = loading === item.id;
                 return (
                   <div key={item.id}>

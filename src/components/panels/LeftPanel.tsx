@@ -21,6 +21,7 @@ import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
 import { useAuthStore } from "@/store/auth.store";
 import { useSettingsStore } from "@/store/settings.store";
+import { useToastStore } from "@/store/toast.store";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
@@ -72,6 +73,7 @@ export function LeftPanel() {
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const t = useT();
+  const pushToast = useToastStore((s) => s.push);
 
   const toggleProject = (id: string) => {
     setExpandedProjects((prev) => {
@@ -135,6 +137,8 @@ export function LeftPanel() {
       setExpandedProjects((s) => new Set(s).add(activeProjectId));
     } catch (err) {
       console.error("Import failed:", err);
+      const msg = err instanceof Error ? err.message : "Import failed";
+      pushToast(msg, "error");
     } finally {
       setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -245,7 +249,6 @@ export function LeftPanel() {
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}
-                      style={{ overflow: "hidden" }}
                     >
                       {docs.length === 0 ? (
                         <div className="pl-7 pr-2 py-1">

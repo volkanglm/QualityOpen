@@ -9,8 +9,12 @@ import {
   Tag,
   Hash,
   TrendingUp,
-  Download,
+  Loader2,
+  Upload,
+  ChevronDown,
 } from "lucide-react";
+import { useT } from "@/hooks/useT";
+import type { TranslationKey } from "@/lib/i18n";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
 import { BubbleCloud } from "@/components/charts/BubbleCloud";
@@ -23,11 +27,11 @@ import { flattenCodes, calculateHierarchicalCounts, FlatCode } from "@/lib/tree"
 
 type Tab = "overview" | "cloud" | "matrix" | "network";
 
-const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: "overview", label: "Genel Bakış", icon: BarChart2 },
-  { id: "cloud", label: "Kod Bulutu", icon: Cloud },
-  { id: "matrix", label: "Matris", icon: Grid3X3 },
-  { id: "network", label: "Ağ Haritası", icon: Network },
+const TABS: { id: Tab; labelKey: TranslationKey; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: "overview", labelKey: "analysis.overview", icon: BarChart2 },
+  { id: "cloud", labelKey: "analysis.cloud", icon: Cloud },
+  { id: "matrix", labelKey: "analysis.matrix", icon: Grid3X3 },
+  { id: "network", labelKey: "analysis.network", icon: Network },
 ];
 
 const pageVariants: Variants = {
@@ -42,6 +46,7 @@ export function AnalysisPage() {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const { activeProjectId } = useAppStore();
   const { documents, codes, segments } = useProjectStore();
+  const t = useT();
 
   const projectDocs = documents.filter((d) => d.projectId === activeProjectId);
   const projectCodes = codes.filter((c) => c.projectId === activeProjectId);
@@ -121,7 +126,7 @@ export function AnalysisPage() {
                   />
                 )}
                 <Icon className="h-3.5 w-3.5 relative z-10 flex-shrink-0" />
-                <span className="relative z-10">{tab.label}</span>
+                <span className="relative z-10">{t(tab.labelKey)}</span>
               </button>
             );
           })}
@@ -134,8 +139,11 @@ export function AnalysisPage() {
           title="Dışa aktar (yakında)"
           disabled
         >
-          <Download className="h-3.5 w-3.5" />
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
         </button>
+        <Upload className="h-3.5 w-3.5" />
+        <span>{t("center.import")}</span>
+        <ChevronDown />
       </div>
 
       {/* ── Tab content ── */}
@@ -169,8 +177,8 @@ export function AnalysisPage() {
               className="h-full overflow-hidden p-5"
             >
               <ChartCard
-                title="Kod Bulutu"
-                subtitle="Kodların segment sayısına göre boyutlandırılmış görünümü"
+                title={t("analysis.cloud")}
+                subtitle={t("analysis.cloudDesc")}
               >
                 <BubbleCloud items={codeFrequency} />
               </ChartCard>
@@ -187,8 +195,8 @@ export function AnalysisPage() {
               className="h-full overflow-hidden p-5"
             >
               <ChartCard
-                title="Kod Matrisi"
-                subtitle="Her belgede hangi kodların ne sıklıkla kullanıldığı"
+                title={t("analysis.matrix")}
+                subtitle={t("analysis.matrixDesc")}
               >
                 <HeatmapMatrix
                   codes={projectCodes}
@@ -209,8 +217,8 @@ export function AnalysisPage() {
               className="h-full overflow-hidden p-5"
             >
               <ChartCard
-                title="Ko-Occurrence Ağı"
-                subtitle="Birlikte kullanılan kodlar arasındaki ilişki haritası"
+                title={t("analysis.network")}
+                subtitle={t("analysis.networkDesc")}
               >
                 <CoOccurrenceGraph
                   codes={projectCodes}
@@ -273,10 +281,11 @@ function OverviewTab({
   segments: Segment[];
   codeFrequency: { code: FlatCode; count: number; ownCount: number; depth: number }[];
 }) {
+  const t = useT();
   const stats = [
-    { label: "Belgeler", value: docs.length, color: "var(--text-muted)", icon: FileText },
-    { label: "Kodlar", value: codes.length, color: "var(--text-muted)", icon: Tag },
-    { label: "Segmentler", value: segments.length, color: "var(--text-muted)", icon: Hash },
+    { label: t("nav.documents"), value: docs.length, color: "var(--text-muted)", icon: FileText },
+    { label: t("analysis.codes"), value: codes.length, color: "var(--text-muted)", icon: Tag },
+    { label: t("analysis.segments"), value: segments.length, color: "var(--text-muted)", icon: Hash },
     {
       label: "Seg./Belge",
       value: docs.length ? (segments.length / docs.length).toFixed(1) : "0",
@@ -332,13 +341,13 @@ function OverviewTab({
               style={{ color: "var(--text-muted)" }}
             />
             <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-              Kod Frekansı
+              {t("analysis.frequency")}
             </h2>
             <span
               className="ml-auto text-[10px]"
               style={{ color: "var(--text-disabled)" }}
             >
-              segment sayısına göre sıralı
+              {t("analysis.sortedBy")}
             </span>
           </div>
           <CodeBarChart items={codeFrequency} />
@@ -355,7 +364,7 @@ function OverviewTab({
               className="text-xs font-semibold mb-3 self-start"
               style={{ color: "var(--text-primary)" }}
             >
-              Kod Dağılımı
+              {t("analysis.distribution")}
             </p>
             <DonutChart items={codeFrequency} />
           </div>
@@ -369,12 +378,12 @@ function OverviewTab({
               className="text-xs font-semibold mb-3"
               style={{ color: "var(--text-primary)" }}
             >
-              Belge Kapsamı
+              {t("analysis.coverage")}
             </p>
             <div className="space-y-1.5 overflow-y-auto max-h-44">
               {docs.length === 0 ? (
                 <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  Henüz belge yok.
+                  {t("left.noDocuments")}
                 </p>
               ) : (
                 docs.map((doc, i) => {
@@ -477,6 +486,7 @@ function AnimatedCounter({
 function CodeBarChart({ items }: { items: { code: FlatCode; count: number; ownCount: number; depth: number }[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setW] = useState(400);
+  const t = useT();
 
   useEffect(() => {
     const el = containerRef.current;
@@ -489,7 +499,7 @@ function CodeBarChart({ items }: { items: { code: FlatCode; count: number; ownCo
   if (items.length === 0) {
     return (
       <p className="text-sm py-4 text-center" style={{ color: "var(--text-muted)" }}>
-        Henüz kod uygulanmadı.
+        {t("analysis.noApplied")}
       </p>
     );
   }
@@ -589,6 +599,7 @@ function CodeBarChart({ items }: { items: { code: FlatCode; count: number; ownCo
 
 function DonutChart({ items }: { items: { code: FlatCode; count: number; ownCount: number }[] }) {
   const [hov, setHov] = useState<string | null>(null);
+  const t = useT();
 
   // For donut, we only want to show top-level codes to avoid double counting segments, 
   // OR we show only bottom-level codes. Let's show only top-level codes for the "Distribution".
@@ -604,7 +615,7 @@ function DonutChart({ items }: { items: { code: FlatCode; count: number; ownCoun
   if (filtered.length === 0) {
     return (
       <p className="text-xs py-2" style={{ color: "var(--text-muted)" }}>
-        Veri yok
+        {t("analysis.noData")}
       </p>
     );
   }
@@ -682,7 +693,7 @@ function DonutChart({ items }: { items: { code: FlatCode; count: number; ownCoun
             fill="var(--text-muted)"
             style={{ pointerEvents: "none", userSelect: "none" }}
           >
-            {hovData ? `${(hovData.pct * 100).toFixed(0)}%` : "toplam"}
+            {hovData ? `${(hovData.pct * 100).toFixed(0)}%` : t("analysis.total")}
           </text>
         </svg>
       </div>
