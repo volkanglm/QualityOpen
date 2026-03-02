@@ -1,15 +1,17 @@
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import {
   initializeAuth,
+  getAuth,
   inMemoryPersistence,
   signOut,
   onAuthStateChanged,
+  type Auth,
   type User,
 } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { openUrl as openInBrowser } from "@tauri-apps/plugin-opener";
 
 export interface ClaimsResult {
   idToken: string;
@@ -49,9 +51,15 @@ if (getApps().length === 0) {
   app = getApps()[0];
 }
 
-export const auth = initializeAuth(app, {
-  persistence: inMemoryPersistence,
-});
+// initializeAuth can only be called ONCE per app. On HMR or multiple imports
+// it throws "auth/already-initialized". Fall back to getAuth safely.
+let auth: Auth;
+try {
+  auth = initializeAuth(app, { persistence: inMemoryPersistence });
+} catch {
+  auth = getAuth(app);
+}
+export { auth };
 export const db = getFirestore(app);
 
 // ─── Refresh token storage (XOR-encoded in localStorage) ─────────────────────
@@ -115,7 +123,13 @@ export function clearFirebaseRefreshToken(): void {
  */
 function decodeJwtPayload(jwt: string): Record<string, unknown> {
   const part = jwt.split('.')[1];
-  return JSON.parse(atob(part.replace(/-/g, '+').replace(/_/g, '/')));
+  const base64 = part.replace(/-/g, '+').replace(/_/g, '/');
+  // atob() returns Latin-1 bytes; convert to percent-encoding then use
+  // decodeURIComponent to correctly reconstruct UTF-8 (Türkçe vb.)
+  const jsonText = decodeURIComponent(
+    atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
+  );
+  return JSON.parse(jsonText);
 }
 
 /**
@@ -129,18 +143,22 @@ export async function refreshGoogleToken(): Promise<string | null> {
   if (!rt || !clientId) return null;
 
   try {
-    const res = await fetch("https://oauth2.googleapis.com/token", {
+    // Use native_http to bypass WKWebView fetch restrictions in production
+    const body = new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: rt,
+      client_id: clientId,
+      client_secret: secret,
+    }).toString();
+
+    const [status, text] = await invoke<[number, string]>("native_http", {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: "refresh_token",
-        refresh_token: rt,
-        client_id: clientId,
-        client_secret: secret,
-      }),
+      url: "https://oauth2.googleapis.com/token",
+      headersJson: JSON.stringify({ "Content-Type": "application/x-www-form-urlencoded" }),
+      body,
     });
-    if (!res.ok) return null;
-    const data = await res.json() as { access_token?: string };
+    if (status !== 200) return null;
+    const data = JSON.parse(text) as { access_token?: string };
     return data.access_token ?? null;
   } catch {
     return null;
@@ -206,19 +224,16 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
   });
   const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
 
-  try {
-    const existing = await WebviewWindow.getByLabel("qo-google-auth");
-    if (existing) await existing.close();
-  } catch { /* ignore */ }
 
-  console.log("[OAuth] Step 3: opening auth window");
+  console.log("[OAuth] Step 3: opening system browser for auth");
+  // Use the system browser (Safari/Chrome) instead of a WKWebView popup.
+  // This follows RFC 8252 and avoids WKWebView mixed-content policy in prod.
   const callbackUrl = await new Promise<string>((resolve, reject) => {
     let settled = false;
     const settle = (fn: () => void) => { if (!settled) { settled = true; fn(); } };
 
     const timer = setTimeout(() => {
       settle(() => reject(new Error("Google sign-in timed out (5 min)")));
-      void authWindow?.close();
     }, 5 * 60 * 1000);
 
     let unlistenOAuth: (() => void) | undefined;
@@ -227,42 +242,17 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
       clearTimeout(timer);
       unlistenOAuth?.();
       settle(() => resolve(event.payload));
-      void authWindow?.close();
     }).then((fn) => { unlistenOAuth = fn; })
       .catch((e: unknown) => {
         clearTimeout(timer);
         settle(() => reject(e instanceof Error ? e : new Error(String(e))));
       });
 
-    const authWindow = new WebviewWindow("qo-google-auth", {
-      url: oauthUrl,
-      title: "Google ile Giriş Yap",
-      width: 520,
-      height: 680,
-      center: true,
-      resizable: false,
-      decorations: true,
-    });
-
-    void authWindow.once("tauri://close-requested", () => {
-      console.log("[OAuth] Auth window close-requested");
+    // Open the Google auth URL in the user's default browser.
+    openInBrowser(oauthUrl).catch((e: unknown) => {
       clearTimeout(timer);
       unlistenOAuth?.();
-      settle(() => reject(new Error("cancelled")));
-    });
-
-    void authWindow.once("tauri://error", (e) => {
-      console.error("[OAuth] Window tauri://error fired.", e);
-      clearTimeout(timer);
-      unlistenOAuth?.();
-      settle(() => reject(new Error(`OAuth window error: ${String(e.payload)}`)));
-    });
-
-    void authWindow.once("tauri://destroyed", () => {
-      console.log("[OAuth] Auth window destroyed");
-      clearTimeout(timer);
-      unlistenOAuth?.();
-      settle(() => reject(new Error("cancelled")));
+      settle(() => reject(new Error(`Failed to open browser: ${String(e)}`)));
     });
   });
 
@@ -297,70 +287,38 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
     }
     if (!tokens.id_token) throw new Error("No id_token in token response");
 
-    if (tokens.refresh_token) saveRefreshToken(tokens.refresh_token);
-
-    // Step 7: signInWithIdp via XMLHttpRequest (bypasses WKWebView fetch + reqwest hangs)
-    console.log("[OAuth] Step 7: signInWithIdp via XHR");
-    const idpPayload = JSON.stringify({
-      requestUri: redirectUri,
-      postBody: `id_token=${encodeURIComponent(tokens.id_token)}&access_token=${encodeURIComponent(tokens.access_token ?? "")}&providerId=google.com`,
-      returnSecureToken: true,
-      returnIdpCredential: true,
-    });
-
-    const idpText = await new Promise<string>((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", `https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=${apiKey}`);
-      xhr.setRequestHeader("Content-Type", "application/json");
-      xhr.timeout = 15000;
-      xhr.onload = () => {
-        console.log("[OAuth] Step 7: XHR onload, status =", xhr.status, "len =", xhr.responseText.length);
-        resolve(xhr.responseText);
-      };
-      xhr.onerror = () => reject(new Error("signInWithIdp XHR network error"));
-      xhr.ontimeout = () => reject(new Error("signInWithIdp XHR timeout (15s)"));
-      xhr.send(idpPayload);
-    });
-
-    const idpData = JSON.parse(idpText) as {
-      localId?: string;
-      email?: string;
-      displayName?: string;
-      photoUrl?: string;
-      idToken?: string;
-      refreshToken?: string;
-      error?: { message: string };
-    };
-
-    if (idpData.error) {
-      console.error("[OAuth] signInWithIdp error response:", idpText);
-      throw new Error(idpData.error.message);
+    if (tokens.refresh_token) {
+      console.log("[OAuth] Saving refresh_token...");
+      saveRefreshToken(tokens.refresh_token);
     }
-    if (!idpData.localId || !idpData.idToken) throw new Error("signInWithIdp returned invalid data");
 
-    if (idpData.refreshToken) saveFirebaseRefreshToken(idpData.refreshToken);
-
-    let premium: boolean | undefined;
+    // Step 7: Decode user info directly from Google id_token JWT.
+    console.log("[OAuth] Step 7: decoding user from Google id_token JWT...");
+    let googlePayload: Record<string, unknown>;
     try {
-      const payload = decodeJwtPayload(idpData.idToken);
-      premium = !!payload["premium"];
-    } catch { /* ignore */ }
+      googlePayload = decodeJwtPayload(tokens.id_token);
+      console.log("[OAuth] JWT Decoded successfully. sub =", googlePayload["sub"]);
+    } catch (e) {
+      console.error("[OAuth] JWT Decode FAILED:", e);
+      throw new Error("Failed to decode Google id_token: " + String(e));
+    }
 
-    console.log("[OAuth] Done! uid =", idpData.localId, "premium =", premium);
+    const uid = String(googlePayload["sub"] ?? "");
+    const email = String(googlePayload["email"] ?? "");
+    const displayName = String(googlePayload["name"] ?? "");
+    const photoURL = String(googlePayload["picture"] ?? "");
+    if (!uid) throw new Error("Google id_token missing 'sub' claim");
+
+    console.log("[OAuth] All steps final. Profile extracted:", { uid, email });
     return {
-      user: {
-        uid: idpData.localId,
-        email: idpData.email ?? null,
-        displayName: idpData.displayName ?? null,
-        photoURL: idpData.photoUrl ?? null,
-      },
+      user: { uid, email: email || null, displayName: displayName || null, photoURL: photoURL || null },
       accessToken: tokens.access_token ?? "",
-      idToken: idpData.idToken,
-      firebaseRefreshToken: idpData.refreshToken ?? null,
-      premium,
+      idToken: tokens.id_token,
+      firebaseRefreshToken: null,
+      premium: false,
     };
   } catch (err) {
-    console.error("[OAuth] Sign-in failed:", err);
+    console.error("[OAuth] Sign-in flow CRASHED at some step:", err);
     throw err;
   }
 }

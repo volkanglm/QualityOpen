@@ -87,6 +87,17 @@ export const useProjectStore = create<ProjectStore>()(
           })),
 
         createDocument: (projectId, name, type = "document") => {
+          // Demo Mode: Limit guest users to 2 documents TOTAL per project
+          const { useAuthStore } = require("@/store/auth.store");
+          const isGuest = !useAuthStore.getState().user;
+
+          if (isGuest) {
+            const count = get().documents.filter((d) => d.projectId === projectId).length;
+            if (count >= 2) {
+              throw new Error("Demo sürümünde proje başına en fazla 2 belge ekleyebilirsiniz. Sınırsız kullanım için lütfen giriş yapın.");
+            }
+          }
+
           const doc: Document = {
             id: uuid(),
             projectId,
@@ -253,9 +264,21 @@ useProjectStore.subscribe(
       // 2. Trigger Drive sync if user is authenticated
       const { useAuthStore } = await import("@/store/auth.store");
       const { useSyncStore } = await import("@/store/sync.store");
+      const { localFolderPath } = useAuthStore.getState();
       const token = useAuthStore.getState().accessToken;
+
       if (token) {
         useSyncStore.getState().syncNow(token).catch(() => {/* silent */ });
+      }
+
+      // 3. Trigger Local Folder sync if configured (Premium)
+      if (localFolderPath) {
+        try {
+          const { syncDataToLocal } = await import("@/lib/localSync");
+          await syncDataToLocal(localFolderPath, snap);
+        } catch (err) {
+          console.error("[LocalSync] Failed to sync to local folder:", err);
+        }
       }
     }, 1500) as unknown as number;
   },

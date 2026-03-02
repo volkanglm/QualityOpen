@@ -27,10 +27,11 @@ interface AuthStore {
   initialized: boolean;          // Firebase listener has fired at least once
   error: string | null;
 
-  // ── License / offline state ──
+  // ── License / offline / local sync state ──
   premium: boolean | null;   // null = not yet determined; false = no license
   offlineMode: boolean;          // true when running from offline cache
   booting: boolean;          // true during splash screen (initial boot)
+  localFolderPath: string | null; // Path to local backup folder (Premium)
 
   // ── Actions ──
   signIn: () => Promise<void>;
@@ -45,6 +46,7 @@ interface AuthStore {
   _setPremium: (v: boolean | null) => void;
   _setOffline: (v: boolean) => void;
   _setBooting: (v: boolean) => void;
+  setLocalFolderPath: (path: string | null) => void;
 }
 
 // ─── Store ─────────────────────────────────────────────────────────────────────
@@ -58,6 +60,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   premium: null,
   offlineMode: false,
   booting: true,   // show splash while finding user
+  localFolderPath: localStorage.getItem("qo_local_folder_path"),
 
   // ── Sign in ──
   signIn: async () => {
@@ -72,8 +75,11 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       };
       // premium from JWT — null means not yet verified (default to false to avoid paywall loops)
       const premium = result.premium ?? false;
-      set({ user: profile, accessToken: result.accessToken, premium, loading: false, error: null });
-      await saveAuthCache({ ...profile, premium });
+      set({ user: profile, accessToken: result.accessToken, premium, loading: false, error: null, initialized: true });
+      // Fire-and-forget: don't let IndexedDB issues block the UI after sign-in
+      void saveAuthCache({ ...profile, premium }).catch((e) =>
+        console.warn("[Auth] saveAuthCache failed (non-blocking):", e)
+      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Sign-in failed";
       // Don't show error if user simply closed the window
@@ -119,109 +125,122 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   _setPremium: (v) => set({ premium: v }),
   _setOffline: (v) => set({ offlineMode: v }),
   _setBooting: (v) => set({ booting: v }),
+  setLocalFolderPath: (path) => {
+    if (path) localStorage.setItem("qo_local_folder_path", path);
+    else localStorage.removeItem("qo_local_folder_path");
+    set({ localFolderPath: path });
+  },
 }));
 
 // ─── Boot sequence ─────────────────────────────────────────────────────────────
 //
-// Called once from App.tsx on mount.
-// Wires up Firebase auth state changes and runs the offline-first
-// boot logic: online → refresh claims + cache; offline → use cache.
+// Two-phase boot — decoupled from Firebase timing:
+//
+// Phase 1 (immediate): Load from IndexedDB cache (max 1.5 s), then set
+//   booting:false / initialized:true.  Never waits for Firebase.
+//
+// Phase 2 (background): Firebase onAuthStateChanged runs after boot is done.
+//   Only updates token / claims / premium — never re-blocks the UI.
 //
 export function initAuthListener(): () => void {
   if (!firebaseConfigured) {
-    useAuthStore.setState({ booting: false, user: null, premium: null });
+    useAuthStore.setState({ booting: false, initialized: true, user: null, premium: null });
     return () => { };
   }
 
-
-  const bootTimer = setTimeout(() => {
-    if (useAuthStore.getState().booting) {
-      useAuthStore.setState({ booting: false, initialized: true, user: null, premium: null });
-    }
-  }, 4000);
-
-  const unsubscribe = subscribeToAuthState(async (firebaseUser) => {
-    clearTimeout(bootTimer);
-    const setState = useAuthStore.setState;
-
-    if (firebaseUser) {
-      const profile: User = {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email,
-        displayName: firebaseUser.displayName,
-        photoURL: firebaseUser.photoURL,
-      };
-      // End boot immediately — async ops run in background
-      setState({ user: profile, initialized: true, booting: false });
-
-      // Run token + claims refresh in background (non-blocking)
-      void (async () => {
-        if (navigator.onLine) {
-          const newAccessToken = await refreshGoogleToken().catch(() => null);
-          if (newAccessToken) setState({ accessToken: newAccessToken });
-
-          try {
-            const claims = await refreshAndGetClaims(false);
-            if (claims) {
-              setState({ premium: claims.premium, offlineMode: false });
-              await saveAuthCache({ ...profile, premium: claims.premium });
-            } else {
-              // auth.currentUser was transiently null — default to false
-              setState({ premium: false, offlineMode: false });
-            }
-          } catch {
-            const cache = await loadAuthCache();
-            if (cache?.uid === firebaseUser.uid) {
-              setState({ premium: cache.premium, offlineMode: true });
-            } else {
-              setState({ premium: false, offlineMode: false });
-            }
-          }
-        } else {
-          setState({ offlineMode: true });
-          const cache = await loadAuthCache();
-          setState({ premium: cache?.uid === firebaseUser.uid ? cache.premium : false });
-        }
-      })();
-    } else {
-      // Guard: if the store already has an authenticated user and boot is done,
-      // this null event is likely a spurious Firebase internal token refresh event.
-      // Real sign-out is handled by the signOut() action which clears user directly.
-      const currentState = useAuthStore.getState();
-      if (!currentState.booting && currentState.user) {
-        return;
-      }
-
-      // Firebase has no session — try loading from auth cache (covers both online and offline cases).
-      // This happens when the user signed in via the native PKCE flow (bypassing signInWithCredential),
-      // so Firebase SDK never stored a session but our own cache may have one.
+  // ── Phase 1: boot from cache ─────────────────────────────────────────────
+  void (async () => {
+    try {
       const cache = await Promise.race([
-        loadAuthCache(),
+        loadAuthCache().catch(() => null),
         new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
       ]);
 
       console.log("[AuthBoot] Cache load result:", !!cache, "online:", navigator.onLine);
+
       if (cache) {
-        setState({
+        useAuthStore.setState({
           user: { uid: cache.uid, email: cache.email, displayName: cache.displayName, photoURL: cache.photoURL },
           premium: cache.premium,
           offlineMode: !navigator.onLine,
           initialized: true,
           booting: false,
         });
-        // Background: refresh claims to verify premium is still current
-        if (navigator.onLine) {
-          void refreshAndGetClaims(false).then((claims) => {
-            if (claims) setState({ premium: claims.premium, offlineMode: false });
-          }).catch(() => { /* keep cached value */ });
-        }
       } else {
-        setState({ user: null, premium: null, offlineMode: !navigator.onLine, initialized: true, booting: false });
+        useAuthStore.setState({
+          user: null,
+          premium: null,
+          offlineMode: !navigator.onLine,
+          initialized: true,
+          booting: false,
+        });
         if (navigator.onLine) {
           void clearAuthCache().catch((e) => console.warn("[AuthBoot] clearAuthCache failed:", e));
           resetFolderCache();
         }
       }
+    } catch (err) {
+      console.error("[AuthBoot] Cache boot failed, forcing completion:", err);
+      useAuthStore.setState({ booting: false, initialized: true, user: null, premium: null });
+    }
+  })();
+
+  // ── Phase 2: Firebase listener — background updates only ─────────────────
+  // May fire seconds later in production WKWebView. Boot is already done.
+  const unsubscribe = subscribeToAuthState(async (firebaseUser) => {
+    try {
+      const setState = useAuthStore.setState;
+      const currentState = useAuthStore.getState();
+
+      if (firebaseUser) {
+        const profile: User = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName,
+          photoURL: firebaseUser.photoURL,
+        };
+
+        // If boot raced and isn't done yet, complete it now
+        if (currentState.booting) {
+          setState({ user: profile, initialized: true, booting: false });
+        } else if (!currentState.user) {
+          // Boot done, no cached user — Firebase confirmed session exists
+          setState({ user: profile });
+        }
+
+        // Background: refresh Google OAuth token + claims
+        if (navigator.onLine) {
+          void (async () => {
+            const newAccessToken = await refreshGoogleToken().catch(() => null);
+            if (newAccessToken) setState({ accessToken: newAccessToken });
+
+            try {
+              const claims = await refreshAndGetClaims(false);
+              if (claims) {
+                setState({ premium: claims.premium, offlineMode: false });
+                void saveAuthCache({ ...profile, premium: claims.premium }).catch(() => { });
+              } else {
+                setState({ premium: false, offlineMode: false });
+              }
+            } catch {
+              // Claims failed — keep cached premium value
+            }
+          })();
+        }
+      } else {
+        // Firebase reports no session.
+        // If user came from cache, ignore — real sign-out goes through signOut().
+        if (!currentState.booting && currentState.user) {
+          return;
+        }
+        // Boot still pending (rare) and Firebase confirmed no session
+        if (currentState.booting) {
+          setState({ user: null, premium: null, offlineMode: !navigator.onLine, initialized: true, booting: false });
+        }
+      }
+    } catch (err) {
+      console.error("[AuthBoot] Firebase background callback error:", err);
+      // Phase 1 already completed boot — no action needed here
     }
   });
 
