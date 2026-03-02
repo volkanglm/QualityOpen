@@ -124,9 +124,14 @@ export function getFileCategory(file: File): "text" | "video" | "image" | "other
 }
 
 export async function importFile(file: File): Promise<ImportedFile> {
-  // Demo Mode: Size limit for guests (no user object in store)
-  const { useAuthStore } = await import("@/store/auth.store");
-  const isGuest = !useAuthStore.getState().user;
+  // Demo Mode: Size limit for guests
+  let isGuest = false;
+  try {
+    const authState = (window as any).__AUTH_STATE__ || {};
+    isGuest = !authState.user;
+  } catch (e) {
+    isGuest = !localStorage.getItem("qo_auth_cache");
+  }
 
   const SIZE_LIMIT = 5 * 1024 * 1024; // 5MB limit for guests
   if (isGuest && file.size > SIZE_LIMIT) {

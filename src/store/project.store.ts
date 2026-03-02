@@ -88,8 +88,15 @@ export const useProjectStore = create<ProjectStore>()(
 
         createDocument: (projectId, name, type = "document") => {
           // Demo Mode: Limit guest users to 2 documents TOTAL per project
-          const { useAuthStore } = require("@/store/auth.store");
-          const isGuest = !useAuthStore.getState().user;
+          // Use a safer way to check auth state that doesn't rely on synchronous require during ESM initialization
+          let isGuest = false;
+          try {
+            const authState = (window as any).__AUTH_STATE__ || {};
+            isGuest = !authState.user;
+          } catch (e) {
+            // Fallback: if we can't determine, assume not guest or check localStorage
+            isGuest = !localStorage.getItem("qo_auth_cache");
+          }
 
           if (isGuest) {
             const count = get().documents.filter((d) => d.projectId === projectId).length;

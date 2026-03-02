@@ -37,24 +37,32 @@ export function PdfRenderer({ base64 }: PdfRendererProps) {
         setError(null);
         const pdfjs = await import("pdfjs-dist");
 
-        // Set worker source — use CDN worker to avoid bundling issues
-        pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+        // Set worker source — use the versioned worker from the library itself if possible,
+        // but CDN is safer for Tauri environments where local assets might have path issues.
+        pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
         const binary = atob(base64);
-        const bytes  = new Uint8Array(binary.length);
+        const bytes = new Uint8Array(binary.length);
         for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
 
-        const pdf = await pdfjs.getDocument({ data: bytes }).promise;
+        const loadingTask = pdfjs.getDocument({
+          data: bytes,
+          useWorkerFetch: false,
+          isEvalSupported: false,
+        });
+
+        const pdf = await loadingTask.promise;
         if (cancelled) return;
 
-        // @ts-ignore — pdfjs types are complex
+        // @ts-ignore
         pdfDocRef.current = pdf;
         setTotalPages(pdf.numPages);
         setCurrentPage(1);
         setLoading(false);
       } catch (e) {
+        console.error("PDF loading error:", e);
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Failed to load PDF");
+          setError(e instanceof Error ? e.message : "PDF dosyası yüklenemedi. Lütfen dosyanın bozuk olmadığından emin olun.");
           setLoading(false);
         }
       }
@@ -75,11 +83,11 @@ export function PdfRenderer({ base64 }: PdfRendererProps) {
 
       try {
         // @ts-ignore
-        const page     = await pdf.getPage(currentPage);
+        const page = await pdf.getPage(currentPage);
         const viewport = page.getViewport({ scale });
-        canvas.width   = viewport.width;
-        canvas.height  = viewport.height;
-        const ctx      = canvas.getContext("2d");
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext("2d");
         if (!ctx || cancelled) return;
         // @ts-ignore
         await page.render({ canvasContext: ctx, viewport }).promise;
@@ -123,8 +131,8 @@ export function PdfRenderer({ base64 }: PdfRendererProps) {
       <div
         className="sticky top-0 z-10 flex items-center gap-2 rounded-[var(--radius-md)] border px-3 py-1.5 shadow-sm"
         style={{
-          background:   "var(--bg-secondary)",
-          borderColor:  "var(--border)",
+          background: "var(--bg-secondary)",
+          borderColor: "var(--border)",
         }}
       >
         <Button

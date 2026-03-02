@@ -23,7 +23,7 @@ export function Button({
 
   const variants = {
     primary:
-      "bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]",
+      "bg-[var(--accent)] text-[var(--accent-fg)] hover:bg-[var(--accent-hover)]",
     ghost:
       "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]",
     outline:
@@ -33,9 +33,9 @@ export function Button({
   };
 
   const sizes = {
-    sm:   "h-7 px-2.5 text-[12px]",
-    md:   "h-8 px-3 text-[13px]",
-    lg:   "h-9 px-4 text-[13px]",
+    sm: "h-7 px-2.5 text-[12px]",
+    md: "h-8 px-3 text-[13px]",
+    lg: "h-9 px-4 text-[13px]",
     icon: "h-7 w-7 p-0",
   };
 

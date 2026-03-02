@@ -4,6 +4,7 @@ import { X, Send, Loader2, MessageSquare } from "lucide-react";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
 import { useSettingsStore } from "@/store/settings.store";
+import { useT } from "@/hooks/useT";
 
 interface Message {
   id: string;
@@ -17,6 +18,7 @@ export function AiChatPanel() {
   const { chatOpen, setChatOpen, activeDocumentId, activeProjectId } = useAppStore();
   const { documents, segments, codes } = useProjectStore();
   const { getActiveKey } = useSettingsStore();
+  const t = useT();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -72,7 +74,7 @@ export function AiChatPanel() {
 
     const ctx = buildContext();
     if (!ctx) {
-      setError("Ayarlar > API Anahtarları'ndan bir AI anahtarı ekleyin.");
+      setError(t("chat.errorKey"));
       return;
     }
 
@@ -83,12 +85,9 @@ export function AiChatPanel() {
     setMessages(history);
     setLoading(true);
 
-    const systemPrompt = `Sen nitel araştırma verisi analizi konusunda uzman bir yardımcısın.
-Aşağıda araştırmacının çalıştığı belge ve kodlanmış segmentler verilmiştir.
-Bu bağlamı kullanarak araştırmacının sorularını Türkçe olarak yanıtla.
-Kısa, analitik ve akademik bir dil kullan.
+    const systemPrompt = `${t("chat.systemPrompt")}
 
-${ctx.docContext ? `Bağlam:\n${ctx.docContext}` : "Bağlam bulunmuyor."}`;
+${ctx.docContext ? `${t("chat.contextLabel")}\n${ctx.docContext}` : t("chat.noContext")}`;
 
     try {
       const { askAi } = await import("@/lib/ai");
@@ -139,15 +138,15 @@ ${ctx.docContext ? `Bağlam:\n${ctx.docContext}` : "Bağlam bulunmuyor."}`;
               className="text-[12px] font-semibold flex-1"
               style={{ color: "var(--text-primary)" }}
             >
-              Belgelerle Sohbet
+              {t("chat.title")}
             </span>
             <button
               onClick={() => setMessages([])}
               className="text-[11px] transition-colors px-1.5"
               style={{ color: "var(--text-muted)" }}
-              title="Sohbeti temizle"
+              title={t("chat.clearTitle")}
             >
-              Temizle
+              {t("chat.clear")}
             </button>
             <button
               onClick={() => setChatOpen(false)}
@@ -162,11 +161,10 @@ ${ctx.docContext ? `Bağlam:\n${ctx.docContext}` : "Bağlam bulunmuyor."}`;
           <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
             {messages.length === 0 && (
               <p
-                className="text-[11px] text-center mt-4 leading-relaxed"
+                className="text-[11px] text-center mt-4 leading-relaxed whitespace-pre-line"
                 style={{ color: "var(--text-muted)" }}
               >
-                Aktif belgeyi bağlam olarak kullanarak<br />
-                soru sorabilirsiniz.
+                {t("chat.welcome")}
               </p>
             )}
             {messages.map((msg) => (
@@ -233,7 +231,7 @@ ${ctx.docContext ? `Bağlam:\n${ctx.docContext}` : "Bağlam bulunmuyor."}`;
                     void sendMessage();
                   }
                 }}
-                placeholder="Belge hakkında soru sor…"
+                placeholder={t("chat.placeholder")}
                 rows={1}
                 className="flex-1 text-[12px] rounded-[var(--radius-sm)] border px-2.5 py-2 outline-none resize-none"
                 style={{
