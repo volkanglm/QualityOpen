@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
+import { useAuthStore } from "@/store/auth.store";
 import { useSettingsStore } from "@/store/settings.store";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -30,21 +31,21 @@ import { useT } from "@/hooks/useT";
 import type { Document } from "@/types";
 
 const DOC_ICONS = {
-  interview:  Mic,
-  fieldnote:  FileText,
-  document:   FileText,
-  memo:       FileImage,
-  video:      Film,
-  image:      Image,
+  interview: Mic,
+  fieldnote: FileText,
+  document: FileText,
+  memo: FileImage,
+  video: Film,
+  image: Image,
 } as const;
 
 const DOC_COLORS = {
-  interview:  "var(--code-1)",
-  fieldnote:  "var(--code-2)",
-  document:   "var(--code-4)",
-  memo:       "var(--code-5)",
-  video:      "var(--code-3)",
-  image:      "var(--code-6)",
+  interview: "var(--code-1)",
+  fieldnote: "var(--code-2)",
+  document: "var(--code-4)",
+  memo: "var(--code-5)",
+  video: "var(--code-3)",
+  image: "var(--code-6)",
 } as const;
 
 export function LeftPanel() {
@@ -62,13 +63,13 @@ export function LeftPanel() {
     useProjectStore();
 
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
-  const [newProjectModal, setNewProjectModal]   = useState(false);
-  const [newProjectName,  setNewProjectName]    = useState("");
-  const [newDocModal,     setNewDocModal]       = useState(false);
-  const [newDocName,      setNewDocName]        = useState("");
-  const [newDocType,      setNewDocType]        = useState<Document["type"]>("interview");
-  const [contextMenu,     setContextMenu]       = useState<string | null>(null);
-  const [importing,       setImporting]         = useState(false);
+  const [newProjectModal, setNewProjectModal] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [newDocModal, setNewDocModal] = useState(false);
+  const [newDocName, setNewDocName] = useState("");
+  const [newDocType, setNewDocType] = useState<Document["type"]>("interview");
+  const [contextMenu, setContextMenu] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const t = useT();
 
@@ -104,15 +105,28 @@ export function LeftPanel() {
     if (!file || !activeProjectId) return;
     setImporting(true);
     try {
-      const cat     = getFileCategory(file);
+      const cat = getFileCategory(file);
       const docType = cat === "video" ? "video" : cat === "image" ? "image" : "document";
       const imported = await importFile(file);
-      const newDoc   = createDocument(activeProjectId, imported.name || file.name, docType);
+      const newDoc = createDocument(activeProjectId, imported.name || file.name, docType);
+
+      // Local Sync: Copy original file to local folder if configured
+      const { localFolderPath } = useAuthStore.getState();
+      if (localFolderPath) {
+        try {
+          const { copyDocumentToLocal } = await import("@/lib/localSync");
+          const category = cat === "video" ? "video" : cat === "image" ? "image" : "document";
+          await copyDocumentToLocal(localFolderPath, file.name, imported.content, category);
+        } catch (err) {
+          console.warn("[LocalSync] Failed to copy source to local:", err);
+        }
+      }
+
       // Update the new doc with the imported content
       const { updateDocument } = useProjectStore.getState();
       updateDocument(newDoc.id, {
-        content:   imported.content,
-        format:    imported.format,
+        content: imported.content,
+        format: imported.format,
         wordCount: imported.wordCount,
       });
       setActiveDocument(newDoc.id);
@@ -177,8 +191,8 @@ export function LeftPanel() {
         ) : (
           projects.map((project) => {
             const isExpanded = expandedProjects.has(project.id);
-            const isActive   = project.id === activeProjectId;
-            const docs       = documents.filter((d) => d.projectId === project.id);
+            const isActive = project.id === activeProjectId;
+            const docs = documents.filter((d) => d.projectId === project.id);
 
             return (
               <div key={project.id}>
@@ -245,7 +259,7 @@ export function LeftPanel() {
                         </div>
                       ) : (
                         docs.map((doc) => {
-                          const Icon  = DOC_ICONS[doc.type as keyof typeof DOC_ICONS] ?? FileText;
+                          const Icon = DOC_ICONS[doc.type as keyof typeof DOC_ICONS] ?? FileText;
                           const color = DOC_COLORS[doc.type as keyof typeof DOC_COLORS] ?? "var(--text-muted)";
                           const isDocActive = doc.id === activeDocumentId;
 
@@ -347,7 +361,7 @@ export function LeftPanel() {
               >
                 {importing
                   ? <Upload className="h-3 w-3 animate-pulse" />
-                  : <Plus   className="h-3 w-3" />
+                  : <Plus className="h-3 w-3" />
                 }
               </Button>
             </Tooltip>
@@ -356,8 +370,8 @@ export function LeftPanel() {
             className="w-full mt-1 flex items-center gap-2 rounded-[var(--radius-sm)] border border-dashed px-2 py-1.5 text-[11px] transition-colors"
             style={{
               borderColor: "var(--border)",
-              color:        activeProjectId ? "var(--text-muted)" : "var(--text-disabled)",
-              cursor:       activeProjectId ? "pointer" : "not-allowed",
+              color: activeProjectId ? "var(--text-muted)" : "var(--text-disabled)",
+              cursor: activeProjectId ? "pointer" : "not-allowed",
             }}
             disabled={!activeProjectId || importing}
             onClick={() => fileInputRef.current?.click()}
@@ -458,10 +472,10 @@ export function LeftPanel() {
                     style={
                       newDocType === t
                         ? {
-                            background:  `${color}22`,
-                            color:        color,
-                            borderColor: `${color}44`,
-                          }
+                          background: `${color}22`,
+                          color: color,
+                          borderColor: `${color}44`,
+                        }
                         : { color: "var(--text-secondary)" }
                     }
                   >
@@ -523,11 +537,11 @@ function NavFooterItem({
   hasIndicator,
   onClick,
 }: {
-  icon:          React.ReactNode;
-  label:         string;
-  active:        boolean;
+  icon: React.ReactNode;
+  label: string;
+  active: boolean;
   hasIndicator?: boolean;
-  onClick:       () => void;
+  onClick: () => void;
 }) {
   return (
     <button
@@ -535,7 +549,7 @@ function NavFooterItem({
       className="w-full flex items-center gap-2 px-2 py-1.5 rounded-[var(--radius-sm)] transition-colors text-left"
       style={{
         background: active ? "var(--accent-subtle)" : "transparent",
-        color:      active ? "var(--accent)"        : "var(--text-muted)",
+        color: active ? "var(--accent)" : "var(--text-muted)",
       }}
       onMouseEnter={(e) => {
         if (!active) (e.currentTarget as HTMLElement).style.background = "var(--surface-hover)";

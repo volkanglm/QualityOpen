@@ -1,8 +1,12 @@
 // ─── Google Drive REST API (v3) ───────────────────────────────────────────────
 // Uses the OAuth access token obtained during Google Sign-In.
 // Scope required: https://www.googleapis.com/auth/drive.file
+//
+// All HTTP goes through Rust native_http to bypass WKWebView fetch restrictions.
 
-const API_BASE  = "https://www.googleapis.com/drive/v3";
+import { nativeHttp } from "@/lib/nativeHttp";
+
+const API_BASE = "https://www.googleapis.com/drive/v3";
 const UPLOAD_BASE = "https://www.googleapis.com/upload/drive/v3";
 
 const ROOT_FOLDER_NAME = "QualityOpen";
@@ -19,28 +23,26 @@ interface DriveListResponse {
   files: DriveFile[];
 }
 
-// ─── Low-level fetch helper ───────────────────────────────────────────────────
+// ─── Low-level request helper (via Rust reqwest) ────────────────────────────
 
 async function driveRequest<T = unknown>(
   url: string,
   token: string,
-  options: RequestInit = {}
+  options: { method?: string; headers?: Record<string, string>; body?: string } = {}
 ): Promise<T> {
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...(options.headers ?? {}),
-    },
-  });
+  const method = (options.method ?? "GET") as "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    ...(options.headers ?? {}),
+  };
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new DriveError(res.status, `Drive API error ${res.status}: ${body}`);
+  const res = await nativeHttp(url, { method, headers, body: options.body });
+
+  if (res.status < 200 || res.status >= 300) {
+    throw new DriveError(res.status, `Drive API error ${res.status}: ${res.body}`);
   }
 
-  const text = await res.text();
-  return text ? (JSON.parse(text) as T) : ({} as T);
+  return res.body ? (JSON.parse(res.body) as T) : ({} as T);
 }
 
 export class DriveError extends Error {
@@ -55,9 +57,6 @@ export class DriveError extends Error {
 
 // ─── Folder operations ────────────────────────────────────────────────────────
 
-/**
- * Find a folder by name under 'My Drive'. Returns null if not found.
- */
 export async function findFolder(
   token: string,
   name: string,
@@ -79,9 +78,6 @@ export async function findFolder(
   return data.files?.[0]?.id ?? null;
 }
 
-/**
- * Create a folder and return its ID.
- */
 export async function createFolder(
   token: string,
   name: string,
@@ -106,10 +102,6 @@ export async function createFolder(
   return data.id;
 }
 
-/**
- * Ensure the root QualityOpen_Data folder exists, return its ID.
- * Cached in module scope to avoid repeated API calls.
- */
 let _rootFolderId: string | null = null;
 
 export async function ensureRootFolder(token: string): Promise<string> {
@@ -126,20 +118,15 @@ export function resetFolderCache(): void {
 
 // ─── File upload ──────────────────────────────────────────────────────────────
 
-/**
- * Upload or overwrite a JSON file in the given folder.
- * Uses multipart upload for metadata + content in one request.
- */
 export async function uploadJson(
   token: string,
   folderId: string,
   fileName: string,
   data: unknown
 ): Promise<string> {
-  const json     = JSON.stringify(data, null, 2);
+  const json = JSON.stringify(data, null, 2);
   const boundary = "qo_boundary_" + Date.now();
 
-  // Check if file already exists so we can do an update instead
   const existingId = await findFileInFolder(token, folderId, fileName);
 
   const body =
@@ -155,11 +142,10 @@ export async function uploadJson(
   let method: string;
 
   if (existingId) {
-    // PATCH to update existing file (no parents in metadata)
-    url    = `${UPLOAD_BASE}/files/${existingId}?uploadType=multipart&fields=id`;
+    url = `${UPLOAD_BASE}/files/${existingId}?uploadType=multipart&fields=id`;
     method = "PATCH";
   } else {
-    url    = `${UPLOAD_BASE}/files?uploadType=multipart&fields=id`;
+    url = `${UPLOAD_BASE}/files?uploadType=multipart&fields=id`;
     method = "POST";
   }
 
@@ -189,21 +175,17 @@ async function findFileInFolder(
 
 // ─── File download ────────────────────────────────────────────────────────────
 
-/**
- * Download a Drive file by ID and return its text content.
- */
 export async function downloadFile(token: string, fileId: string): Promise<string> {
-  const res = await fetch(`${API_BASE}/files/${fileId}?alt=media`, {
+  const res = await nativeHttp(`${API_BASE}/files/${fileId}?alt=media`, {
+    method: "GET",
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) throw new DriveError(res.status, `Download failed: ${res.status}`);
-  return res.text();
+  if (res.status < 200 || res.status >= 300) {
+    throw new DriveError(res.status, `Download failed: ${res.status}`);
+  }
+  return res.body;
 }
 
-/**
- * List all JSON backup files inside the QualityOpen folder.
- * Returns files sorted newest-first by modifiedTime.
- */
 export async function listBackupFiles(token: string): Promise<{ id: string; name: string; modifiedTime: string }[]> {
   const folderId = await ensureRootFolder(token);
   const q = encodeURIComponent(
@@ -219,29 +201,23 @@ export async function listBackupFiles(token: string): Promise<{ id: string; name
 // ─── High-level backup ────────────────────────────────────────────────────────
 
 export interface BackupPayload {
-  version:     string;
-  exportedAt:  string;
-  projects:    unknown[];
-  documents:   unknown[];
-  codes:       unknown[];
-  segments:    unknown[];
-  memos:       unknown[];
+  version: string;
+  exportedAt: string;
+  projects: unknown[];
+  documents: unknown[];
+  codes: unknown[];
+  segments: unknown[];
+  memos: unknown[];
 }
 
-/**
- * Returns the scheduled backup filename: QualityOpen_Data(MM.DD.YYYY).json
- */
 export function scheduledBackupName(): string {
   const now = new Date();
-  const mm  = String(now.getMonth() + 1).padStart(2, "0");
-  const dd  = String(now.getDate()).padStart(2, "0");
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
   const yyyy = now.getFullYear();
   return `QualityOpen_Data(${mm}.${dd}.${yyyy}).json`;
 }
 
-/**
- * Main continuous-sync backup: overwrites `latest_backup.json`.
- */
 export async function pushLatestBackup(
   token: string,
   payload: BackupPayload
@@ -250,14 +226,11 @@ export async function pushLatestBackup(
   await uploadJson(token, folderId, "latest_backup.json", payload);
 }
 
-/**
- * Scheduled snapshot backup: creates/overwrites a dated file.
- */
 export async function pushScheduledBackup(
   token: string,
   payload: BackupPayload
 ): Promise<void> {
   const folderId = await ensureRootFolder(token);
-  const name     = scheduledBackupName();
+  const name = scheduledBackupName();
   await uploadJson(token, folderId, name, payload);
 }

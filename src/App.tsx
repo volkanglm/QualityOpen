@@ -54,7 +54,7 @@ function SplashScreen() {
       transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
       className="fixed inset-0 flex flex-col items-center justify-center gap-4 z-[9999]"
       style={{ background: "var(--bg-primary)" }}
-      onClick={() => useAuthStore.setState({ booting: false })}
+      onClick={() => useAuthStore.setState({ booting: false, initialized: true })}
     >
       {/* Logo + name */}
       <motion.div
@@ -104,8 +104,24 @@ export default function App() {
       unsubNetwork = initNetworkWatcher();
     } catch (e) {
       console.error("Critical error in initAuthListener:", e);
+      // If init itself crashes, force-complete boot so user sees LoginPage
+      useAuthStore.setState({ booting: false, initialized: true });
     }
-    return () => { unsubAuth(); unsubNetwork(); };
+
+    // Safety net: if boot is still stuck after 5s, force-complete it
+    const safetyTimer = setTimeout(() => {
+      const { booting, initialized } = useAuthStore.getState();
+      if (booting || !initialized) {
+        console.warn("[Safety] Boot stuck after 5s — forcing completion");
+        useAuthStore.setState({ booting: false, initialized: true });
+      }
+    }, 5000);
+
+    return () => {
+      clearTimeout(safetyTimer);
+      unsubAuth();
+      unsubNetwork();
+    };
   }, []);
 
   /* Tauri OS file-drop handler (fires when user drags files from Finder) */
@@ -198,15 +214,14 @@ export default function App() {
   // ── Gate logic ──────────────────────────────────────────────────────────────
   //
   // booting          → SplashScreen
-  // !initialized     → null (prevent login flicker)
-  // !user            → LoginPage
-  // user + !false    → Main app  (null = still loading → show optimistically)
-  // user + false     → PaywallPage (only when explicitly no license)
+  // !initialized     → null (prevent flicker)
+  // initialized + !user → LoginPage
+  // initialized + user  → Main app
   //
-  const showMain = initialized && !booting && !!user;
-  const showPaywall = false; // license gate deactivated until backend is ready
   const showLogin = initialized && !booting && !user;
-  const showLoading = !initialized && !booting; // should rarely happen with splashing
+  const showMain = initialized && !booting && !!user;
+  const showPaywall = false;
+  const showLoading = !initialized && !booting;
 
   return (
     <ErrorBoundary>
@@ -236,9 +251,9 @@ export default function App() {
 
         {/* ── Global overlays (always mounted) ── */}
 
-        {/* Sync status widget — visible when signed in */}
+        {/* Sync status / account widget — always visible after boot */}
         <AnimatePresence>
-          {user && !booting && (
+          {!booting && initialized && (
             <motion.div
               key="sync"
               initial={{ opacity: 0, y: 12 }}

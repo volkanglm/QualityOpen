@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Cloud, CloudOff, Check, AlertCircle, LogOut, RefreshCw } from "lucide-react";
+import { Cloud, CloudOff, Check, AlertCircle, LogOut, RefreshCw, LogIn } from "lucide-react";
 import { useSyncStore } from "@/store/sync.store";
 import { useAuthStore } from "@/store/auth.store";
 import { Button } from "@/components/ui/Button";
@@ -11,7 +11,7 @@ export function SyncStatus() {
   const { status, lastSyncAt, lastBackupAt, backupSchedule, errorMessage, driveDisabled,
           syncNow, backupNow, setSchedule, resetDrive } =
     useSyncStore();
-  const { accessToken, user, signOut } = useAuthStore();
+  const { accessToken, user, signOut, signIn, loading: authLoading } = useAuthStore();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -68,8 +68,8 @@ export function SyncStatus() {
               boxShadow:    "var(--float-shadow)",
             }}
           >
-            {/* User */}
-            {user && (
+            {/* User profile — or sign-in prompt */}
+            {user ? (
               <div className="flex items-center gap-2.5 mb-3 pb-3 border-b" style={{ borderColor: "var(--border-subtle)" }}>
                 {user.photoURL ? (
                   <img
@@ -93,6 +93,19 @@ export function SyncStatus() {
                     {user.email}
                   </p>
                 </div>
+              </div>
+            ) : (
+              <div className="mb-3 pb-3 border-b" style={{ borderColor: "var(--border-subtle)" }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-center gap-2 text-[12px]"
+                  disabled={authLoading}
+                  onClick={() => { setMenuOpen(false); void signIn(); }}
+                >
+                  <LogIn className="h-3.5 w-3.5" />
+                  {authLoading ? "Giriş yapılıyor…" : "Google ile Giriş Yap"}
+                </Button>
               </div>
             )}
 
@@ -185,15 +198,17 @@ export function SyncStatus() {
                 <Cloud className="h-3.5 w-3.5" />
                 Şimdi yedekle
               </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                className="w-full justify-start gap-2 text-[12px]"
-                onClick={() => { setMenuOpen(false); void signOut(); }}
-              >
-                <LogOut className="h-3.5 w-3.5" />
-                Çıkış yap
-              </Button>
+              {user && (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  className="w-full justify-start gap-2 text-[12px]"
+                  onClick={() => { setMenuOpen(false); void signOut(); }}
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  Çıkış yap
+                </Button>
+              )}
             </div>
           </motion.div>
         )}
@@ -233,8 +248,13 @@ export function SyncStatus() {
         >
           {user?.photoURL ? (
             <img src={user.photoURL} alt="" className="h-7 w-7 rounded-full object-cover" />
-          ) : (
+          ) : user ? (
             <RefreshCw
+              className="h-3.5 w-3.5"
+              style={{ color: menuOpen ? "var(--accent)" : "var(--text-muted)" }}
+            />
+          ) : (
+            <LogIn
               className="h-3.5 w-3.5"
               style={{ color: menuOpen ? "var(--accent)" : "var(--text-muted)" }}
             />

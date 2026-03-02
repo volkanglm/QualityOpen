@@ -1,13 +1,15 @@
 // ─── Lemon Squeezy License Validation ────────────────────────────────────────
 // Calls the LS public license-validate endpoint (no API key needed).
-// In production set VITE_LS_STORE_SLUG in .env to your LS store slug.
+// Uses native HTTP to bypass WKWebView restrictions in production.
+
+import { nativeHttp } from "@/lib/nativeHttp";
 
 const LS_VALIDATE = "https://api.lemonsqueezy.com/v1/licenses/validate";
 
 export interface LicenseValidationResult {
-  valid:     boolean;
+  valid: boolean;
   planName?: string;
-  error?:    string;
+  error?: string;
 }
 
 export async function validateLicenseKey(
@@ -18,35 +20,34 @@ export async function validateLicenseKey(
   }
 
   try {
-    const body = new URLSearchParams({ license_key: key.trim() });
-    const res  = await fetch(LS_VALIDATE, {
-      method:  "POST",
+    const body = new URLSearchParams({ license_key: key.trim() }).toString();
+
+    const res = await nativeHttp(LS_VALIDATE, {
+      method: "POST",
       headers: {
-        "Accept":       "application/json",
+        "Accept": "application/json",
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: body.toString(),
+      body,
     });
 
-    // LS returns 200 for valid keys, 400/422 for invalid
-    const data = await res.json().catch(() => ({})) as Record<string, unknown>;
+    const data = JSON.parse(res.body) as Record<string, unknown>;
 
-    if (res.ok && data.valid === true) {
+    if (res.status >= 200 && res.status < 300 && data.valid === true) {
       const meta = (data.meta ?? {}) as Record<string, unknown>;
       return {
-        valid:    true,
+        valid: true,
         planName: (meta.product_name as string | undefined) ?? "QualityOpen Pro",
       };
     }
 
     const errMsg =
-      typeof data.error   === "string" ? data.error   :
-      typeof data.message === "string" ? data.message :
-      "Lisans anahtarı geçersiz veya süresi dolmuş.";
+      typeof data.error === "string" ? data.error :
+        typeof data.message === "string" ? data.message :
+          "Lisans anahtarı geçersiz veya süresi dolmuş.";
 
     return { valid: false, error: errMsg };
   } catch {
-    // Network error — fail open in offline/dev environment
     return {
       valid: false,
       error: "Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edin.",

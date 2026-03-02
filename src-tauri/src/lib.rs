@@ -2,16 +2,21 @@ use std::io::{Read, Write};
 use std::net::TcpListener;
 use tauri::{AppHandle, Emitter};
 
-/// Starts a one-shot HTTP server on a fixed loopback port.
-/// When the OAuth callback arrives, emits "oauth-callback" with the full URL,
-/// then serves a simple success page so the browser tab can close itself.
+/// Starts a one-shot HTTP server on a dynamically assigned loopback port.
+/// The OS picks a free port (bind to 0), so this never fails due to a
+/// port being in TIME_WAIT after a previous auth attempt.
+/// When the OAuth callback arrives, emits "oauth-callback" with the full URL.
 #[tauri::command]
 fn start_oauth_listener(app: AppHandle) -> Result<u16, String> {
-    let listener = TcpListener::bind("127.0.0.1:9119")
-        .map_err(|e| format!("Failed to bind port 9119: {e}"))?;
+    use std::net::SocketAddr;
+
+    // Bind to port 0 — the OS picks a free port reliably, no TIME_WAIT issues
+    let addr: SocketAddr = "127.0.0.1:0".parse().unwrap();
+    let listener =
+        TcpListener::bind(addr).map_err(|e| format!("Failed to bind OAuth listener: {e}"))?;
     let port = listener
         .local_addr()
-        .map_err(|e| format!("Failed to get address: {e}"))?
+        .map_err(|e| format!("Failed to get listener address: {e}"))?
         .port();
 
     std::thread::spawn(move || {
@@ -30,7 +35,7 @@ fn start_oauth_listener(app: AppHandle) -> Result<u16, String> {
             let callback_url = format!("http://127.0.0.1:{port}{path}");
 
             // Emit the event BEFORE writing the HTTP response so the main window
-            // receives oauth-callback before the auth window's window.close() fires.
+            // receives oauth-callback before the auth window closes.
             let _ = app.emit("oauth-callback", callback_url);
 
             let html = "\
@@ -63,7 +68,7 @@ async fn native_http(
 ) -> Result<(u16, String), String> {
     let client = reqwest::Client::builder()
         .connect_timeout(std::time::Duration::from_secs(10))
-        .timeout(std::time::Duration::from_secs(15))
+        .timeout(std::time::Duration::from_secs(60))
         .build()
         .map_err(|e| format!("Failed to build HTTP client: {e}"))?;
 
@@ -72,8 +77,11 @@ async fn native_http(
 
     let mut builder = match method.to_uppercase().as_str() {
         "POST" => client.post(&url),
-        "GET"  => client.get(&url),
-        other  => return Err(format!("Unsupported HTTP method: {other}")),
+        "GET" => client.get(&url),
+        "PATCH" => client.patch(&url),
+        "PUT" => client.put(&url),
+        "DELETE" => client.delete(&url),
+        other => return Err(format!("Unsupported HTTP method: {other}")),
     };
 
     for (key, val) in &headers_map {
@@ -84,9 +92,15 @@ async fn native_http(
         builder = builder.body(body);
     }
 
-    let response = builder.send().await.map_err(|e| format!("Request failed: {e}"))?;
-    let status  = response.status().as_u16();
-    let text    = response.text().await.map_err(|e| format!("Failed to read body: {e}"))?;
+    let response = builder
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {e}"))?;
+    let status = response.status().as_u16();
+    let text = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read body: {e}"))?;
 
     Ok((status, text))
 }
@@ -160,6 +174,8 @@ fn encode_base64(bytes: &[u8]) -> String {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![

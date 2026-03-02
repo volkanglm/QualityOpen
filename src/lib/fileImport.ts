@@ -89,9 +89,9 @@ async function importPdf(file: File): Promise<ImportedFile> {
 function importVideo(file: File): ImportedFile {
   const url = URL.createObjectURL(file);
   return {
-    name:      file.name.replace(/\.[^.]+$/, ""),
-    content:   url,
-    format:    "video",
+    name: file.name.replace(/\.[^.]+$/, ""),
+    content: url,
+    format: "video",
     wordCount: 0,
   };
 }
@@ -101,10 +101,10 @@ function importVideo(file: File): ImportedFile {
 function importImage(file: File): Promise<ImportedFile> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload  = () => resolve({
-      name:      file.name.replace(/\.[^.]+$/, ""),
-      content:   reader.result as string,
-      format:    "image",
+    reader.onload = () => resolve({
+      name: file.name.replace(/\.[^.]+$/, ""),
+      content: reader.result as string,
+      format: "image",
       wordCount: 0,
     });
     reader.onerror = () => reject(new Error("Failed to read image"));
@@ -124,17 +124,26 @@ export function getFileCategory(file: File): "text" | "video" | "image" | "other
 }
 
 export async function importFile(file: File): Promise<ImportedFile> {
+  // Demo Mode: Size limit for guests (no user object in store)
+  const { useAuthStore } = await import("@/store/auth.store");
+  const isGuest = !useAuthStore.getState().user;
+
+  const SIZE_LIMIT = 5 * 1024 * 1024; // 5MB limit for guests
+  if (isGuest && file.size > SIZE_LIMIT) {
+    throw new Error("Demo sürümünde dosya boyutu 5MB ile sınırlıdır. Lütfen daha küçük bir dosya seçin veya tam sürüm için giriş yapın.");
+  }
+
   const cat = getFileCategory(file);
   if (cat === "video") return importVideo(file);
   if (cat === "image") return importImage(file);
 
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
   switch (ext) {
-    case "txt":  return importTxt(file);
+    case "txt": return importTxt(file);
     case "docx":
-    case "doc":  return importDocx(file);
-    case "pdf":  return importPdf(file);
-    default:     return importTxt(file);
+    case "doc": return importDocx(file);
+    case "pdf": return importPdf(file);
+    default: return importTxt(file);
   }
 }
 

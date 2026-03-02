@@ -1,8 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useAuthStore }        from "@/store/auth.store";
-import { firebaseConfigured }  from "@/lib/firebase";
-import { AppLogo }             from "@/components/ui/AppLogo";
+import { useAuthStore } from "@/store/auth.store";
+import { firebaseConfigured } from "@/lib/firebase";
+import { AppLogo } from "@/components/ui/AppLogo";
 
 /* Google "G" SVG — crisp at small sizes */
 function GoogleIcon() {
@@ -33,109 +32,11 @@ function LogoMark() {
   return (
     <motion.div
       initial={{ scale: 0.85, opacity: 0 }}
-      animate={{ scale: 1,    opacity: 1 }}
+      animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.2, ease: [0.2, 0, 0, 1], delay: 0.06 }}
     >
       <AppLogo size={64} variant="badge" />
     </motion.div>
-  );
-}
-
-// ─── Debug log panel ──────────────────────────────────────────────────────────
-
-function DebugPanel() {
-  const [logs, setLogs] = useState<string[]>([]);
-  const logsRef = useRef<string[]>([]);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const addLog = useCallback((msg: string) => {
-    const t = new Date().toISOString().slice(11, 23);
-    const entry = `[${t}] ${msg}`;
-    logsRef.current = [...logsRef.current, entry];
-    setLogs([...logsRef.current]);
-  }, []);
-
-  // Snapshot current state on mount
-  useEffect(() => {
-    addLog("BUILD v3 — direct invoke, no signInWithCredential, body-read timeout");
-    const s = useAuthStore.getState();
-    addLog(`SNAPSHOT booting:${s.booting} init:${s.initialized} user:${s.user?.email ?? "null"} premium:${s.premium} loading:${s.loading} error:${s.error ?? "null"}`);
-  }, [addLog]);
-
-  // Track every store change
-  useEffect(() => {
-    const unsub = useAuthStore.subscribe((s, p) => {
-      const diff: string[] = [];
-      if (s.booting     !== p.booting)     diff.push(`booting:${p.booting}→${s.booting}`);
-      if (s.initialized !== p.initialized) diff.push(`init:${p.initialized}→${s.initialized}`);
-      if (s.user        !== p.user)        diff.push(`user:${p.user?.email ?? "null"}→${s.user?.email ?? "null"}`);
-      if (s.premium     !== p.premium)     diff.push(`premium:${p.premium}→${s.premium}`);
-      if (s.loading     !== p.loading)     diff.push(`loading:${p.loading}→${s.loading}`);
-      if (s.error       !== p.error)       diff.push(`error:${p.error ?? "null"}→${s.error ?? "null"}`);
-      if (diff.length) addLog(`STORE ${diff.join(" | ")}`);
-    });
-    return () => unsub();
-  }, [addLog]);
-
-  // Intercept console output
-  useEffect(() => {
-    const oLog = console.log, oWarn = console.warn, oErr = console.error;
-    const fmt = (a: unknown[]) => a.map(x => typeof x === "object" ? JSON.stringify(x) : String(x)).join(" ");
-    console.log   = (...a) => { oLog(...a);   addLog("LOG  " + fmt(a)); };
-    console.warn  = (...a) => { oWarn(...a);  addLog("WARN " + fmt(a)); };
-    console.error = (...a) => { oErr(...a);   addLog("ERR  " + fmt(a)); };
-    return () => { console.log = oLog; console.warn = oWarn; console.error = oErr; };
-  }, [addLog]);
-
-  // Auto-scroll textarea to bottom
-  useEffect(() => {
-    const el = textareaRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [logs]);
-
-  const selectAll = () => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.focus();
-    el.select();
-  };
-
-  return (
-    <div
-      className="fixed bottom-0 left-0 right-0 z-[9999] border-t"
-      style={{ background: "#09090b", borderColor: "#27272a" }}
-    >
-      <div
-        className="flex items-center justify-between px-3 py-1.5"
-        style={{ borderBottom: "1px solid #27272a" }}
-      >
-        <span style={{ fontFamily: "monospace", fontSize: 10, fontWeight: 600, color: "#71717a" }}>
-          DEBUG — {logs.length} events · Cmd+A to select all, then Cmd+C
-        </span>
-        <button
-          onClick={selectAll}
-          style={{
-            fontFamily: "monospace", fontSize: 10,
-            padding: "2px 8px", borderRadius: 3,
-            background: "#18181b", border: "1px solid #3f3f46",
-            color: "#a1a1aa", cursor: "pointer",
-          }}
-        >
-          Select all
-        </button>
-      </div>
-      <textarea
-        ref={textareaRef}
-        readOnly
-        value={logsRef.current.join("\n")}
-        style={{
-          width: "100%", height: 180, resize: "none",
-          background: "#09090b", border: "none", outline: "none",
-          fontFamily: "monospace", fontSize: 10, color: "#a1a1aa",
-          lineHeight: 1.6, padding: "8px 12px", boxSizing: "border-box",
-        }}
-      />
-    </div>
   );
 }
 
@@ -198,9 +99,9 @@ export function LoginPage() {
           transition={{ delay: 0.18, duration: 0.2, ease: [0.2, 0, 0, 1] }}
           className="w-full rounded-[var(--radius-lg)] border p-6 flex flex-col gap-4"
           style={{
-            background:   "var(--bg-secondary)",
-            borderColor:  "var(--border)",
-            boxShadow:    "var(--panel-shadow)",
+            background: "var(--bg-secondary)",
+            borderColor: "var(--border)",
+            boxShadow: "var(--panel-shadow)",
           }}
         >
           <div>
@@ -228,9 +129,9 @@ export function LoginPage() {
             disabled={loading || !isConfigured}
             className="relative flex w-full items-center justify-center gap-3 rounded-[var(--radius-md)] border py-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed"
             style={{
-              background:   "var(--bg-tertiary)",
-              borderColor:  "var(--border)",
-              color:        loading ? "var(--text-muted)" : "var(--text-primary)",
+              background: "var(--bg-tertiary)",
+              borderColor: "var(--border)",
+              color: loading ? "var(--text-muted)" : "var(--text-primary)",
             }}
             onMouseEnter={(e) => {
               if (!loading && isConfigured)
@@ -282,9 +183,9 @@ export function LoginPage() {
               <div
                 className="rounded-[var(--radius-sm)] p-3 text-xs leading-relaxed"
                 style={{
-                  background:  "rgba(252, 163, 17, 0.08)",
-                  border:      "1px solid rgba(252, 163, 17, 0.25)",
-                  color:       "#fca319",
+                  background: "rgba(252, 163, 17, 0.08)",
+                  border: "1px solid rgba(252, 163, 17, 0.25)",
+                  color: "#fca319",
                 }}
               >
                 <strong>Firebase not configured.</strong> Add your Firebase credentials to{" "}
@@ -307,9 +208,9 @@ export function LoginPage() {
                 <div
                   className="rounded-[var(--radius-sm)] p-3 text-xs leading-relaxed"
                   style={{
-                    background:  "var(--danger-subtle)",
-                    border:      "1px solid rgba(248,113,113,0.25)",
-                    color:       "var(--danger)",
+                    background: "var(--danger-subtle)",
+                    border: "1px solid rgba(248,113,113,0.25)",
+                    color: "var(--danger)",
                   }}
                 >
                   {error}
@@ -320,19 +221,43 @@ export function LoginPage() {
         </motion.div>
 
         {/* Footer */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="text-center text-[11px] leading-relaxed"
-          style={{ color: "var(--text-disabled)" }}
-        >
-          Offline-first · Your data stays yours
-        </motion.p>
+        <div className="flex flex-col items-center gap-4">
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+            className="text-center text-[11px] leading-relaxed"
+            style={{ color: "var(--text-disabled)" }}
+          >
+            Offline-first · Your data stays yours
+          </motion.p>
+
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8 }}
+            onClick={async () => {
+              if (confirm("Uygulama verilerini sıfırlamak istediğinize emin misiniz? Bu işlem çıkış yapmanızı sağlar ve yerel önbelleği temizler.")) {
+                localStorage.clear();
+                sessionStorage.clear();
+
+                // Clear all IndexedDB databases
+                const dbs = await window.indexedDB.databases();
+                dbs.forEach(db => {
+                  if (db.name) window.indexedDB.deleteDatabase(db.name);
+                });
+
+                window.location.reload();
+              }
+            }}
+            className="text-[10px] uppercase tracking-widest opacity-30 hover:opacity-100 transition-opacity"
+            style={{ color: "var(--text-muted)" }}
+          >
+            Emergency Reset
+          </motion.button>
+        </div>
       </motion.div>
 
-      {/* Debug panel — always visible at bottom */}
-      <DebugPanel />
     </div>
   );
 }

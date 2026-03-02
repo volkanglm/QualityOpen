@@ -1,12 +1,14 @@
 // ─── AI Types ───────────────────────────────────────────────────────────────
 
+import { nativeHttp } from "@/lib/nativeHttp";
+
 export interface Message {
-  role:    "user" | "assistant";
+  role: "user" | "assistant";
   content: string;
 }
 
 export interface ThematicCode {
-  name:      string;
+  name: string;
   rationale: string;
 }
 
@@ -18,7 +20,7 @@ export interface ThematicResult {
 
 function detectProvider(key: string): "openai" | "anthropic" | "gemini" {
   if (key.startsWith("sk-ant-")) return "anthropic";
-  if (key.startsWith("AIza"))   return "gemini";
+  if (key.startsWith("AIza")) return "gemini";
   return "openai";
 }
 
@@ -45,26 +47,26 @@ export async function askAi(
   const provider = detectProvider(key);
 
   if (provider === "anthropic") {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await nativeHttp("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        "Content-Type":      "application/json",
-        "x-api-key":         key,
+        "Content-Type": "application/json",
+        "x-api-key": key,
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model:      "claude-3-5-haiku-latest",
+        model: "claude-3-5-haiku-latest",
         max_tokens: 1024,
-        system:     systemPrompt,
-        messages:   messages.map((m) => ({ role: m.role, content: m.content })),
+        system: systemPrompt,
+        messages: messages.map((m) => ({ role: m.role, content: m.content })),
       }),
     });
-    if (!res.ok) throw new Error(`Anthropic ${res.status}`);
-    const data = await res.json() as { content?: { text: string }[] };
+    if (res.status < 200 || res.status >= 300) throw new Error(`Anthropic ${res.status}`);
+    const data = JSON.parse(res.body) as { content?: { text: string }[] };
     return data.content?.[0]?.text ?? "";
 
   } else if (provider === "gemini") {
-    const res = await fetch(
+    const res = await nativeHttp(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
       {
         method: "POST",
@@ -72,34 +74,34 @@ export async function askAi(
         body: JSON.stringify({
           system_instruction: { parts: [{ text: systemPrompt }] },
           contents: messages.map((m) => ({
-            role:  m.role === "user" ? "user" : "model",
+            role: m.role === "user" ? "user" : "model",
             parts: [{ text: m.content }],
           })),
         }),
       }
     );
-    if (!res.ok) throw new Error(`Gemini ${res.status}`);
-    const data = await res.json() as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
+    if (res.status < 200 || res.status >= 300) throw new Error(`Gemini ${res.status}`);
+    const data = JSON.parse(res.body) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
     return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 
   } else {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    const res = await nativeHttp("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Content-Type":  "application/json",
+        "Content-Type": "application/json",
         "Authorization": `Bearer ${key}`,
       },
       body: JSON.stringify({
-        model:       "gpt-4o-mini",
+        model: "gpt-4o-mini",
         temperature: 0.5,
-        messages:    [
+        messages: [
           { role: "system", content: systemPrompt },
           ...messages.map((m) => ({ role: m.role, content: m.content })),
         ],
       }),
     });
-    if (!res.ok) throw new Error(`OpenAI ${res.status}`);
-    const data = await res.json() as { choices: { message: { content: string } }[] };
+    if (res.status < 200 || res.status >= 300) throw new Error(`OpenAI ${res.status}`);
+    const data = JSON.parse(res.body) as { choices: { message: { content: string } }[] };
     return data.choices[0].message.content;
   }
 }
