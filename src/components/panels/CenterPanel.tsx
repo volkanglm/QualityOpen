@@ -134,6 +134,7 @@ export function CenterPanel() {
   }, [searchOpen, searchQuery, doc?.content, useRegex, matchCase, wholeWord]);
 
   const readerRef = useRef<HTMLDivElement>(null);
+  const readerContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const saveTimer = useRef<number | undefined>(undefined);
   const noteSaveTimer = useRef<number | undefined>(undefined);
@@ -836,11 +837,13 @@ export function CenterPanel() {
                     codes={codes}
                     contentLength={format === "pdf" ? pdfTextLength : doc.content.length}
                     containerHeight={readerHeight}
+                    containerRef={readerContainerRef}
                   />
 
                   <div
                     className="flex-1 min-w-0"
                     ref={(el) => {
+                      (readerContainerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
                       if (el && el.scrollHeight !== readerHeight) {
                         setReaderHeight(el.scrollHeight);
                       }

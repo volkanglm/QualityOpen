@@ -292,7 +292,8 @@ function PdfPage({ pdf, pageNumber, scale }: { pdf: any; pageNumber: number; sca
         style={{
           userSelect: "text",
           cursor: "text",
-          mixBlendMode: "multiply",
+          zIndex: 2,
+          pointerEvents: "auto",
         }}
       />
     </div>
