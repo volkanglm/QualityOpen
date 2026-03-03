@@ -3,23 +3,23 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { Code } from "@/types";
 
 export interface BubbleItem {
-  code:  Code;
+  code: Code;
   count: number;
 }
 
 interface PlacedCircle {
-  id:    string;
-  x:     number;
-  y:     number;
-  r:     number;
-  data:  BubbleItem;
+  id: string;
+  x: number;
+  y: number;
+  r: number;
+  data: BubbleItem;
 }
 
 // ─── Force-directed bubble packing ───────────────────────────────────────────
 
 function computeLayout(
-  items:  BubbleItem[],
-  width:  number,
+  items: BubbleItem[],
+  width: number,
   height: number,
 ): PlacedCircle[] {
   if (items.length === 0) return [];
@@ -27,8 +27,8 @@ function computeLayout(
   const maxCount = Math.max(...items.map((i) => i.count), 1);
   const minR = Math.max(20, Math.min(38, (Math.min(width, height) * 0.08)));
   const maxR = Math.min(width, height) * 0.20;
-  const cx   = width  / 2;
-  const cy   = height / 2;
+  const cx = width / 2;
+  const cy = height / 2;
 
   type Node = PlacedCircle & { vx: number; vy: number };
 
@@ -37,17 +37,17 @@ function computeLayout(
     const angle = (i / items.length) * Math.PI * 2;
     const spread = Math.min(width, height) * 0.26;
     return {
-      id:   item.code.id,
-      r:    minR + ratio * (maxR - minR),
+      id: item.code.id,
+      r: minR + ratio * (maxR - minR),
       data: item,
-      x:    cx + Math.cos(angle) * spread,
-      y:    cy + Math.sin(angle) * spread,
-      vx:   0,
-      vy:   0,
+      x: cx + Math.cos(angle) * spread,
+      y: cy + Math.sin(angle) * spread,
+      vx: 0,
+      vy: 0,
     };
   });
 
-  const ITERS   = 320;
+  const ITERS = 320;
   const GRAVITY = 0.038;
   const PADDING = 7;
 
@@ -66,8 +66,8 @@ function computeLayout(
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
         const a = nodes[i], b = nodes[j];
-        const dx   = b.x - a.x;
-        const dy   = b.y - a.y;
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
         const minD = a.r + b.r + PADDING;
         if (dist < minD) {
@@ -83,8 +83,8 @@ function computeLayout(
     nodes.forEach((n) => {
       n.x += n.vx * decay;
       n.y += n.vy * decay;
-      n.x  = Math.max(n.r + 8, Math.min(width  - n.r - 8, n.x));
-      n.y  = Math.max(n.r + 8, Math.min(height - n.r - 8, n.y));
+      n.x = Math.max(n.r + 8, Math.min(width - n.r - 8, n.x));
+      n.y = Math.max(n.r + 8, Math.min(height - n.r - 8, n.y));
     });
   }
 
@@ -95,9 +95,10 @@ function computeLayout(
 
 interface BubbleCloudProps {
   items: BubbleItem[];
+  zoom?: number;
 }
 
-export function BubbleCloud({ items }: BubbleCloudProps) {
+export function BubbleCloud({ items, zoom = 1.0 }: BubbleCloudProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 600, height: 420 });
   const [hovered, setHovered] = useState<string | null>(null);
@@ -132,11 +133,12 @@ export function BubbleCloud({ items }: BubbleCloudProps) {
         <svg width={size.width} height={size.height} style={{ display: "block" }}>
           {placed.map((circle, i) => {
             const { code, count } = circle.data;
-            const isHov    = hovered === code.id;
-            const opacity  = 0.50 + (count / maxCount) * 0.50;
-            const fontSize = Math.max(9, Math.min(14, circle.r * 0.42));
-            const label    = code.name.length > Math.floor(circle.r / 5.5)
-              ? code.name.slice(0, Math.floor(circle.r / 5.5)) + "…"
+            const isHov = hovered === code.id;
+            const opacity = 0.50 + (count / maxCount) * 0.50;
+            const radius = circle.r * zoom;
+            const fontSize = Math.max(9, Math.min(14 * zoom, radius * 0.42));
+            const label = code.name.length > Math.floor(radius / 5.5)
+              ? code.name.slice(0, Math.floor(radius / 5.5)) + "…"
               : code.name;
 
             return (
@@ -145,14 +147,14 @@ export function BubbleCloud({ items }: BubbleCloudProps) {
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{
-                  delay:      i * 0.045,
-                  type:       "spring",
-                  stiffness:  260,
-                  damping:    22,
+                  delay: i * 0.045,
+                  type: "spring",
+                  stiffness: 260,
+                  damping: 22,
                 }}
                 style={{ transformOrigin: `${circle.x}px ${circle.y}px`, cursor: "default" }}
                 onHoverStart={() => setHovered(code.id)}
-                onHoverEnd={()   => setHovered(null)}
+                onHoverEnd={() => setHovered(null)}
               >
                 {/* Glow ring on hover */}
                 <AnimatePresence>
@@ -161,8 +163,8 @@ export function BubbleCloud({ items }: BubbleCloudProps) {
                       key="glow"
                       cx={circle.x}
                       cy={circle.y}
-                      initial={{ r: circle.r, opacity: 0 }}
-                      animate={{ r: circle.r + 10, opacity: 0.18 }}
+                      initial={{ r: radius, opacity: 0 }}
+                      animate={{ r: radius + 10 * zoom, opacity: 0.18 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.25 }}
                       fill={code.color}
@@ -174,13 +176,13 @@ export function BubbleCloud({ items }: BubbleCloudProps) {
                 <motion.circle
                   cx={circle.x}
                   cy={circle.y}
-                  r={circle.r}
+                  r={radius}
                   fill={code.color}
                   fillOpacity={opacity * 0.20}
                   stroke={code.color}
                   strokeOpacity={isHov ? 0.9 : opacity * 0.55}
-                  strokeWidth={isHov ? 2 : 1.5}
-                  animate={{ r: isHov ? circle.r + 3 : circle.r }}
+                  strokeWidth={isHov ? 2 * zoom : 1.5 * zoom}
+                  animate={{ r: isHov ? radius + 3 * zoom : radius }}
                   transition={{ type: "spring", stiffness: 400, damping: 26 }}
                 />
 
