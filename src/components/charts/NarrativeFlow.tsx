@@ -1,6 +1,7 @@
 import { memo, useMemo } from "react";
 import { motion } from "framer-motion";
 import type { Code, Document, Segment } from "@/types";
+import { useT } from "@/lib/i18n";
 
 interface NarrativeFlowProps {
     codes: Code[];
@@ -12,6 +13,7 @@ interface NarrativeFlowProps {
 }
 
 export const NarrativeFlow = memo(({ codes, doc, segments, isProjectScope, allDocs, zoom = 1.0 }: NarrativeFlowProps) => {
+    const t = useT();
     const docSegments = useMemo(() => {
         if (isProjectScope) return [...segments].sort((a, b) => a.start - b.start);
         return segments.filter(s => s.documentId === doc?.id).sort((a, b) => a.start - b.start);
@@ -28,7 +30,7 @@ export const NarrativeFlow = memo(({ codes, doc, segments, isProjectScope, allDo
     if (!isProjectScope && !doc) {
         return (
             <div className="flex h-full items-center justify-center text-[var(--text-muted)] text-xs">
-                Lütfen analiz için bir belge seçin.
+                {t("analysis.selectDoc")}
             </div>
         );
     }
@@ -37,12 +39,12 @@ export const NarrativeFlow = memo(({ codes, doc, segments, isProjectScope, allDo
         <div className="w-full h-full p-4 flex flex-col gap-6 overflow-hidden">
             <div className="flex items-center justify-between">
                 <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
-                    {isProjectScope ? "TÜM PROJE" : doc?.name} — Anlatı Akışı
+                    {isProjectScope ? t("analysis.allProject") : doc?.name} — {t("analysis.narrativeFlow")}
                 </h3>
                 <div className="flex gap-4">
                     <div className="flex items-center gap-1.5">
                         <div className="h-1.5 w-6 bg-[var(--bg-tertiary)] rounded-full" />
-                        <span className="text-[10px] text-[var(--text-muted)] uppercase">Belge Akışı (X)</span>
+                        <span className="text-[10px] text-[var(--text-muted)] uppercase">{t("analysis.documentFlow")} (X)</span>
                     </div>
                 </div>
             </div>
@@ -59,7 +61,7 @@ export const NarrativeFlow = memo(({ codes, doc, segments, isProjectScope, allDo
                                         {code.name}
                                     </span>
                                     <span className="text-[9px] font-mono text-[var(--text-muted)]">
-                                        {codeSegs.length} segment
+                                        {codeSegs.length} {t("analysis.segments")}
                                     </span>
                                 </div>
 
@@ -113,7 +115,7 @@ export const NarrativeFlow = memo(({ codes, doc, segments, isProjectScope, allDo
 
                     {relevantCodes.length === 0 && (
                         <div className="absolute inset-0 flex items-center justify-center border border-dashed border-[var(--border)] rounded-lg">
-                            <p className="text-[11px] text-[var(--text-muted)]">Bu belge henüz kodlanmamış.</p>
+                            <p className="text-[11px] text-[var(--text-muted)]">{t("analysis.notCoded")}</p>
                         </div>
                     )}
                 </div>
@@ -121,8 +123,8 @@ export const NarrativeFlow = memo(({ codes, doc, segments, isProjectScope, allDo
 
             {/* X-Axis Indicator */}
             <div className="h-px w-full bg-gradient-to-r from-transparent via-[var(--border)] to-transparent relative mt-4">
-                <div className="absolute top-2 left-0 text-[8px] text-[var(--text-muted)] font-mono italic uppercase">BAŞLANGIÇ</div>
-                <div className="absolute top-2 right-0 text-[8px] text-[var(--text-muted)] font-mono italic uppercase">SON</div>
+                <div className="absolute top-2 left-0 text-[8px] text-[var(--text-muted)] font-mono italic uppercase">{t("analysis.start")}</div>
+                <div className="absolute top-2 right-0 text-[8px] text-[var(--text-muted)] font-mono italic uppercase">{t("analysis.end")}</div>
             </div>
         </div>
     );

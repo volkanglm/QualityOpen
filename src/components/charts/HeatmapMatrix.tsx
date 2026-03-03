@@ -4,6 +4,7 @@ import type { Code, Document as QODocument, Segment } from "@/types";
 import { truncate } from "@/lib/utils";
 import { flattenCodes } from "@/lib/tree";
 import { SegmentDrawer } from "@/components/analysis/SegmentDrawer";
+import { useT } from "@/lib/i18n";
 
 interface HeatmapProps {
   codes: Code[];
@@ -15,6 +16,7 @@ interface HeatmapProps {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function HeatmapMatrix({ codes, docs, segments, zoom = 1.0 }: HeatmapProps) {
+  const t = useT();
   const [hoveredCell, setHoveredCell] = useState<{ codeId: string; docId: string } | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerContext, setDrawerContext] = useState<{ codeId: string; docId: string } | null>(null);
@@ -25,7 +27,7 @@ export function HeatmapMatrix({ codes, docs, segments, zoom = 1.0 }: HeatmapProp
     return (
       <div className="flex h-full items-center justify-center">
         <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-          Matris için en az bir belge ve bir kod gerekli.
+          {t("analysis.matrixRequired")}
         </p>
       </div>
     );
@@ -268,7 +270,7 @@ export function HeatmapMatrix({ codes, docs, segments, zoom = 1.0 }: HeatmapProp
           gap: 6 * zoom,
         }}
       >
-        <span style={{ fontSize: Math.max(8, 10 * zoom), color: "var(--text-disabled)" }}>Az</span>
+        <span style={{ fontSize: Math.max(8, 10 * zoom), color: "var(--text-disabled)" }}>{t("analysis.few")}</span>
         {[0.12, 0.30, 0.50, 0.70, 0.90].map((op, k) => (
           <div
             key={k}
@@ -281,9 +283,9 @@ export function HeatmapMatrix({ codes, docs, segments, zoom = 1.0 }: HeatmapProp
             }}
           />
         ))}
-        <span style={{ fontSize: Math.max(8, 10 * zoom), color: "var(--text-disabled)" }}>Çok</span>
+        <span style={{ fontSize: Math.max(8, 10 * zoom), color: "var(--text-disabled)" }}>{t("analysis.many")}</span>
         <span style={{ marginLeft: 12 * zoom, fontSize: Math.max(8, 10 * zoom), color: "var(--text-disabled)" }}>
-          (Her hücre: bir belgedeki segment sayısı)
+          {t("analysis.matrixLegend")}
         </span>
       </div>
 

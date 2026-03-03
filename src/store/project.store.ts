@@ -56,6 +56,7 @@ interface ProjectStore {
 
   // Backup
   importBackup: (payload: { projects: Project[]; documents: Document[]; codes: Code[]; segments: Segment[]; memos: Memo[]; syntheses?: Synthesis[] }) => void;
+  loadDemoProject: (payload: { project: Project; documents: Document[]; codes: Code[]; segments: Segment[]; memos: Memo[]; syntheses?: Synthesis[] }) => void;
 }
 
 export const useProjectStore = create<ProjectStore>()(
@@ -299,6 +300,16 @@ export const useProjectStore = create<ProjectStore>()(
             syntheses: payload.syntheses ?? [],
           });
         },
+        loadDemoProject: (payload) => {
+          set({
+            projects: [payload.project],
+            documents: payload.documents,
+            codes: payload.codes,
+            segments: payload.segments,
+            memos: payload.memos ?? [],
+            syntheses: payload.syntheses ?? [],
+          });
+        }
       }),
       { name: "qo-project-data" }
     )
