@@ -9,14 +9,15 @@ import {
   AlignLeft,
   Upload,
   FileText,
-  Pencil,
-  Eye,
+  Lock,
+  Unlock,
   X,
   Search,
   MessageSquare,
   ChevronDown,
   StickyNote,
   ArrowLeft,
+  List,
 } from "lucide-react";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
@@ -28,6 +29,9 @@ import { SearchHighlighter } from "@/components/editor/SearchHighlighter";
 import { FloatingMenu, type FloatingMenuPos } from "@/components/editor/FloatingMenu";
 import { ContextCodeMenu } from "@/components/editor/ContextCodeMenu";
 import { CodeAssignPanel } from "@/components/editor/CodeAssignPanel";
+import { CodingStripes } from "@/components/editor/CodingStripes";
+import { MarginMemos } from "@/components/editor/MarginMemos";
+import { LineNumbers } from "@/components/editor/LineNumbers";
 import { PdfRenderer } from "@/components/editor/PdfRenderer";
 import { VideoPlayer } from "@/components/media/VideoPlayer";
 import { ImageViewer } from "@/components/media/ImageViewer";
@@ -61,11 +65,13 @@ export function CenterPanel() {
     activeCodeFilter,
     searchQuery,
     chatOpen,
+    showLineNumbers,
     setActiveSelection,
     setActiveDocument,
     setActiveCodeFilter,
     setChatOpen,
     setSearchQuery,
+    toggleLineNumbers,
   } = useAppStore();
 
   const {
@@ -92,6 +98,7 @@ export function CenterPanel() {
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; pos: FloatingMenuPos } | null>(null);
   const [importing, setImporting] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [pdfTextLength, setPdfTextLength] = useState(0);
   const [noteExpanded, setNoteExpanded] = useState(false);
   const [noteVal, setNoteVal] = useState(doc?.note ?? "");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -103,6 +110,7 @@ export function CenterPanel() {
   const saveTimer = useRef<number | undefined>(undefined);
   const noteSaveTimer = useRef<number | undefined>(undefined);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [readerHeight, setReaderHeight] = useState(600);
 
   // Keep editContent in sync when doc changes
   useEffect(() => {
@@ -110,6 +118,7 @@ export function CenterPanel() {
     setNoteVal(doc?.note ?? "");
     setEditMode(false);
     setNoteExpanded(false);
+    setPdfTextLength(0);
   }, [doc?.id]);
 
   // Focus search input when opened
@@ -155,6 +164,16 @@ export function CenterPanel() {
     });
   }, [doc, activeProjectId]);
 
+  const handleOcrComplete = (text: string) => {
+    if (doc) {
+      updateDocument(doc.id, {
+        content: text,
+        format: "text",
+        wordCount: countWords(text),
+      });
+    }
+  };
+
   // ── Text selection → floating menu ───────────────────────────────────────
   const handleMouseUp = useCallback(() => {
     if (editMode || format === "video" || format === "image") return;
@@ -181,7 +200,7 @@ export function CenterPanel() {
     });
 
     if (doc) setActiveSelection({ text, start, end, documentId: doc.id });
-  }, [editMode, doc, setActiveSelection, ctxMenu]);
+  }, [editMode, doc, setActiveSelection, ctxMenu, format]);
 
   // ── Right-click → context code menu ──────────────────────────────────────
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
@@ -423,6 +442,7 @@ export function CenterPanel() {
         searchOpen={searchOpen}
         chatOpen={chatOpen}
         summarizing={summarizing}
+        showLineNumbers={showLineNumbers}
         onToggleEdit={() => {
           if (editMode) {
             updateDocument(doc.id, { content: editContent, wordCount: countWords(editContent), format: "text" });
@@ -436,6 +456,7 @@ export function CenterPanel() {
         onImport={() => fileInputRef.current?.click()}
         onToggleSearch={() => setSearchOpen((v) => !v)}
         onToggleChat={() => setChatOpen(!chatOpen)}
+        onToggleLineNumbers={toggleLineNumbers}
       />
 
       {/* ── Search bar ── */}
@@ -602,8 +623,7 @@ export function CenterPanel() {
           onMouseUp={handleMouseUp}
           onContextMenu={handleContextMenu}
         >
-          {/* EDIT MODE */}
-          {editMode && (
+          {editMode ? (
             <textarea
               autoFocus
               value={editContent}
@@ -630,40 +650,68 @@ export function CenterPanel() {
               }}
               spellCheck={false}
             />
-          )}
-
-          {/* READ MODE — PDF */}
-          {!editMode && format === "pdf" && (
-            <div className={PROSE_CLASS}>
-              <PdfRenderer base64={doc.content} />
-            </div>
-          )}
-
-          {/* READ MODE — HTML (from DOCX) */}
-          {!editMode && format === "html" && (
-            <div
-              className={PROSE_CLASS}
-              style={PROSE_STYLE}
-              dangerouslySetInnerHTML={{ __html: doc.content }}
-            />
-          )}
-
-          {/* READ MODE — Plain text */}
-          {!editMode && format === "text" && (
-            <div className={PROSE_CLASS} style={PROSE_STYLE}>
-              {doc.content ? (
-                <SearchHighlighter
-                  content={doc.content}
-                  segments={docSegments}
-                  codes={codes}
-                  searchQuery={searchQuery}
-                  useRegex={useRegex}
-                />
-              ) : (
-                <span style={{ color: "var(--text-disabled)" }}>
-                  Empty document — click the pencil icon to start writing, or import a file.
-                </span>
+          ) : (
+            <div className="flex w-full min-h-full">
+              {/* Left margin: Line Numbers (Text only) */}
+              {showLineNumbers && format === "text" && (
+                <LineNumbers content={doc.content} every={5} />
               )}
+
+              {/* Left margin: Coding Stripes */}
+              <CodingStripes
+                segments={docSegments}
+                codes={codes}
+                contentLength={format === "pdf" ? pdfTextLength : doc.content.length}
+                containerHeight={readerHeight}
+              />
+
+              {/* Center: Main Content Workspace */}
+              <div
+                className="flex-1 min-w-0"
+                ref={(el) => {
+                  if (el && el.scrollHeight !== readerHeight) {
+                    setReaderHeight(el.scrollHeight);
+                  }
+                }}
+              >
+                {format === "pdf" ? (
+                  <PdfRenderer
+                    base64={doc.content}
+                    onOcrComplete={handleOcrComplete}
+                    onLoadComplete={setPdfTextLength}
+                  />
+                ) : format === "html" ? (
+                  <div
+                    className={PROSE_CLASS}
+                    style={PROSE_STYLE}
+                    dangerouslySetInnerHTML={{ __html: doc.content }}
+                  />
+                ) : (
+                  <div className={PROSE_CLASS} style={PROSE_STYLE}>
+                    {doc.content ? (
+                      <SearchHighlighter
+                        content={doc.content}
+                        segments={docSegments}
+                        codes={codes}
+                        searchQuery={searchQuery}
+                        useRegex={useRegex}
+                      />
+                    ) : (
+                      <span style={{ color: "var(--text-disabled)" }}>
+                        Empty document — click the pencil icon to start writing, or import a file.
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Right margin: Margin Memos */}
+              <MarginMemos
+                segments={docSegments}
+                codes={codes}
+                contentLength={format === "pdf" ? pdfTextLength : doc.content.length}
+                containerHeight={readerHeight}
+              />
             </div>
           )}
         </div>
@@ -814,6 +862,23 @@ export function CenterPanel() {
 
 // ─── Retrieval View ───────────────────────────────────────────────────────────
 
+const feedContainerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.06 },
+  },
+};
+
+const feedCardVariants = {
+  hidden: { opacity: 0, y: 12 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring" as const, stiffness: 400, damping: 30 },
+  },
+};
+
 function RetrievalView({
   codeId,
   codes,
@@ -831,75 +896,152 @@ function RetrievalView({
 }) {
   const code = codes.find((c) => c.id === codeId);
 
+  const formatDate = (ts: number) => {
+    const d = new Date(ts);
+    return d.toLocaleDateString("tr-TR", { day: "numeric", month: "short", year: "numeric" });
+  };
+
   return (
     <div className="flex h-full flex-col overflow-hidden" style={{ background: "var(--bg-primary)" }}>
       {/* Header */}
       <div
-        className="flex items-center gap-3 px-5 py-2.5 border-b flex-shrink-0"
+        className="flex items-center gap-3 px-6 py-3 border-b flex-shrink-0"
         style={{ borderColor: "var(--border-subtle)", background: "var(--bg-secondary)" }}
       >
         <button
           onClick={onClose}
-          className="flex items-center gap-1 text-[12px] transition-colors"
+          className="flex items-center gap-1.5 text-[12px] font-medium transition-colors rounded-md px-2 py-1 hover:bg-[var(--surface-hover)]"
           style={{ color: "var(--text-muted)" }}
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Geri
         </button>
+
+        <div className="h-4 w-px mx-1" style={{ background: "var(--border)" }} />
+
         {code && (
-          <>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
             <span className="h-3 w-3 rounded-full flex-shrink-0" style={{ background: code.color }} />
-            <span className="text-sm font-semibold flex-1" style={{ color: "var(--text-primary)" }}>
+            <span className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>
               {code.name}
             </span>
-          </>
+          </div>
         )}
-        <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-          {segments.length} segment
+
+        <span
+          className="text-[11px] tabular-nums rounded-full px-2.5 py-0.5 flex-shrink-0"
+          style={{
+            color: "var(--text-muted)",
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+          }}
+        >
+          {segments.length} alıntı
         </span>
       </div>
 
-      {/* Segment cards */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      {/* Feed */}
+      <div className="flex-1 overflow-y-auto px-6 py-5">
         {segments.length === 0 ? (
-          <p className="text-sm text-center mt-8" style={{ color: "var(--text-muted)" }}>
-            Bu koda atanmış segment yok.
-          </p>
+          <div className="flex flex-col items-center justify-center h-full gap-3">
+            <div
+              className="h-12 w-12 rounded-xl flex items-center justify-center"
+              style={{ background: "var(--surface)" }}
+            >
+              <FileText className="h-5 w-5" style={{ color: "var(--text-muted)" }} />
+            </div>
+            <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+              Bu koda atanmış segment yok.
+            </p>
+          </div>
         ) : (
-          segments.map((seg) => {
-            const doc = documents.find((d) => d.id === seg.documentId);
-            return (
-              <motion.div
-                key={seg.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.15, ease: [0.2, 0, 0, 1] }}
-                className="rounded-[var(--radius-md)] border p-4 cursor-pointer transition-colors"
-                style={{
-                  borderColor: `${code?.color ?? "var(--border)"}40`,
-                  background: `${code?.color ?? "transparent"}08`,
-                  borderLeft: `3px solid ${code?.color ?? "var(--border)"}`,
-                }}
-                onClick={() => { if (doc) onSelectDoc(doc.id); }}
-              >
-                <p
-                  className="text-[13px] leading-relaxed mb-2"
-                  style={{ color: "var(--text-primary)", fontFamily: '"Georgia", serif' }}
+          <motion.div
+            variants={feedContainerVariants}
+            initial="hidden"
+            animate="show"
+            className="space-y-4"
+          >
+            {segments.map((seg) => {
+              const doc = documents.find((d) => d.id === seg.documentId);
+              const segCodes = codes.filter((c) => seg.codeIds.includes(c.id));
+
+              return (
+                <motion.article
+                  key={seg.id}
+                  variants={feedCardVariants}
+                  className="rounded-lg border p-5 cursor-pointer transition-all group"
+                  style={{
+                    background: "var(--bg-secondary)",
+                    borderColor: "var(--border)",
+                  }}
+                  whileHover={{
+                    y: -2,
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                  }}
+                  onClick={() => { if (doc) onSelectDoc(doc.id); }}
                 >
-                  "{seg.text}"
-                </p>
-                {seg.memo && (
-                  <p className="text-[11px] italic mt-1" style={{ color: "var(--text-muted)" }}>
-                    {seg.memo}
-                  </p>
-                )}
-                <p className="text-[11px] mt-2" style={{ color: "var(--text-muted)" }}>
-                  <FileText className="h-3 w-3 inline mr-1" />
-                  {doc?.name ?? "Bilinmeyen belge"}
-                </p>
-              </motion.div>
-            );
-          })
+                  {/* Card Header */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <FileText className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "var(--text-muted)" }} />
+                    <span className="text-[12px] font-medium truncate" style={{ color: "var(--text-muted)" }}>
+                      {doc?.name ?? "Bilinmeyen belge"}
+                    </span>
+                    <span className="text-[10px]" style={{ color: "var(--text-disabled)" }}>·</span>
+                    <span className="text-[10px] flex-shrink-0" style={{ color: "var(--text-disabled)" }}>
+                      {formatDate(seg.createdAt)}
+                    </span>
+                  </div>
+
+                  {/* Card Body — Quoted text */}
+                  <div
+                    className="pl-4 mb-3"
+                    style={{ borderLeft: `3px solid ${code?.color ?? "var(--border)"}60` }}
+                  >
+                    <p
+                      className="text-[13px] leading-relaxed"
+                      style={{
+                        color: "var(--text-primary)",
+                        fontFamily: '"Georgia", "Times New Roman", serif',
+                      }}
+                    >
+                      "{seg.text}"
+                    </p>
+                  </div>
+
+                  {/* Memo */}
+                  {seg.memo && (
+                    <p
+                      className="text-[11px] italic mb-3 pl-4"
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      💬 {seg.memo}
+                    </p>
+                  )}
+
+                  {/* Card Footer — Code badges */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {segCodes.map((c) => (
+                      <span
+                        key={c.id}
+                        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                        style={{
+                          background: `${c.color}15`,
+                          color: c.color,
+                          border: `1px solid ${c.color}30`,
+                        }}
+                      >
+                        <span
+                          className="w-1.5 h-1.5 rounded-full"
+                          style={{ background: c.color }}
+                        />
+                        {c.name}
+                      </span>
+                    ))}
+                  </div>
+                </motion.article>
+              );
+            })}
+          </motion.div>
         )}
       </div>
     </div>
@@ -917,10 +1059,12 @@ function DocHeader({
   searchOpen,
   chatOpen,
   summarizing,
+  showLineNumbers,
   onToggleEdit,
   onImport,
   onToggleSearch,
   onToggleChat,
+  onToggleLineNumbers,
 }: {
   doc: { name: string; format?: string };
   wordCount: number;
@@ -930,10 +1074,12 @@ function DocHeader({
   searchOpen: boolean;
   chatOpen: boolean;
   summarizing: boolean;
+  showLineNumbers: boolean;
   onToggleEdit: () => void;
   onImport: () => void;
   onToggleSearch: () => void;
   onToggleChat: () => void;
+  onToggleLineNumbers: () => void;
 }) {
   return (
     <div
@@ -1004,23 +1150,31 @@ function DocHeader({
           Import
         </Button>
 
+        {/* Line numbers toggle */}
+        {doc.format !== "pdf" && doc.format !== "video" && doc.format !== "image" && (
+          <Button
+            size="sm"
+            variant={showLineNumbers ? "primary" : "ghost"}
+            className="h-6 gap-1 text-[11px]"
+            onClick={onToggleLineNumbers}
+            title="Satır Numaraları"
+          >
+            <List className="h-3 w-3" />
+          </Button>
+        )}
+
         {doc.format !== "pdf" && doc.format !== "video" && doc.format !== "image" && (
           <Button
             size="sm"
             variant={editMode ? "primary" : "ghost"}
             className="h-6 gap-1 text-[11px]"
             onClick={onToggleEdit}
+            title={editMode ? "Kilitle (Salt Okuma)" : "Kilidi Aç (Düzenle)"}
           >
             {editMode ? (
-              <>
-                <Eye className="h-3 w-3" />
-                Done
-              </>
+              <Unlock className="h-3 w-3" />
             ) : (
-              <>
-                <Pencil className="h-3 w-3" />
-                Edit
-              </>
+              <Lock className="h-3 w-3" />
             )}
           </Button>
         )}
