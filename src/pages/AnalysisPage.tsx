@@ -17,6 +17,7 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
+  BarChart2,
 } from "lucide-react";
 import React from "react";
 import { useAppStore } from "@/store/app.store";
@@ -32,6 +33,8 @@ import { TypographicCloud } from "@/components/charts/TypographicCloud";
 import { BubbleCloud } from "@/components/charts/BubbleCloud";
 import { HeatmapMatrix } from "@/components/charts/HeatmapMatrix";
 import { CoOccurrenceGraph } from "@/components/charts/CoOccurrenceGraph";
+import { DemographicDistribution } from "@/components/charts/DemographicDistribution";
+import { SubCodeDistribution } from "@/components/charts/SubCodeDistribution";
 import { flattenCodes } from "@/lib/tree";
 
 const pageVariants: Variants = {
@@ -97,20 +100,20 @@ export function AnalysisPage() {
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)] relative">
       {/* ── Header ── */}
-      <div className="flex-shrink-0 flex items-center justify-between px-8 pt-5 pb-4 border-b border-[var(--border)] bg-[var(--bg-secondary)]/50">
-        <div className="flex items-center gap-6">
+      <div className="flex-shrink-0 flex items-center justify-between px-8 pt-5 pb-4 border-b border-[var(--border)] bg-[var(--bg-secondary)]/50 overflow-x-auto custom-scrollbar gap-8">
+        <div className="flex items-center gap-6 min-w-max">
           <div>
-            <h1 className="text-lg font-bold tracking-tight text-[var(--text-primary)] flex items-center gap-2">
-              <LayoutGrid className="h-5 w-5 text-[var(--text-secondary)]" />
+            <h1 className="text-lg font-bold tracking-tight text-[var(--text-primary)] flex items-center gap-2 whitespace-nowrap">
+              <LayoutGrid className="h-5 w-5 text-[var(--text-secondary)] flex-shrink-0" />
               {t("analysis.title")}
             </h1>
-            <p className="text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-widest mt-1">
+            <p className="text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-widest mt-1 whitespace-nowrap">
               {projectCodes.length} KOD · {projectSegments.length} SEGMENT · {projectDocs.length} BELGE
             </p>
           </div>
 
           {/* Tab Switcher */}
-          <div className="flex items-center bg-[var(--bg-tertiary)]/50 p-1 rounded-lg border border-[var(--border)] ml-4">
+          <div className="flex items-center bg-[var(--bg-tertiary)]/50 p-1 rounded-lg border border-[var(--border)] ml-4 flex-shrink-0">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -119,7 +122,7 @@ export function AnalysisPage() {
                   setTabZoom(1.0); // Reset zoom on tab change
                 }}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-md text-[12px] font-medium transition-all",
+                  "flex items-center gap-2 px-3 py-1.5 rounded-md text-[12px] font-medium transition-all whitespace-nowrap",
                   activeTab === tab.id
                     ? "bg-[var(--surface)] text-[var(--text-primary)] shadow-sm"
                     : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
@@ -132,7 +135,7 @@ export function AnalysisPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 min-w-max flex-shrink-0">
           {/* Scope Toggle */}
           <div className="flex items-center gap-2 mr-2">
             <span className={cn("text-[11px] uppercase tracking-wider font-bold", isProjectScope ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]")}>
@@ -255,11 +258,31 @@ export function AnalysisPage() {
                 <CodeHeatmap codes={projectCodes} docs={scopedDocs} segments={scopedSegments} />
               </DashboardCard>
 
+              {/* 1.5 DEMOGRAPHIC DISTRIBUTION */}
+              <DashboardCard
+                title="Değişken Dağılımı"
+                icon={<PieChart className="h-4 w-4" />}
+                className="col-span-4 h-[340px]"
+                onMaximize={(z) => setMaximizedCard({ title: "Değişken Dağılımı", component: <DemographicDistribution />, zoom: z })}
+              >
+                <DemographicDistribution />
+              </DashboardCard>
+
+              {/* 1.7 SUB-CODE DISTRIBUTION */}
+              <DashboardCard
+                title="Alt-Kod Dağılımı"
+                icon={<BarChart2 className="h-4 w-4" />}
+                className="col-span-12 h-[340px]"
+                onMaximize={(z) => setMaximizedCard({ title: "Alt-Kod Dağılımı", component: <SubCodeDistribution codes={projectCodes} segments={scopedSegments} />, zoom: z })}
+              >
+                <SubCodeDistribution codes={projectCodes} segments={scopedSegments} />
+              </DashboardCard>
+
               {/* 2. DOCUMENT PORTRAIT */}
               <DashboardCard
                 title="Belge Portresi"
                 icon={<FileText className="h-4 w-4" />}
-                className="col-span-4 h-[340px]"
+                className="col-span-8 h-[340px]"
                 onMaximize={(z) => setMaximizedCard({
                   title: "Belge Portresi",
                   component: <DocumentPortrait codes={projectCodes} doc={activeDoc} segments={scopedSegments} isProjectScope={isProjectScope} allDocs={projectDocs} />,

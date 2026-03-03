@@ -32,6 +32,8 @@ export interface Document {
   note?: string;
   /** Custom color assigned via context menu */
   color?: string;
+  /** Custom metadata properties (e.g. Age, Gender, Education) */
+  properties?: Record<string, string>;
 }
 
 export interface Code {

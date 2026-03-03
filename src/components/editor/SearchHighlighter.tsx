@@ -3,19 +3,21 @@ import { motion } from "framer-motion";
 import type { Segment, Code } from "@/types";
 
 interface SearchHighlighterProps {
-  content:     string;
-  segments:    Segment[];
-  codes:       Code[];
+  content: string;
+  segments: Segment[];
+  codes: Code[];
   searchQuery: string;
-  useRegex?:   boolean;
+  useRegex?: boolean;
+  matchCase?: boolean;
+  wholeWord?: boolean;
 }
 
 interface Span {
-  start:   number;
-  end:     number;
-  type:    "segment" | "search";
+  start: number;
+  end: number;
+  type: "segment" | "search";
   segment?: Segment;
-  color?:  string;
+  color?: string;
 }
 
 /**
@@ -30,6 +32,8 @@ export function SearchHighlighter({
   codes,
   searchQuery,
   useRegex = false,
+  matchCase = false,
+  wholeWord = false,
 }: SearchHighlighterProps) {
   const parts = useMemo(() => {
     if (!content) return [];
@@ -54,9 +58,15 @@ export function SearchHighlighter({
     if (searchQuery.trim()) {
       let regex: RegExp | null = null;
       try {
-        regex = useRegex
-          ? new RegExp(searchQuery, "gi")
-          : new RegExp(searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+        let pattern = searchQuery;
+        if (!useRegex) {
+          pattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); // escape regex
+        }
+        if (wholeWord) {
+          pattern = `\\b${pattern}\\b`;
+        }
+        const flags = matchCase ? "g" : "gi";
+        regex = new RegExp(pattern, flags);
       } catch { /* invalid regex — ignore */ }
 
       if (regex) {
@@ -64,8 +74,8 @@ export function SearchHighlighter({
         while ((m = regex.exec(content)) !== null) {
           searchSpans.push({
             start: m.index,
-            end:   m.index + m[0].length,
-            type:  "search",
+            end: m.index + m[0].length,
+            type: "search",
           });
           if (m[0].length === 0) regex.lastIndex++;
         }
@@ -101,14 +111,14 @@ export function SearchHighlighter({
                 : codes.filter((c) => seg.codeIds.includes(c.id)).map((c) => c.name).join(", ")
             }
             style={{
-              background:    `${span.color}35`,
-              borderBottom:  `2.5px solid ${span.color}`,
-              borderRadius:  "2px 2px 0 0",
+              background: `${span.color}35`,
+              borderBottom: `2.5px solid ${span.color}`,
+              borderRadius: "2px 2px 0 0",
               paddingBottom: "1px",
-              paddingLeft:   "1px",
-              paddingRight:  "1px",
-              color:         "inherit",
-              cursor:        "default",
+              paddingLeft: "1px",
+              paddingRight: "1px",
+              color: "inherit",
+              cursor: "default",
             }}
           >
             {content.slice(start, end)}
@@ -119,10 +129,10 @@ export function SearchHighlighter({
           <mark
             key={`search-${start}`}
             style={{
-              background:   "rgba(253,224,71,0.45)",
+              background: "rgba(253,224,71,0.45)",
               borderRadius: "2px",
-              color:        "inherit",
-              padding:      "0 1px",
+              color: "inherit",
+              padding: "0 1px",
             }}
           >
             {content.slice(start, end)}
