@@ -57,6 +57,46 @@ fn start_oauth_listener(app: AppHandle) -> Result<u16, String> {
     Ok(port)
 }
 
+// ─── Security helpers ─────────────────────────────────────────────────────────
+
+/// Returns true only if the URL is HTTPS and the host is in the hard-coded
+/// allowlist.  Prevents SSRF: a compromised web context cannot use
+/// `native_http` to reach internal services (127.0.0.1, metadata endpoints…).
+fn is_url_allowed(url: &str) -> bool {
+    // Must be HTTPS — no plain HTTP, no file://, no ftp://…
+    let rest = match url.strip_prefix("https://") {
+        Some(r) => r,
+        None => return false,
+    };
+    // Extract the host portion (everything before the first '/', '?', or '#')
+    let host_port = rest.split(['/', '?', '#']).next().unwrap_or("");
+    // Strip optional port number
+    let host = host_port.split(':').next().unwrap_or("");
+
+    const ALLOWED_HOSTS: &[&str] = &[
+        // Google OAuth / token exchange
+        "oauth2.googleapis.com",
+        // Firebase Auth (Identity Toolkit)
+        "identitytoolkit.googleapis.com",
+        // Firebase token refresh (Secure Token Service)
+        "securetoken.googleapis.com",
+        // Google APIs (Drive, etc.)
+        "www.googleapis.com",
+        // Gemini AI
+        "generativelanguage.googleapis.com",
+        // OpenAI
+        "api.openai.com",
+        // Anthropic Claude
+        "api.anthropic.com",
+        // Lemon Squeezy licensing
+        "api.lemonsqueezy.com",
+    ];
+
+    ALLOWED_HOSTS
+        .iter()
+        .any(|&allowed| host == allowed || host.ends_with(&format!(".{}", allowed)))
+}
+
 /// Makes an HTTP POST/GET via native reqwest (bypasses WKWebView body-read hangs).
 /// Returns (status_code, response_body_text).
 #[tauri::command]
@@ -66,6 +106,13 @@ async fn native_http(
     headers_json: String,
     body: String,
 ) -> Result<(u16, String), String> {
+    // ── Security: SSRF allowlist check ───────────────────────────────────────
+    if !is_url_allowed(&url) {
+        return Err(format!(
+            "native_http: URL not in allowlist — request blocked: {}",
+            url
+        ));
+    }
     let client = reqwest::Client::builder()
         .connect_timeout(std::time::Duration::from_secs(10))
         .timeout(std::time::Duration::from_secs(60))
@@ -142,6 +189,38 @@ async fn exchange_google_code(
 /// Used by the drag-and-drop file import handler (Tauri file-drop events provide paths, not File objects).
 #[tauri::command]
 fn read_file_base64(path: String) -> Result<String, String> {
+    // ── Security: path traversal guard ───────────────────────────────────────
+    // Reject any path that contains `../` or `..\` sequences so that a crafted
+    // drag-and-drop event cannot escape the intended directory.
+    if path.contains("../")
+        || path.contains("..\\")
+        || path.contains("/..")
+        || path.contains("\\..")
+    {
+        return Err("read_file_base64: path traversal not allowed".to_string());
+    }
+
+    // ── Security: file-extension allowlist ───────────────────────────────────
+    // Only permit the document / media types the app legitimately imports.
+    // This prevents reading sensitive files such as /etc/passwd or SSH keys
+    // even if a carefully crafted drag-and-drop path is supplied.
+    const ALLOWED_EXTS: &[&str] = &[
+        "pdf", "docx", "doc", "txt", "csv",
+        "jpg", "jpeg", "png", "gif", "webp", "svg", "bmp",
+        "mp4", "mov", "webm", "avi", "mkv",
+    ];
+    let path_lower = path.to_lowercase();
+    let has_allowed_ext = ALLOWED_EXTS
+        .iter()
+        .any(|ext| path_lower.ends_with(&format!(".{}", ext)));
+
+    if !has_allowed_ext {
+        return Err(
+            "read_file_base64: file type not allowed — only documents, images, and videos are supported"
+                .to_string(),
+        );
+    }
+
     let bytes = std::fs::read(&path).map_err(|e| format!("Failed to read \"{path}\": {e}"))?;
     Ok(encode_base64(&bytes))
 }
