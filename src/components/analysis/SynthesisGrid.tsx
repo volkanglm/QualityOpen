@@ -231,7 +231,10 @@ function SynthesisCard({
     };
 
     return (
-        <div className="bg-[var(--bg-secondary)]/40 border border-[var(--border)] rounded-xl overflow-hidden flex flex-col group/card hover:border-[var(--border-strong)] transition-all">
+        <div
+            className="bg-[var(--bg-secondary)]/40 border border-[var(--border)] rounded-xl overflow-hidden flex flex-col group/card hover:border-[var(--border-strong)] transition-all cursor-default"
+            onDoubleClick={onViewSegments}
+        >
             <div className="px-4 py-2 border-b border-[var(--border)]/50 flex items-center justify-between bg-[var(--surface)]/30">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] truncate max-w-[150px]">
                     {propertyValue || t("synthesis.allDocs")}

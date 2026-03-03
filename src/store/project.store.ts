@@ -16,6 +16,10 @@ interface ProjectStore {
   memos: Memo[];
   syntheses: Synthesis[];
 
+  // Settings
+  graphSensitivity: number;
+  setGraphSensitivity: (val: number) => void;
+
   // Projects
   createProject: (name: string, description?: string) => Project;
   updateProject: (id: ID, patch: Partial<Project>) => void;
@@ -64,6 +68,9 @@ export const useProjectStore = create<ProjectStore>()(
         segments: [],
         memos: [],
         syntheses: [],
+
+        graphSensitivity: 1,
+        setGraphSensitivity: (val) => set({ graphSensitivity: val }),
 
         createProject: (name, description) => {
           const project: Project = {

@@ -37,9 +37,10 @@ import { CoOccurrenceGraph } from "@/components/charts/CoOccurrenceGraph";
 import { DemographicDistribution } from "@/components/charts/DemographicDistribution";
 import { SubCodeDistribution } from "@/components/charts/SubCodeDistribution";
 import { SynthesisGrid } from "@/components/analysis/SynthesisGrid";
-import { flattenCodes } from "@/lib/tree";
 import { Counter } from "@/components/ui/Counter";
 import { assignClusters, computeGraphData } from "@/lib/graph.utils";
+import { flattenCodes } from "@/lib/tree";
+import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 
 const pageVariants: Variants = {
   hidden: { opacity: 0, y: 10 },
@@ -78,11 +79,11 @@ export function AnalysisPage() {
   // Derived data for legacy views
   const codeFrequency = useMemo(() => {
     const flat = flattenCodes(projectCodes, undefined, 0);
-    return flat.map((c) => {
+    return flat.map((c: any) => {
       const count = projectSegments.filter((s) => s.codeIds.includes(c.id)).length;
       const ownCount = projectSegments.filter((s) => s.codeIds.length === 1 && s.codeIds[0] === c.id).length;
       return { code: c, count, ownCount, depth: c.depth };
-    }).sort((a, b) => b.count - a.count);
+    }).sort((a: any, b: any) => b.count - a.count);
   }, [projectCodes, projectSegments]);
 
   if (!activeProjectId) {
@@ -349,7 +350,7 @@ export function AnalysisPage() {
 
           {activeTab === "cloud" && (
             <motion.div key="cloud" variants={pageVariants} initial="hidden" animate="show" className="h-full bg-[var(--bg-secondary)]/40 rounded-2xl border border-[var(--border)] p-8 relative overflow-hidden">
-              <BubbleCloud items={codeFrequency.map(f => ({ code: f.code, count: f.count }))} zoom={tabZoom} />
+              <BubbleCloud items={codeFrequency.map((f: any) => ({ code: f.code, count: f.count }))} zoom={tabZoom} />
               <div className="absolute bottom-6 right-6">
                 <ZoomControls zoom={tabZoom} onZoomChange={setTabZoom} />
               </div>
@@ -612,10 +613,54 @@ function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: any[]; co
         </div>
 
         {/* Donut Column */}
-        <div className="col-span-4 bg-[var(--bg-secondary)]/40 border border-[var(--border)] p-8 rounded-2xl flex flex-col items-center justify-center">
-          <PieChart className="h-12 w-12 text-[var(--border)] mb-6" />
-          <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2">{t("analysis.distribution")}</p>
-          <p className="text-sm text-[var(--text-secondary)] text-center px-4">Kod dağılım grafiği ve detaylı analizler için diğer sekmeleri kullanabilirsiniz.</p>
+        <div className="col-span-4 bg-[var(--bg-secondary)]/40 border border-[var(--border)] p-8 rounded-2xl flex flex-col items-center justify-center relative">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-2 absolute top-8 left-8">
+            <PieChart className="h-4 w-4 text-[var(--text-muted)]" />
+            {t("analysis.distribution")}
+          </h2>
+          {codeFrequency.length > 0 ? (
+            <div className="w-full h-[300px] mt-8">
+              <ResponsiveContainer width="100%" height="100%">
+                <RechartsPieChart>
+                  <Pie
+                    data={React.useMemo(() => {
+                      const top = codeFrequency.slice(0, 5).map(f => ({ name: f.code.name, value: f.count, color: f.code.color }));
+                      const others = codeFrequency.slice(5).reduce((acc, curr) => acc + curr.count, 0);
+                      if (others > 0) top.push({ name: "Diğer", value: others, color: "#52525b" });
+                      return top;
+                    }, [codeFrequency])}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={70}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="value"
+                    stroke="none"
+                  >
+                    {React.useMemo(() => {
+                      const top = codeFrequency.slice(0, 5).map(f => ({ name: f.code.name, value: f.count, color: f.code.color }));
+                      const others = codeFrequency.slice(5).reduce((acc, curr) => acc + curr.count, 0);
+                      if (others > 0) top.push({ name: "Diğer", value: others, color: "#52525b" });
+                      return top;
+                    }, [codeFrequency]).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip
+                    contentStyle={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '11px', fontWeight: 500 }}
+                    itemStyle={{ color: 'var(--text-primary)' }}
+                    formatter={(value: any) => [`${value} Segment`, undefined]}
+                  />
+                </RechartsPieChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <>
+              <PieChart className="h-12 w-12 text-[var(--border)] mb-6" />
+              <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2">{t("analysis.distribution")}</p>
+              <p className="text-sm text-[var(--text-secondary)] text-center px-4">Kod dağılım grafiği için segment gereklidir.</p>
+            </>
+          )}
         </div>
       </div>
     </div>

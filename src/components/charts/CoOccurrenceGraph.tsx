@@ -13,6 +13,7 @@ import {
   Handle,
   Position,
   useReactFlow,
+  ReactFlowProvider,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { motion, AnimatePresence } from "framer-motion";
@@ -114,12 +115,11 @@ interface CoOccurrenceGraphProps {
   segments: Segment[];
 }
 
-export function CoOccurrenceGraph({ codes, segments }: CoOccurrenceGraphProps) {
+function CoOccurrenceGraphInner({ codes, segments }: CoOccurrenceGraphProps) {
   const t = useT();
-  const { documents } = useProjectStore();
+  const { documents, graphSensitivity: sensitivity, setGraphSensitivity: setSensitivity } = useProjectStore();
   const { fitView } = useReactFlow();
 
-  const [sensitivity, setSensitivity] = useState(1);
   const [useClustering, setUseClustering] = useState(true);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
@@ -447,5 +447,13 @@ export function CoOccurrenceGraph({ codes, segments }: CoOccurrenceGraphProps) {
         />
       )}
     </div>
+  );
+}
+
+export function CoOccurrenceGraph(props: CoOccurrenceGraphProps) {
+  return (
+    <ReactFlowProvider>
+      <CoOccurrenceGraphInner {...props} />
+    </ReactFlowProvider>
   );
 }
