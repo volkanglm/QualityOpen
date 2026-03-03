@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ZoomIn, ZoomOut, ScanLine, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -12,7 +12,7 @@ interface PdfRendererProps {
   onLoadComplete?: (totalLength: number) => void;
 }
 
-export function PdfRenderer({ base64, onOcrComplete, onLoadComplete }: PdfRendererProps) {
+export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, onLoadComplete }: PdfRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [totalPages, setTotalPages] = useState(0);
   const [scale, setScale] = useState(1.2);
@@ -222,10 +222,10 @@ export function PdfRenderer({ base64, onOcrComplete, onLoadComplete }: PdfRender
       </div>
     </div>
   );
-}
+});
 
 /** Individual Page Component */
-function PdfPage({ pdf, pageNumber, scale }: { pdf: any; pageNumber: number; scale: number }) {
+const PdfPage = memo(function PdfPage({ pdf, pageNumber, scale }: { pdf: any; pageNumber: number; scale: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
   const [rendered, setRendered] = useState(false);
@@ -298,7 +298,7 @@ function PdfPage({ pdf, pageNumber, scale }: { pdf: any; pageNumber: number; sca
       />
     </div>
   );
-}
+});
 
 // ─── Helper: Load Tesseract.js ───────────────────────────────────────────────
 async function loadTesseract() {
