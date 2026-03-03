@@ -1,6 +1,7 @@
 import { memo, useMemo } from "react";
 import { motion } from "framer-motion";
 import type { Code, Document, Segment } from "@/types";
+import { useT } from "@/lib/i18n";
 
 interface DocumentPortraitProps {
     codes: Code[];
@@ -12,6 +13,7 @@ interface DocumentPortraitProps {
 }
 
 export const DocumentPortrait = memo(({ codes, doc, segments, isProjectScope, allDocs, zoom = 1.0 }: DocumentPortraitProps) => {
+    const t = useT();
     const activeSegments = useMemo(() => {
         if (isProjectScope) return [...segments].sort((a, b) => a.start - b.start);
         return segments.filter(s => s.documentId === doc?.id).sort((a, b) => a.start - b.start);
@@ -64,7 +66,7 @@ export const DocumentPortrait = memo(({ codes, doc, segments, isProjectScope, al
     if (!isProjectScope && !doc) {
         return (
             <div className="flex h-full items-center justify-center text-[var(--text-muted)] text-xs">
-                Lütfen analiz için bir belge seçin.
+                {t("analysis.selectDoc")}
             </div>
         );
     }
@@ -78,13 +80,13 @@ export const DocumentPortrait = memo(({ codes, doc, segments, isProjectScope, al
                     className="font-bold uppercase tracking-widest text-[var(--text-muted)]"
                     style={{ fontSize: Math.max(8, 10 * zoom) }}
                 >
-                    {isProjectScope ? "TÜM PROJE" : doc?.name} — Belge Portresi
+                    {isProjectScope ? t("analysis.allProject") : doc?.name} — {t("analysis.documentPortrait")}
                 </h3>
                 <span
                     className="font-mono text-[var(--text-muted)] uppercase"
                     style={{ fontSize: Math.max(8, 9 * zoom) }}
                 >
-                    DNA Haritası (1:{Math.round(totalLength / GRID_SIZE)})
+                    {t("analysis.dnaMap")} (1:{Math.round(totalLength / GRID_SIZE)})
                 </span>
             </div>
 
@@ -121,7 +123,7 @@ export const DocumentPortrait = memo(({ codes, doc, segments, isProjectScope, al
                                 zIndex: 10,
                                 boxShadow: block.active ? `0 0 ${8 * zoom}px ${block.color}cc` : "none"
                             }}
-                            title={block.active ? `${block.codeName}: "${block.text?.slice(0, 40)}..."` : "Kodlanmamış"}
+                            title={block.active ? `${block.codeName}: "${block.text?.slice(0, 40)}..."` : t("analysis.notCodedTitle")}
                         />
                     ))}
                 </div>

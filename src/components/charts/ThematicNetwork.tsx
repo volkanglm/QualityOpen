@@ -1,6 +1,7 @@
 import { memo, useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Code, Segment } from "@/types";
+import { useT } from "@/lib/i18n";
 
 interface ThematicNetworkProps {
     codes: Code[];
@@ -9,6 +10,7 @@ interface ThematicNetworkProps {
 }
 
 export const ThematicNetwork = memo(({ codes, segments, zoom = 1.0 }: ThematicNetworkProps) => {
+    const t = useT();
     const containerRef = useRef<HTMLDivElement>(null);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
     const [nodePositions, setNodePositions] = useState<Record<string, { x: number, y: number }>>({});
@@ -95,13 +97,13 @@ export const ThematicNetwork = memo(({ codes, segments, zoom = 1.0 }: ThematicNe
                     className="font-bold uppercase tracking-widest text-[var(--text-muted)]"
                     style={{ fontSize: Math.max(8, 10 * zoom) }}
                 >
-                    Tematik Ağ Haritası
+                    {t("analysis.thematicNetwork")}
                 </h3>
                 <p
                     className="text-[var(--text-disabled)] uppercase mt-1"
                     style={{ fontSize: Math.max(7, 9 * zoom) }}
                 >
-                    İlişkisel Düğüm Analizi
+                    {t("analysis.relationalAnalysis")}
                 </p>
             </div>
 
@@ -133,8 +135,8 @@ export const ThematicNetwork = memo(({ codes, segments, zoom = 1.0 }: ThematicNe
                 className="absolute bottom-4 right-4 text-[var(--text-disabled)] font-mono italic text-right pointer-events-none"
                 style={{ fontSize: Math.max(6, 8 * zoom) }}
             >
-                INTERAKTİF DÜĞÜM ANALİZİ<br />
-                STABILIZED ZOOM ENABLED
+                {t("analysis.interactiveNodeAnalysis")}<br />
+                {t("analysis.nodeHint")}
             </div>
         </div>
     );

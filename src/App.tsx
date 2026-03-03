@@ -129,6 +129,43 @@ export default function App() {
     };
   }, []);
 
+  /* Development Tools: Mock Data & Studio Director */
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+
+    const handleDevShortcuts = async (e: KeyboardEvent) => {
+      // CMD + SHIFT + M: Load Mock Data
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "m") {
+        e.preventDefault();
+        const { MOCK_PROJECT, MOCK_DOCUMENTS, MOCK_CODES, MOCK_SEGMENTS, MOCK_MEMOS, MOCK_SYNTHESES } = await import("@/dev-tools/mockData");
+        useProjectStore.getState().loadDemoProject({
+          project: MOCK_PROJECT,
+          documents: MOCK_DOCUMENTS,
+          codes: MOCK_CODES,
+          segments: MOCK_SEGMENTS,
+          memos: MOCK_MEMOS,
+          syntheses: MOCK_SYNTHESES
+        });
+        useAppStore.setState({
+          activeProjectId: MOCK_PROJECT.id,
+          language: "en"
+        });
+        const { useToastStore } = await import("@/store/toast.store");
+        useToastStore.getState().push("Studio Data Loaded (EN)", "success");
+      }
+
+      // CMD + SHIFT + P: Run Studio Director
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "p") {
+        e.preventDefault();
+        const { runStudioDirector } = await import("@/dev-tools/studioDirector");
+        runStudioDirector();
+      }
+    };
+
+    window.addEventListener("keydown", handleDevShortcuts);
+    return () => window.removeEventListener("keydown", handleDevShortcuts);
+  }, []);
+
   /* Tauri OS file-drop handler (fires when user drags files from Finder) */
   useEffect(() => {
     let unlisten: (() => void) | undefined;

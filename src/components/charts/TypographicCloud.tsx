@@ -1,6 +1,7 @@
 import { memo, useMemo } from "react";
 import { motion } from "framer-motion";
 import type { Code, Segment } from "@/types";
+import { useT } from "@/lib/i18n";
 
 interface TypographicCloudProps {
     codes: Code[];
@@ -9,6 +10,7 @@ interface TypographicCloudProps {
 }
 
 export const TypographicCloud = memo(({ codes, segments, zoom = 1.0 }: TypographicCloudProps) => {
+    const t = useT();
     const codeStats = useMemo(() => {
         return codes
             .map(code => {
@@ -50,10 +52,10 @@ export const TypographicCloud = memo(({ codes, segments, zoom = 1.0 }: Typograph
         <div className="w-full h-full p-6 flex flex-col gap-6 overflow-hidden">
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
                 <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
-                    Tipografik Hiyerarşi
+                    {t("analysis.typoCloud")}
                 </h3>
                 <span className="text-[9px] font-mono text-[var(--text-muted)] uppercase">
-                    {codeStats.length} AKTİF KOD
+                    {t("analysis.activeCodes").replace("{count}", String(codeStats.length))}
                 </span>
             </div>
 
@@ -89,7 +91,7 @@ export const TypographicCloud = memo(({ codes, segments, zoom = 1.0 }: Typograph
 
                     {codeStats.length === 0 && (
                         <div className="text-[11px] text-[var(--text-muted)] italic">
-                            Kelime bulutu için henüz yeterli kodlama bulunmuyor.
+                            {t("analysis.notEnoughCodes")}
                         </div>
                     )}
                 </div>
@@ -97,7 +99,7 @@ export const TypographicCloud = memo(({ codes, segments, zoom = 1.0 }: Typograph
 
             <div className="flex justify-center pt-4 border-t border-[var(--border)]">
                 <p className="text-[9px] text-[var(--text-muted)] uppercase tracking-[0.2em]">
-                    Inter / Geist Sans-Serif Hiyerarşisi — Renksiz Tasarım
+                    {t("analysis.typoDesc")}
                 </p>
             </div>
         </div>
