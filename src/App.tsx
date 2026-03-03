@@ -18,6 +18,7 @@ import { useSyncStore } from "@/store/sync.store";
 import { AiChatPanel } from "@/components/chat/AiChatPanel";
 import { ShortcutEngine } from "@/components/keyboard/ShortcutEngine";
 import { importFile, getFileCategory } from "@/lib/fileImport";
+import { WelcomeScreen } from "@/components/onboarding/WelcomeScreen";
 import "./index.css";
 
 // ─── Error Boundary ────────────────────────────────────────────────────────────
@@ -88,9 +89,10 @@ function SplashScreen() {
 // ─── Main App ─────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const { theme, commandPaletteOpen } = useAppStore();
+  const { theme, commandPaletteOpen, activeProjectId, setActiveProject } = useAppStore();
   const { user, accessToken, booting, initialized } = useAuthStore();
   const { checkSchedule } = useSyncStore();
+  const { projects, createProject } = useProjectStore();
 
   /* Sync theme token to <html> */
   useEffect(() => {
@@ -234,7 +236,28 @@ export default function App() {
             <ShortcutEngine />
             <TitleBar />
             <div className="flex flex-1 min-h-0 overflow-hidden">
-              <PanelLayout />
+              <AnimatePresence mode="wait">
+                {!activeProjectId ? (
+                  <WelcomeScreen
+                    key="welcome"
+                    onNewProject={() => {
+                      const name = `Araştırma ${projects.length + 1}`;
+                      const p = createProject(name);
+                      setActiveProject(p.id);
+                    }}
+                  />
+                ) : (
+                  <motion.div
+                    key="panels"
+                    className="flex w-full h-full"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    <PanelLayout />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </ErrorBoundary>
         )}
