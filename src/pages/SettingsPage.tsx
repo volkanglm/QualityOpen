@@ -8,7 +8,7 @@ import { useProjectStore } from "@/store/project.store";
 import { useAuthStore } from "@/store/auth.store";
 import { useSettingsStore, type DefaultProvider } from "@/store/settings.store";
 import { Button } from "@/components/ui/Button";
-import { useT } from "@/hooks/useT";
+import { useT } from "@/lib/i18n";
 import { SyncManager } from "@/components/sync/SyncManager";
 import { FolderOpen } from "lucide-react";
 
@@ -242,7 +242,8 @@ export function SettingsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `QualityOpen_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    const dateStr = new Date().toISOString().slice(0, 10);
+    a.download = `QualityOpen_backup_${dateStr}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -252,23 +253,16 @@ export function SettingsPage() {
     if (!file) return;
     try {
       const text = await file.text();
-      const payload = JSON.parse(text) as {
-        version?: string;
-        projects?: unknown[];
-        documents?: unknown[];
-        codes?: unknown[];
-        segments?: unknown[];
-        memos?: unknown[];
-      };
+      const payload = JSON.parse(text);
       if (!payload.projects || !payload.documents || !payload.codes) {
         throw new Error("Geçersiz yedek dosyası");
       }
       importBackup({
-        projects: payload.projects as Parameters<typeof importBackup>[0]["projects"],
-        documents: payload.documents as Parameters<typeof importBackup>[0]["documents"],
-        codes: payload.codes as Parameters<typeof importBackup>[0]["codes"],
-        segments: (payload.segments ?? []) as Parameters<typeof importBackup>[0]["segments"],
-        memos: (payload.memos ?? []) as Parameters<typeof importBackup>[0]["memos"],
+        projects: payload.projects,
+        documents: payload.documents,
+        codes: payload.codes,
+        segments: payload.segments ?? [],
+        memos: payload.memos ?? [],
       });
       setImportStatus("success");
       setTimeout(() => setImportStatus("idle"), 3000);
@@ -278,6 +272,7 @@ export function SettingsPage() {
     }
     if (importRef.current) importRef.current.value = "";
   };
+
   const configuredProviders = [
     getAnthropicKey() && "anthropic",
     getGeminiKey() && "gemini",
@@ -422,9 +417,7 @@ export function SettingsPage() {
           >
             <Info className="h-3 w-3 flex-shrink-0 mt-0.5" style={{ color: "var(--text-muted)" }} />
             <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
-              Metni seçip <kbd className="font-mono text-[10px] px-1 rounded" style={{ background: "var(--surface)" }}>⌘K</kbd> tuşuna basarak komut paletini açın.
-              <strong style={{ color: "var(--text-secondary)" }}> Tematik Olarak Kodla</strong> komutu
-              seçili metni analiz eder ve otomatik kodlar atar.
+              {t('welcome.hint')}
             </p>
           </div>
         </motion.div>
@@ -470,14 +463,22 @@ export function SettingsPage() {
                   {t("settings.langDesc")}
                 </p>
               </div>
-              <SegmentedControl
+
+              <select
                 value={language}
-                options={[
-                  { value: "tr", label: "TR" },
-                  { value: "en", label: "EN" },
-                ]}
-                onChange={setLanguage}
-              />
+                onChange={(e) => setLanguage(e.target.value as any)}
+                className="bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-xs rounded-[var(--radius-sm)] border border-[var(--border)] px-3 py-1.5 outline-none focus:border-[var(--accent)] transition-colors cursor-pointer"
+                style={{ appearance: "none", backgroundImage: "url(\"data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 8px center", paddingRight: "32px" }}
+              >
+                <option value="en">English</option>
+                <option value="tr">Türkçe</option>
+                <option value="de">Deutsch</option>
+                <option value="es">Español</option>
+                <option value="nl">Nederlands</option>
+                <option value="fr">Français</option>
+                <option value="it">Italiano</option>
+                <option value="pt">Português</option>
+              </select>
             </div>
           </div>
         </motion.div>
@@ -488,116 +489,64 @@ export function SettingsPage() {
           className="rounded-[var(--radius-lg)] border p-5"
           style={{ borderColor: "var(--border)", background: "var(--bg-secondary)" }}
         >
-          <div className="flex items-center gap-2 mb-4">
-            <div
-              className="h-7 w-7 rounded-[var(--radius-sm)] flex items-center justify-center"
-              style={{ background: "var(--accent-subtle)", border: "1px solid var(--accent-border)" }}
-            >
-              <Database className="h-3.5 w-3.5" style={{ color: "var(--accent)" }} />
-            </div>
-            <div>
-              <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                {t("settings.dataManagement")}
-              </h2>
-              <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-                {t("settings.dataSubtitle")}
-              </p>
-            </div>
+          <div className="flex items-center gap-2 mb-3">
+            <Database className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
+            <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+              {t("settings.dataManagement")}
+            </h2>
           </div>
 
-          <div className="space-y-3">
-            {/* Export */}
-            <div className="flex items-center justify-between py-1">
-              <div>
-                <p className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>{t("settings.exportBackup")}</p>
-                <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-                  {t("settings.exportDesc")}
-                </p>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 gap-1.5 text-[11px] flex-shrink-0"
-                onClick={handleExport}
-                disabled={projects.length === 0}
-              >
-                <Download className="h-3 w-3" />
-                {t("common.export")}
-              </Button>
-            </div>
-
-            <div className="h-px" style={{ background: "var(--border-subtle)" }} />
-
-            {/* Import from file */}
-            <div className="flex items-center justify-between py-1">
-              <div>
-                <p className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>{t("settings.importFile")}</p>
-                <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-                  {t("settings.importDesc")}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {importStatus === "success" && (
-                  <span className="text-[11px]" style={{ color: "var(--code-2)" }}>
-                    <Check className="h-3 w-3 inline mr-0.5" />
-                    {t("settings.saved")}
-                  </span>
-                )}
-                {importStatus === "error" && (
-                  <span className="text-[11px]" style={{ color: "var(--danger)" }}>
-                    {t("common.error")}
-                  </span>
-                )}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 gap-1.5 text-[11px]"
-                  onClick={() => importRef.current?.click()}
-                >
-                  <Upload className="h-3 w-3" />
-                  {t("common.import")}
+          <div className="space-y-4">
+            <div className="bg-[var(--bg-tertiary)] p-4 rounded-[var(--radius-md)] border border-[var(--border-subtle)]">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h3 className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>
+                    {t("settings.exportBackup")}
+                  </h3>
+                  <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+                    {t("settings.exportDesc")}
+                  </p>
+                </div>
+                <Button size="sm" variant="outline" className="h-8 text-[11px]" onClick={handleExport}>
+                  <Download className="h-3 w-3 mr-1.5" />
+                  {t("common.export")}
                 </Button>
-                <input
-                  ref={importRef}
-                  type="file"
-                  accept=".json"
-                  className="hidden"
-                  onChange={handleImportFile}
-                />
               </div>
-            </div>
-
-            <div className="h-px" style={{ background: "var(--border-subtle)" }} />
-
-            {/* Local Folder Sync (New) */}
-            <div className="py-1 space-y-2.5">
+              <div className="h-px my-3" style={{ background: "var(--border-subtle)" }} />
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--text-primary)" }}>
-                    <FolderOpen className="h-3 w-3" style={{ color: "var(--text-muted)" }} />
-                    {t("settings.localSync")}
-                    <span className="text-[9px] px-1 rounded bg-[var(--accent-subtle)] color-[var(--accent)] border border-[var(--accent-border)] ml-1">{t("settings.premium")}</span>
+                  <h3 className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>
+                    {t("settings.importFile")}
+                  </h3>
+                  <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+                    {t("settings.importDesc")}
                   </p>
-                  <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
+                </div>
+                <div className="flex items-center gap-2">
+                  {importStatus === "success" && <Check className="h-3.5 w-3.5 text-[var(--code-2)]" />}
+                  <Button size="sm" variant="outline" className="h-8 text-[11px]" onClick={() => importRef.current?.click()}>
+                    <Upload className="h-3 w-3 mr-1.5" />
+                    {t("common.import")}
+                  </Button>
+                </div>
+                <input ref={importRef} type="file" className="hidden" accept=".json" onChange={handleImportFile} />
+              </div>
+            </div>
+
+            <div className="bg-[var(--bg-tertiary)] p-4 rounded-[var(--radius-md)] border border-[var(--border-subtle)]">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h3 className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--text-primary)" }}>
+                    <FolderOpen className="h-3 w-3" />
+                    {t("settings.localSync")}
+                    <span className="text-[9px] px-1 rounded bg-[rgba(234,179,8,0.1)] text-yellow-500 font-bold ml-1">
+                      {t("settings.premium")}
+                    </span>
+                  </h3>
+                  <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>
                     {t("settings.localSubtitle")}
                   </p>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 gap-1.5 text-[11px] flex-shrink-0"
-                  onClick={async () => {
-                    const { pickLocalSyncFolder } = await import("@/lib/localSync");
-                    const path = await pickLocalSyncFolder();
-                    if (path) {
-                      const { useAuthStore } = await import("@/store/auth.store");
-                      useAuthStore.getState().setLocalFolderPath(path);
-                    }
-                  }}
-                >
-                  <Settings className="h-3 w-3" />
-                  {localFolderPath ? t("settings.changeFolder") : t("settings.selectFolder")}
-                </Button>
                 {localFolderPath && accessToken && (
                   <Button
                     size="sm"
@@ -620,7 +569,6 @@ export function SettingsPage() {
                   <span className="truncate flex-1 mr-2">{localFolderPath}</span>
                   <button
                     onClick={() => {
-                      const { useAuthStore } = require("@/store/auth.store");
                       useAuthStore.getState().setLocalFolderPath(null);
                     }}
                     className="p-1 hover:text-[var(--danger)] transition-colors"

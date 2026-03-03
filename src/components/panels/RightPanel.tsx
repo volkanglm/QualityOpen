@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useT } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   DndContext,
@@ -401,6 +402,7 @@ function TreeLines({ flatCodes }: { flatCodes: FlatCode[] }) {
 
 export function RightPanel() {
   const { activeProjectId, activeDocumentId, activeCodeFilters, toggleCodeFilter } = useAppStore();
+  const t = useT();
   const { codes, segments, documents, createCode, updateCode, deleteCode, moveCode,
     updateDocument
   } = useProjectStore();
@@ -697,7 +699,7 @@ export function RightPanel() {
                   Kodları görmek için bir proje açın.
                 </p>
               ) : flatCodes.length === 0 ? (
-                <EmptyCodeState onNew={() => setNewCodeModal(true)} />
+                <EmptyCodeState />
               ) : (
                 <DndContext
                   sensors={sensors}
@@ -797,29 +799,29 @@ export function RightPanel() {
               <>
                 <section className="space-y-4">
                   <h3 className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
-                    Genel Bilgiler
+                    {t("right.info")}
                   </h3>
                   <div className="space-y-3">
                     <InfoRow
-                      label="Belge Adı"
+                      label={t("right.docName")}
                       value={activeDoc.name}
                       icon={<FileText className="h-3 w-3" />}
                     />
                     <InfoRow
-                      label="Format"
+                      label={t("right.format")}
                       value={activeDoc.format?.toUpperCase() ?? "TEXT"}
                     />
                     <InfoRow
-                      label="Tür"
+                      label={t("right.type")}
                       value={activeDoc.type}
                       capitalize
                     />
                     <InfoRow
-                      label="Kelime Sayısı"
+                      label={t("right.wordCount")}
                       value={activeDoc.wordCount?.toLocaleString() ?? "0"}
                     />
                     <InfoRow
-                      label="Oluşturulma"
+                      label={t("right.createdAt")}
                       value={new Date(activeDoc.createdAt).toLocaleDateString()}
                     />
                   </div>
@@ -828,12 +830,12 @@ export function RightPanel() {
                 {activeDoc.color && (
                   <section className="space-y-4 pt-4 border-t" style={{ borderColor: "var(--border-subtle)" }}>
                     <h3 className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
-                      Görünüm
+                      {t("right.appearance")}
                     </h3>
                     <div className="flex items-center gap-3">
                       <div className="h-4 w-4 rounded-full" style={{ backgroundColor: activeDoc.color }} />
                       <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                        Özel belge rengi atandı
+                        {t("right.customColor")}
                       </span>
                     </div>
                   </section>
@@ -841,17 +843,17 @@ export function RightPanel() {
 
                 <section className="space-y-4 pt-4 border-t" style={{ borderColor: "var(--border-subtle)" }}>
                   <h3 className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
-                    İstatistikler
+                    {t("right.stats")}
                   </h3>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-lg border p-3 flex flex-col gap-1" style={{ borderColor: "var(--border)", background: "var(--bg-primary)" }}>
-                      <span className="text-[10px] uppercase font-bold" style={{ color: "var(--text-disabled)" }}>Kodlama</span>
+                      <span className="text-[10px] uppercase font-bold" style={{ color: "var(--text-disabled)" }}>{t("right.codingCount")}</span>
                       <span className="text-lg font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>
                         {segments.filter(s => s.documentId === activeDoc.id).length}
                       </span>
                     </div>
                     <div className="rounded-lg border p-3 flex flex-col gap-1" style={{ borderColor: "var(--border)", background: "var(--bg-primary)" }}>
-                      <span className="text-[10px] uppercase font-bold" style={{ color: "var(--text-disabled)" }}>Karakter</span>
+                      <span className="text-[10px] uppercase font-bold" style={{ color: "var(--text-disabled)" }}>{t("right.charCount")}</span>
                       <span className="text-lg font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>
                         {activeDoc.content.length.toLocaleString()}
                       </span>
@@ -862,7 +864,7 @@ export function RightPanel() {
                 <section className="space-y-3 pt-4 border-t" style={{ borderColor: "var(--border-subtle)" }}>
                   <div className="flex items-center justify-between">
                     <h3 className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
-                      Özellikler
+                      {t("right.properties")}
                     </h3>
                     {!isAddingProp && (
                       <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => setIsAddingProp(true)}>
@@ -911,7 +913,7 @@ export function RightPanel() {
                               className="flex-1 bg-zinc-800 text-zinc-200 px-2 py-0.5 rounded-md truncate cursor-text"
                               onClick={() => setEditingProp({ key, value })}
                             >
-                              {value || <span className="opacity-50 italic">Boş</span>}
+                              {value || <span className="opacity-50 italic">{t("right.emptyValue")}</span>}
                             </div>
                             <Button
                               size="icon"
@@ -934,7 +936,7 @@ export function RightPanel() {
                           value={newPropKey}
                           onChange={(e) => setNewPropKey(e.target.value)}
                           className="w-1/3 bg-transparent outline-none font-medium text-[var(--text-muted)] pl-1"
-                          placeholder="Özellik (örn. Yaş)"
+                          placeholder={t("right.propExample")}
                         />
                         <span className="text-zinc-600">:</span>
                         <input
@@ -949,7 +951,7 @@ export function RightPanel() {
                             }
                           }}
                           className="flex-1 bg-zinc-800 text-zinc-200 px-2 py-0.5 rounded outline-none"
-                          placeholder="Değer..."
+                          placeholder={t("right.valPlaceholder")}
                         />
                         <Button size="icon" variant="ghost" className="h-5 w-5 flex-shrink-0" onClick={handleAddProperty}>
                           <Check className="h-3.5 w-3.5" />
@@ -963,7 +965,7 @@ export function RightPanel() {
                         style={{ color: "var(--text-disabled)", borderColor: "var(--border-subtle)", background: "var(--bg-primary)" }}
                         onClick={() => setIsAddingProp(true)}
                       >
-                        + Özellik ekle
+                        {t("right.addProperty")}
                       </div>
                     )}
                   </div>
@@ -977,17 +979,17 @@ export function RightPanel() {
       {/* ── Modals ── */}
 
       {/* New Code */}
-      <Modal open={newCodeModal} onClose={() => { setNewCodeModal(false); setNewCodeParentId(null); }} title="Yeni Kod">
+      <Modal open={newCodeModal} onClose={() => { setNewCodeModal(false); setNewCodeParentId(null); }} title={t("right.newCodeModal")}>
         <div className="space-y-4">
-          <Input label="Kod adı" placeholder="örn. Duygusal tepki"
+          <Input label={t("right.codeName")} placeholder={t("right.codeExample")}
             value={newCodeName} onChange={(e) => setNewCodeName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleCreate()} autoFocus />
           <div>
-            <label className="block text-[11px] font-medium mb-1" style={{ color: "var(--text-muted)" }}>Üst kod (isteğe bağlı)</label>
+            <label className="block text-[11px] font-medium mb-1" style={{ color: "var(--text-muted)" }}>{t("right.parentCode")}</label>
             <select value={newCodeParentId ?? ""} onChange={(e) => setNewCodeParentId(e.target.value || null)}
               className="w-full rounded-[var(--radius-sm)] border px-2 py-1.5 text-[12px] outline-none"
               style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text-primary)" }}>
-              <option value="">— Kök seviyesi (L1)</option>
+              <option value="">{t("right.rootLevel")}</option>
               {projectCodes.filter((c) => {
                 let d = 0, cur = c;
                 while (cur.parentId && d < 4) { const p = projectCodes.find((x) => x.id === cur.parentId); if (!p) break; d++; cur = p; }
@@ -1000,44 +1002,44 @@ export function RightPanel() {
             </select>
           </div>
           <div className="flex justify-end gap-2 pt-1">
-            <Button variant="ghost" onClick={() => { setNewCodeModal(false); setNewCodeParentId(null); }}>İptal</Button>
-            <Button variant="primary" onClick={handleCreate} disabled={!newCodeName.trim()}>Kod oluştur</Button>
+            <Button variant="ghost" onClick={() => { setNewCodeModal(false); setNewCodeParentId(null); }}>{t("common.cancel")}</Button>
+            <Button variant="primary" onClick={handleCreate} disabled={!newCodeName.trim()}>{t("common.create")}</Button>
           </div>
         </div>
       </Modal>
 
       {/* Sub-code */}
-      <Modal open={!!subCodeParent} onClose={() => setSubCodeParent(null)} title="Alt-kod Ekle">
+      <Modal open={!!subCodeParent} onClose={() => setSubCodeParent(null)} title={t("right.addSubCode")}>
         <div className="space-y-4">
           {subCodeParent && (
             <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>
-              Üst kod: <strong style={{ color: "var(--text-primary)" }}>{projectCodes.find((c) => c.id === subCodeParent)?.name}</strong>
+              {t("right.subCodeOf")} <strong style={{ color: "var(--text-primary)" }}>{projectCodes.find((c) => c.id === subCodeParent)?.name}</strong>
             </p>
           )}
-          <Input label="Alt-kod adı" placeholder="örn. Pozitif duygu"
+          <Input label={t("right.codeName")} placeholder={t("right.codeExample")}
             value={subCodeName} onChange={(e) => setSubCodeName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleCreateSubCode()} autoFocus />
           <div className="flex justify-end gap-2 pt-1">
-            <Button variant="ghost" onClick={() => setSubCodeParent(null)}>İptal</Button>
-            <Button variant="primary" onClick={handleCreateSubCode} disabled={!subCodeName.trim()}>Alt-kod oluştur</Button>
+            <Button variant="ghost" onClick={() => setSubCodeParent(null)}>{t("common.cancel")}</Button>
+            <Button variant="primary" onClick={handleCreateSubCode} disabled={!subCodeName.trim()}>{t("right.addSubCode")}</Button>
           </div>
         </div>
       </Modal>
 
       {/* Move Code */}
-      <Modal open={!!moveCodeId} onClose={() => setMoveCodeId(null)} title="Üst Kodu Değiştir">
+      <Modal open={!!moveCodeId} onClose={() => setMoveCodeId(null)} title={t("right.moveCode")}>
         <div className="space-y-4">
           {moveCodeId && (
             <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>
-              Kod: <strong style={{ color: "var(--text-primary)" }}>{projectCodes.find((c) => c.id === moveCodeId)?.name}</strong>
+              {t("common.name")}: <strong style={{ color: "var(--text-primary)" }}>{projectCodes.find((c) => c.id === moveCodeId)?.name}</strong>
             </p>
           )}
           <div>
-            <label className="block text-[11px] font-medium mb-1" style={{ color: "var(--text-muted)" }}>Yeni üst kod</label>
+            <label className="block text-[11px] font-medium mb-1" style={{ color: "var(--text-muted)" }}>{t("right.newParent")}</label>
             <select value={moveTargetId ?? ""} onChange={(e) => setMoveTargetId(e.target.value || null)}
               className="w-full rounded-[var(--radius-sm)] border px-2 py-1.5 text-[12px] outline-none"
               style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text-primary)" }}>
-              <option value="">— Kök seviyesi (L1)</option>
+              <option value="">{t("right.rootLevel")}</option>
               {projectCodes.filter((c) => {
                 if (c.id === moveCodeId) return false;
                 let cur = c;
@@ -1053,14 +1055,14 @@ export function RightPanel() {
             </select>
           </div>
           <div className="flex justify-end gap-2 pt-1">
-            <Button variant="ghost" onClick={() => setMoveCodeId(null)}>İptal</Button>
+            <Button variant="ghost" onClick={() => setMoveCodeId(null)}>{t("common.cancel")}</Button>
             <Button variant="primary" onClick={() => {
               if (moveCodeId) {
                 updateCode(moveCodeId, { parentId: moveTargetId ?? undefined });
                 if (moveTargetId) setCollapsedParents((prev) => { const n = new Set(prev); n.delete(moveTargetId); return n; });
               }
               setMoveCodeId(null);
-            }}>Taşı</Button>
+            }}>{t("right.move")}</Button>
           </div>
         </div>
       </Modal>
@@ -1120,24 +1122,33 @@ function StatChip({ icon, value, label }: { icon: React.ReactNode; value: number
   );
 }
 
-function EmptyCodeState({ onNew }: { onNew: () => void }) {
+function EmptyCodeState() {
+  const t = useT();
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col items-center justify-center gap-4 py-12 px-6 text-center"
+      className="flex flex-col items-center text-center max-w-[240px] px-4"
     >
-      <div className="h-10 w-10 rounded-xl flex items-center justify-center border shadow-sm" style={{ background: "var(--bg-secondary)", borderColor: "var(--border)" }}>
-        <Tag className="h-5 w-5" style={{ color: "var(--text-muted)" }} />
+      <div className="w-12 h-12 rounded-xl bg-zinc-900 flex items-center justify-center mb-6 border border-white/5">
+        <Tag className="h-6 w-6 text-zinc-500" />
       </div>
-      <div className="space-y-2">
-        <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>İlk Kodunu Yarat</p>
-        <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
-          Henüz hiç kodunuz yok. Orta panelde bir metni seçin ve klavyenizden <kbd className="px-1 py-0.5 rounded border bg-zinc-800 text-zinc-300 font-mono text-[10px]">C</kbd> tuşuna basarak ilk kodunuzu oluşturun.
-        </p>
-      </div>
-      <Button variant="ghost" size="sm" onClick={onNew} className="mt-2 text-[11px]">
-        <Plus className="h-3 w-3 mr-1" /> Manuel Kod Ekle
+      <h4 className="text-sm font-medium text-white mb-2">{t('welcome.firstCode')}</h4>
+      <p className="text-xs text-zinc-500 mb-6 leading-relaxed">
+        {t('welcome.codeHint')}
+      </p>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-8 rounded-lg text-xs border border-white/5 hover:bg-white/5"
+        onClick={() => {
+          const { activeProjectId } = useAppStore.getState();
+          const { createCode } = useProjectStore.getState();
+          if (activeProjectId) createCode(activeProjectId, "Yeni Kod #1");
+        }}
+      >
+        <Plus className="h-3 w-3 mr-2" />
+        {t('right.newCode')}
       </Button>
     </motion.div>
   );

@@ -19,6 +19,7 @@ import { AiChatPanel } from "@/components/chat/AiChatPanel";
 import { ShortcutEngine } from "@/components/keyboard/ShortcutEngine";
 import { importFile, getFileCategory } from "@/lib/fileImport";
 import { WelcomeScreen } from "@/components/onboarding/WelcomeScreen";
+import { useT } from "@/lib/i18n";
 import "./index.css";
 
 // ─── Error Boundary ────────────────────────────────────────────────────────────
@@ -89,6 +90,7 @@ function SplashScreen() {
 // ─── Main App ─────────────────────────────────────────────────────────────────
 
 export default function App() {
+  const t = useT();
   const { theme, commandPaletteOpen, activeProjectId, setActiveProject } = useAppStore();
   const { user, accessToken, booting, initialized } = useAuthStore();
   const { checkSchedule } = useSyncStore();
@@ -241,10 +243,11 @@ export default function App() {
                   <WelcomeScreen
                     key="welcome"
                     onNewProject={() => {
-                      const name = `Araştırma ${projects.length + 1}`;
+                      const name = `${t("app.newProjectDefault")} ${projects.length + 1}`;
                       const p = createProject(name);
                       setActiveProject(p.id);
                     }}
+                    onOpenProject={() => { }}
                   />
                 ) : (
                   <motion.div

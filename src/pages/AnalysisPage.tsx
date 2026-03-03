@@ -23,7 +23,7 @@ import {
 import React from "react";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
-import { useT } from "@/hooks/useT";
+import { useT } from "@/lib/i18n";
 
 // -- Components --
 import { CodeHeatmap } from "@/components/charts/CodeHeatmap";
@@ -100,7 +100,7 @@ export function AnalysisPage() {
     { id: "cloud", label: t("analysis.cloud"), icon: <Box className="h-3.5 w-3.5" /> },
     { id: "matrix", label: t("analysis.matrix"), icon: <TrendingUp className="h-3.5 w-3.5" /> },
     { id: "network", label: t("analysis.network"), icon: <Share2 className="h-3.5 w-3.5" /> },
-    { id: "typology", label: "Tipoloji", icon: <LayoutGrid className="h-3.5 w-3.5" /> },
+    { id: "typology", label: t("analysis.typologyTab"), icon: <LayoutGrid className="h-3.5 w-3.5" /> },
     { id: "synthesis", label: t("synthesis.title"), icon: <Sparkles className="h-3.5 w-3.5" /> },
   ];
 
@@ -115,7 +115,10 @@ export function AnalysisPage() {
               {t("analysis.title")}
             </h1>
             <p className="text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-widest mt-1 whitespace-nowrap">
-              {projectCodes.length} KOD · {projectSegments.length} SEGMENT · {projectDocs.length} BELGE
+              {t("analysis.counts")
+                .replace("{codes}", projectCodes.length.toString())
+                .replace("{segments}", projectSegments.length.toString())
+                .replace("{docs}", projectDocs.length.toString())}
             </p>
           </div>
 
@@ -146,7 +149,7 @@ export function AnalysisPage() {
           {/* Scope Toggle */}
           <div className="flex items-center gap-2 mr-2">
             <span className={cn("text-[11px] uppercase tracking-wider font-bold", isProjectScope ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]")}>
-              Belge
+              {t("analysis.scopeDoc")}
             </span>
             <button
               onClick={() => setIsProjectScope(!isProjectScope)}
@@ -158,7 +161,7 @@ export function AnalysisPage() {
               />
             </button>
             <span className={cn("text-[11px] uppercase tracking-wider font-bold", !isProjectScope ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]")}>
-              Proje
+              {t("analysis.scopeProject")}
             </span>
           </div>
 
@@ -195,7 +198,7 @@ export function AnalysisPage() {
                   >
                     <div className="px-3 py-1.5 border-b border-[var(--border-subtle)] mb-1">
                       <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest px-1">
-                        {isProjectScope ? "Proje Değiştir" : "Belge Seç"}
+                        {isProjectScope ? t("analysis.changeProject") : t("analysis.selectDoc")}
                       </span>
                     </div>
                     <div className="max-h-80 overflow-y-auto custom-scrollbar">
@@ -257,41 +260,41 @@ export function AnalysisPage() {
             >
               {/* 1. CODE HEATMAP */}
               <DashboardCard
-                title="Kod Matrisi"
+                title={t("analysis.matrixTitle")}
                 icon={<Activity className="h-4 w-4" />}
                 className="col-span-8 h-[340px]"
-                onMaximize={(z) => setMaximizedCard({ title: "Kod Matrisi", component: <CodeHeatmap codes={projectCodes} docs={scopedDocs} segments={scopedSegments} />, zoom: z })}
+                onMaximize={(z) => setMaximizedCard({ title: t("analysis.matrixTitle"), component: <CodeHeatmap codes={projectCodes} docs={scopedDocs} segments={scopedSegments} />, zoom: z })}
               >
                 <CodeHeatmap codes={projectCodes} docs={scopedDocs} segments={scopedSegments} />
               </DashboardCard>
 
               {/* 1.5 DEMOGRAPHIC DISTRIBUTION */}
               <DashboardCard
-                title="Değişken Dağılımı"
+                title={t("analysis.distributionTitle")}
                 icon={<PieChart className="h-4 w-4" />}
                 className="col-span-4 h-[340px]"
-                onMaximize={(z) => setMaximizedCard({ title: "Değişken Dağılımı", component: <DemographicDistribution />, zoom: z })}
+                onMaximize={(z) => setMaximizedCard({ title: t("analysis.distributionTitle"), component: <DemographicDistribution />, zoom: z })}
               >
                 <DemographicDistribution />
               </DashboardCard>
 
               {/* 1.7 SUB-CODE DISTRIBUTION */}
               <DashboardCard
-                title="Alt-Kod Dağılımı"
+                title={t("analysis.subCodeTitle")}
                 icon={<BarChart2 className="h-4 w-4" />}
                 className="col-span-12 h-[340px]"
-                onMaximize={(z) => setMaximizedCard({ title: "Alt-Kod Dağılımı", component: <SubCodeDistribution codes={projectCodes} segments={scopedSegments} />, zoom: z })}
+                onMaximize={(z) => setMaximizedCard({ title: t("analysis.subCodeTitle"), component: <SubCodeDistribution codes={projectCodes} segments={scopedSegments} />, zoom: z })}
               >
                 <SubCodeDistribution codes={projectCodes} segments={scopedSegments} />
               </DashboardCard>
 
               {/* 2. DOCUMENT PORTRAIT */}
               <DashboardCard
-                title="Belge Portresi"
+                title={t("analysis.portraitTitle")}
                 icon={<FileText className="h-4 w-4" />}
                 className="col-span-8 h-[340px]"
                 onMaximize={(z) => setMaximizedCard({
-                  title: "Belge Portresi",
+                  title: t("analysis.portraitTitle"),
                   component: <DocumentPortrait codes={projectCodes} doc={activeDoc} segments={scopedSegments} isProjectScope={isProjectScope} allDocs={projectDocs} />,
                   zoom: z
                 })}
@@ -301,11 +304,11 @@ export function AnalysisPage() {
 
               {/* 3. NARRATIVE FLOW */}
               <DashboardCard
-                title="Anlatı Akışı"
+                title={t("analysis.flowTitle")}
                 icon={<Share2 className="h-4 w-4" />}
                 className="col-span-7 h-[380px]"
                 onMaximize={(z) => setMaximizedCard({
-                  title: "Anlatı Akışı",
+                  title: t("analysis.flowTitle"),
                   component: <NarrativeFlow codes={projectCodes} doc={activeDoc} segments={scopedSegments} isProjectScope={isProjectScope} allDocs={projectDocs} />,
                   zoom: z
                 })}
@@ -315,20 +318,20 @@ export function AnalysisPage() {
 
               {/* 4. TYPOGRAPHIC CLOUD */}
               <DashboardCard
-                title="Kavramsal Bulut"
+                title={t("analysis.conceptCloud")}
                 icon={<Type className="h-4 w-4" />}
                 className="col-span-5 h-[380px]"
-                onMaximize={(z) => setMaximizedCard({ title: "Kavramsal Bulut", component: <TypographicCloud codes={projectCodes} segments={scopedSegments} />, zoom: z })}
+                onMaximize={(z) => setMaximizedCard({ title: t("analysis.conceptCloud"), component: <TypographicCloud codes={projectCodes} segments={scopedSegments} />, zoom: z })}
               >
                 <TypographicCloud codes={projectCodes} segments={scopedSegments} />
               </DashboardCard>
 
               {/* 5. THEMATIC NETWORK */}
               <DashboardCard
-                title="Tematik Ağ"
+                title={t("analysis.thematicNetwork")}
                 icon={<Box className="h-4 w-4" />}
                 className="col-span-12 h-[500px]"
-                onMaximize={(z) => setMaximizedCard({ title: "Tematik Ağ", component: <ThematicNetwork codes={projectCodes} segments={scopedSegments} />, zoom: z })}
+                onMaximize={(z) => setMaximizedCard({ title: t("analysis.thematicNetwork"), component: <ThematicNetwork codes={projectCodes} segments={scopedSegments} />, zoom: z })}
               >
                 <ThematicNetwork codes={projectCodes} segments={scopedSegments} />
               </DashboardCard>
@@ -404,7 +407,7 @@ export function AnalysisPage() {
               <div className="flex-shrink-0 px-8 py-6 border-b border-[var(--border)] flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">{maximizedCard.title}</h2>
-                  <span className="px-2 py-0.5 rounded bg-[var(--bg-tertiary)] text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-widest">Expanded View</span>
+                  <span className="px-2 py-0.5 rounded bg-[var(--bg-tertiary)] text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-widest">{t("analysis.expandedView")}</span>
                   <div className="flex items-center gap-1 ml-4 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-1 shadow-sm">
                     <button
                       onClick={() => setMaximizedCard(prev => prev ? { ...prev, zoom: Math.max(prev.zoom - 0.2, 0.5) } : null)}
@@ -561,7 +564,7 @@ function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: any[]; co
     { label: t("nav.documents"), value: docs.length, color: "var(--text-muted)", icon: FileText },
     { label: t("analysis.codes"), value: codes.length, color: "var(--text-muted)", icon: Tag },
     { label: t("analysis.segments"), value: segments.length, color: "var(--text-muted)", icon: Hash },
-    { label: "Segment/Belge", value: docs.length ? (segments.length / docs.length) : 0, icon: TrendingUp, isDecimal: true },
+    { label: t("analysis.segPerDoc"), value: docs.length ? (segments.length / docs.length) : 0, icon: TrendingUp, isDecimal: true },
   ];
 
   return (
@@ -626,9 +629,9 @@ function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: any[]; co
                     data={React.useMemo(() => {
                       const top = codeFrequency.slice(0, 5).map(f => ({ name: f.code.name, value: f.count, color: f.code.color }));
                       const others = codeFrequency.slice(5).reduce((acc, curr) => acc + curr.count, 0);
-                      if (others > 0) top.push({ name: "Diğer", value: others, color: "#52525b" });
+                      if (others > 0) top.push({ name: t("analysis.other"), value: others, color: "#52525b" });
                       return top;
-                    }, [codeFrequency])}
+                    }, [codeFrequency, t])}
                     cx="50%"
                     cy="50%"
                     innerRadius={70}
@@ -640,16 +643,16 @@ function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: any[]; co
                     {React.useMemo(() => {
                       const top = codeFrequency.slice(0, 5).map(f => ({ name: f.code.name, value: f.count, color: f.code.color }));
                       const others = codeFrequency.slice(5).reduce((acc, curr) => acc + curr.count, 0);
-                      if (others > 0) top.push({ name: "Diğer", value: others, color: "#52525b" });
+                      if (others > 0) top.push({ name: t("analysis.other"), value: others, color: "#52525b" });
                       return top;
-                    }, [codeFrequency]).map((entry, index) => (
+                    }, [codeFrequency, t]).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
                   <RechartsTooltip
                     contentStyle={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '11px', fontWeight: 500 }}
                     itemStyle={{ color: 'var(--text-primary)' }}
-                    formatter={(value: any) => [`${value} Segment`, undefined]}
+                    formatter={(value: any) => [t("analysis.segCountTooltip").replace("{count}", value.toString()), undefined]}
                   />
                 </RechartsPieChart>
               </ResponsiveContainer>
@@ -658,7 +661,7 @@ function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: any[]; co
             <>
               <PieChart className="h-12 w-12 text-[var(--border)] mb-6" />
               <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2">{t("analysis.distribution")}</p>
-              <p className="text-sm text-[var(--text-secondary)] text-center px-4">Kod dağılım grafiği için segment gereklidir.</p>
+              <p className="text-sm text-[var(--text-secondary)] text-center px-4">{t("analysis.noDataText")}</p>
             </>
           )}
         </div>
@@ -668,6 +671,7 @@ function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: any[]; co
 }
 
 function TypologyTab({ docs, codes, segments }: { docs: any[]; codes: any[]; segments: any[] }) {
+  const t = useT();
   const clusters = useMemo(() => {
     // We only need the nodes to be clustered, the layout parameters are arbitrary
     const { nodes, edges } = computeGraphData(codes, segments, 800, 600);
@@ -728,7 +732,7 @@ function TypologyTab({ docs, codes, segments }: { docs: any[]; codes: any[]; seg
     return (
       <div className="flex h-full items-center justify-center text-[var(--text-muted)] italic text-sm">
         <Sparkles className="h-5 w-5 mr-3 opacity-50" />
-        Vaka kümesi oluşturulabilmesi için yeterli bağlantı bulunmuyor.
+        {t("analysis.typologyEmpty")}
       </div>
     );
   }
@@ -738,10 +742,10 @@ function TypologyTab({ docs, codes, segments }: { docs: any[]; codes: any[]; seg
       <div className="mb-6 flex flex-col gap-2 px-8">
         <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-2">
           <LayoutGrid className="h-4 w-4 text-[var(--text-muted)]" />
-          Vaka Kümeleri (Tipoloji)
+          {t("analysis.typologyTitle")}
         </h2>
         <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-          Belgeler, en yoğun kodlandıkları tematik kümelere göre otomatik olarak sütunlara ayrılmıştır. Bu görünüm, benzer nitelikteki vakaları gruplandırmak için kullanılır.
+          {t("analysis.typologyDesc")}
         </p>
       </div>
       <div className="flex-1 overflow-x-auto custom-scrollbar flex gap-6 px-8 pb-8 items-start">
@@ -749,9 +753,9 @@ function TypologyTab({ docs, codes, segments }: { docs: any[]; codes: any[]; seg
           <div key={cluster.clusterId} className="flex-shrink-0 w-80 flex flex-col bg-[var(--bg-secondary)]/40 border border-[var(--border)] rounded-2xl overflow-hidden max-h-[100%]">
             <div className="p-4 border-b border-[var(--border)] bg-[var(--surface)]/50 backdrop-blur-sm shadow-sm z-10">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold text-[13px] text-[var(--text-primary)]">Tip {i + 1}</h3>
+                <h3 className="font-bold text-[13px] text-[var(--text-primary)]">{t("analysis.type")} {i + 1}</h3>
                 <span className="text-[10px] font-mono bg-[var(--bg-tertiary)] px-2 py-0.5 rounded border border-[var(--border)] text-[var(--text-secondary)]">
-                  {cluster.docs.length} Vaka
+                  {t("analysis.casesCount").replace("{count}", cluster.docs.length.toString())}
                 </span>
               </div>
               <div className="flex flex-wrap gap-1.5 mt-2">

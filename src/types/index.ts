@@ -88,7 +88,7 @@ export interface Synthesis {
 
 export type ViewMode = "documents" | "coding" | "analysis" | "memos" | "settings" | "dashboard";
 
-export type Language = "tr" | "en";
+export type Language = "tr" | "en" | "de" | "es" | "nl" | "fr" | "it" | "pt";
 
 export type Theme = "dark" | "light";
 
