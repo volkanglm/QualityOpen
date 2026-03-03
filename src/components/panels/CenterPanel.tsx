@@ -192,7 +192,7 @@ export function CenterPanel() {
     });
   }, [doc, activeProjectId]);
 
-  const handleOcrComplete = (text: string) => {
+  const handleOcrComplete = useCallback((text: string) => {
     if (doc) {
       updateDocument(doc.id, {
         content: text,
@@ -200,7 +200,11 @@ export function CenterPanel() {
         wordCount: countWords(text),
       });
     }
-  };
+  }, [doc, updateDocument]);
+
+  const handlePdfLoadComplete = useCallback((len: number) => {
+    setPdfTextLength(len);
+  }, []);
 
   // ── Text selection → floating menu ───────────────────────────────────────
   const handleMouseUp = useCallback(() => {
@@ -227,6 +231,8 @@ export function CenterPanel() {
       end,
     });
 
+    // Optimization: Don't set global selection state on every tiny change
+    // if it's already the same or if we are in PDF mode to avoid reset.
     if (doc) setActiveSelection({ text, start, end, documentId: doc.id });
   }, [editMode, doc, setActiveSelection, ctxMenu, format]);
 
@@ -852,7 +858,7 @@ export function CenterPanel() {
                       <div className="p-4">
                         <PdfRenderer
                           base64={doc.content}
-                          onLoadComplete={(len: number) => setPdfTextLength(len)}
+                          onLoadComplete={handlePdfLoadComplete}
                           onOcrComplete={handleOcrComplete}
                         />
                       </div>
