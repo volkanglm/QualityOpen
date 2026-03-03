@@ -72,7 +72,7 @@ export function ExportMenu() {
   const menuRef = useRef<HTMLDivElement>(null);
 
   const { activeProjectId, activeView } = useAppStore();
-  const { projects, documents, codes, segments } = useProjectStore();
+  const { projects, documents, codes, segments, syntheses } = useProjectStore();
   const { push } = useToastStore();
   const t = useT();
 
@@ -104,6 +104,7 @@ export function ExportMenu() {
       documents: documents.filter((d) => d.projectId === project.id),
       codes: codes.filter((c) => c.projectId === project.id),
       segments: segments.filter((s) => s.projectId === project.id),
+      syntheses: syntheses.filter((s) => s.projectId === project.id),
     };
 
     try {

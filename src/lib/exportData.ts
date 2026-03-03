@@ -4,18 +4,19 @@ import type { Project, Document as QDoc, Code, Segment } from "@/types";
 // ─── Shared types ─────────────────────────────────────────────────────────────
 
 export interface ExportPayload {
-  project:   Project;
+  project: Project;
   documents: QDoc[];
-  codes:     Code[];
-  segments:  Segment[];
+  codes: Code[];
+  segments: Segment[];
+  syntheses?: import("@/types").Synthesis[];
 }
 
 // ─── Download helper ──────────────────────────────────────────────────────────
 
 function triggerDownload(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
-  const a   = Object.assign(document.createElement("a"), {
-    href:     url,
+  const a = Object.assign(document.createElement("a"), {
+    href: url,
     download: filename,
   });
   document.body.appendChild(a);
@@ -40,7 +41,7 @@ function autoWidth(ws: XLSX.WorkSheet, data: Record<string, unknown>[]) {
 
 export function exportCSV(payload: ExportPayload): void {
   const rows = buildSegmentRows(payload);
-  const ws   = XLSX.utils.json_to_sheet(rows);
+  const ws = XLSX.utils.json_to_sheet(rows);
   autoWidth(ws, rows);
   const csv = XLSX.utils.sheet_to_csv(ws);
   triggerDownload(
@@ -56,7 +57,7 @@ export function exportExcel(payload: ExportPayload): void {
 
   // ── Sheet 1: Segments ──
   const segRows = buildSegmentRows(payload);
-  const ws1     = XLSX.utils.json_to_sheet(segRows);
+  const ws1 = XLSX.utils.json_to_sheet(segRows);
   autoWidth(ws1, segRows);
   styleHeaderRow(ws1, segRows.length > 0 ? Object.keys(segRows[0]) : []);
   XLSX.utils.book_append_sheet(wb, ws1, "Segmentler");
@@ -65,11 +66,11 @@ export function exportExcel(payload: ExportPayload): void {
   const codeRows = payload.codes.map((code) => {
     const parent = payload.codes.find((c) => c.id === code.parentId);
     return {
-      "Kod Adı":        code.name,
-      "Üst Kod":        parent?.name ?? "",
-      "Renk (HEX)":     code.color,
+      "Kod Adı": code.name,
+      "Üst Kod": parent?.name ?? "",
+      "Renk (HEX)": code.color,
       "Kullanım Sayısı": payload.segments.filter((s) => s.codeIds.includes(code.id)).length,
-      "Açıklama":       code.description ?? "",
+      "Açıklama": code.description ?? "",
     };
   });
   const ws2 = XLSX.utils.json_to_sheet(codeRows.length ? codeRows : [{ Bilgi: "Kod bulunamadı" }]);
@@ -79,10 +80,10 @@ export function exportExcel(payload: ExportPayload): void {
 
   // ── Sheet 3: Documents ──
   const docRows = payload.documents.map((d) => ({
-    "Belge Adı":      d.name,
-    "Tür":            d.type,
-    "Format":         d.format ?? "text",
-    "Kelime Sayısı":  d.wordCount ?? 0,
+    "Belge Adı": d.name,
+    "Tür": d.type,
+    "Format": d.format ?? "text",
+    "Kelime Sayısı": d.wordCount ?? 0,
     "Segment Sayısı": payload.segments.filter((s) => s.documentId === d.id).length,
   }));
   const ws3 = XLSX.utils.json_to_sheet(docRows.length ? docRows : [{ Bilgi: "Belge bulunamadı" }]);
@@ -92,9 +93,26 @@ export function exportExcel(payload: ExportPayload): void {
 
   // ── Sheet 4: Kod Hiyerarşisi ──
   const hierarchyRows = buildHierarchyRows(payload);
-  const ws4           = XLSX.utils.json_to_sheet(hierarchyRows.length ? hierarchyRows : [{ Bilgi: "Hiyerarşi yok" }]);
+  const ws4 = XLSX.utils.json_to_sheet(hierarchyRows.length ? hierarchyRows : [{ Bilgi: "Hiyerarşi yok" }]);
   autoWidth(ws4, hierarchyRows);
   XLSX.utils.book_append_sheet(wb, ws4, "Kod Hiyerarşisi");
+
+  // ── Sheet 5: AI Sentezleri ──
+  if (payload.syntheses && payload.syntheses.length > 0) {
+    const synthRows = payload.syntheses.map((s) => {
+      const code = payload.codes.find(c => c.id === s.codeId);
+      return {
+        "Kod Adı": code?.name ?? "Bilinmeyen Kod",
+        "Özellik/Değişken": s.propertyKey ? `${s.propertyKey}: ${s.propertyValue}` : "Tüm Belgeler",
+        "Sentez Metni": s.content,
+        "Güncellenme": new Date(s.updatedAt).toLocaleDateString("tr-TR"),
+      };
+    });
+    const ws5 = XLSX.utils.json_to_sheet(synthRows);
+    autoWidth(ws5, synthRows);
+    styleHeaderRow(ws5, Object.keys(synthRows[0]));
+    XLSX.utils.book_append_sheet(wb, ws5, "AI Sentezleri");
+  }
 
   XLSX.writeFile(wb, `${sanitize(payload.project.name)}_export.xlsx`);
 }
@@ -115,7 +133,7 @@ export async function exportWordAPA7(payload: ExportPayload): Promise<void> {
 
   const { project, documents, codes, segments } = payload;
 
-  const MARGIN  = convertInchesToTwip(1);  // 1-inch margins (APA 7)
+  const MARGIN = convertInchesToTwip(1);  // 1-inch margins (APA 7)
   const SPACING = { line: 480, lineRule: "auto" as const }; // double spacing
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -124,20 +142,20 @@ export async function exportWordAPA7(payload: ExportPayload): Promise<void> {
   // ── Title page ──
   children.push(
     new Paragraph({
-      children:  [new TextRun({ text: "", break: 1 })],
-      spacing:   SPACING,
+      children: [new TextRun({ text: "", break: 1 })],
+      spacing: SPACING,
     }),
     new Paragraph({
       children: [
         new TextRun({
-          text:    project.name,
-          bold:    true,
-          size:    28,
-          font:    "Times New Roman",
+          text: project.name,
+          bold: true,
+          size: 28,
+          font: "Times New Roman",
         }),
       ],
       alignment: AlignmentType.CENTER,
-      spacing:   SPACING,
+      spacing: SPACING,
     }),
     new Paragraph({
       children: [
@@ -150,7 +168,7 @@ export async function exportWordAPA7(payload: ExportPayload): Promise<void> {
         }),
       ],
       alignment: AlignmentType.CENTER,
-      spacing:   SPACING,
+      spacing: SPACING,
     }),
     new Paragraph({
       children: [
@@ -162,7 +180,7 @@ export async function exportWordAPA7(payload: ExportPayload): Promise<void> {
         }),
       ],
       alignment: AlignmentType.CENTER,
-      spacing:   SPACING,
+      spacing: SPACING,
     }),
     // Page break
     new Paragraph({
@@ -174,9 +192,9 @@ export async function exportWordAPA7(payload: ExportPayload): Promise<void> {
   // ── Introduction ──
   children.push(
     new Paragraph({
-      text:     "Metodoloji ve Kod Sistemi",
-      heading:  HeadingLevel.HEADING_1,
-      spacing:  SPACING,
+      text: "Metodoloji ve Kod Sistemi",
+      heading: HeadingLevel.HEADING_1,
+      spacing: SPACING,
     }),
     new Paragraph({
       children: [
@@ -188,14 +206,14 @@ export async function exportWordAPA7(payload: ExportPayload): Promise<void> {
           font: "Times New Roman",
         }),
       ],
-      spacing:  SPACING,
+      spacing: SPACING,
     }),
   );
 
   // ── Kod hiyerarşisi ──
   children.push(
     new Paragraph({
-      text:    "Kod Hiyerarşisi",
+      text: "Kod Hiyerarşisi",
       heading: HeadingLevel.HEADING_2,
       spacing: SPACING,
     }),
@@ -224,11 +242,12 @@ export async function exportWordAPA7(payload: ExportPayload): Promise<void> {
           new Paragraph({
             children: [
               new TextRun({
-                text: `     ○ ${child.name}`,
+                text: `○ ${child.name}`,
                 size: 24,
                 font: "Times New Roman",
               }),
             ],
+            indent: { left: convertInchesToTwip(0.5) },
             spacing: SPACING,
           }),
       ),
@@ -241,7 +260,7 @@ export async function exportWordAPA7(payload: ExportPayload): Promise<void> {
   // ── Bulgular (Findings) — one section per code ──
   children.push(
     new Paragraph({
-      text:    "Bulgular",
+      text: "Bulgular",
       heading: HeadingLevel.HEADING_1,
       spacing: SPACING,
     }),
@@ -252,13 +271,13 @@ export async function exportWordAPA7(payload: ExportPayload): Promise<void> {
   );
 
   codesWithSegments.forEach((code, _ci) => {
-    const codeSegs  = segments.filter((s) => s.codeIds.includes(code.id));
+    const codeSegs = segments.filter((s) => s.codeIds.includes(code.id));
     const parentCode = code.parentId ? codes.find((c) => c.id === code.parentId) : null;
 
     // Code heading
     children.push(
       new Paragraph({
-        text:    parentCode ? `${parentCode.name}: ${code.name}` : code.name,
+        text: parentCode ? `${parentCode.name}: ${code.name}` : code.name,
         heading: HeadingLevel.HEADING_2,
         spacing: SPACING,
       }),
@@ -268,18 +287,18 @@ export async function exportWordAPA7(payload: ExportPayload): Promise<void> {
       children.push(
         new Paragraph({
           children: [new TextRun({ text: code.description, italics: true, size: 24, font: "Times New Roman" })],
-          spacing:  SPACING,
+          spacing: SPACING,
         }),
       );
     }
 
     codeSegs.forEach((seg) => {
       const srcDoc = documents.find((d) => d.id === seg.documentId);
-      const ref    = srcDoc?.name ?? "Bilinmeyen Kaynak";
+      const ref = srcDoc?.name ?? "Bilinmeyen Kaynak";
 
       // APA 7 block quote: indented 0.5-inch both sides for quotes > 40 words
       const wordCount = seg.text.trim().split(/\s+/).length;
-      const isBlock   = wordCount >= 40;
+      const isBlock = wordCount >= 40;
 
       if (isBlock) {
         children.push(
@@ -292,7 +311,7 @@ export async function exportWordAPA7(payload: ExportPayload): Promise<void> {
               }),
             ],
             indent: {
-              left:  convertInchesToTwip(0.5),
+              left: convertInchesToTwip(0.5),
               right: convertInchesToTwip(0.5),
             },
             spacing: SPACING,
@@ -301,15 +320,15 @@ export async function exportWordAPA7(payload: ExportPayload): Promise<void> {
           new Paragraph({
             children: [
               new TextRun({
-                text:    `(${ref})`,
+                text: `(${ref})`,
                 italics: true,
-                size:    24,
-                font:    "Times New Roman",
+                size: 24,
+                font: "Times New Roman",
               }),
             ],
             alignment: AlignmentType.RIGHT,
             indent: {
-              left:  convertInchesToTwip(0.5),
+              left: convertInchesToTwip(0.5),
               right: convertInchesToTwip(0.5),
             },
             spacing: SPACING,
@@ -326,10 +345,10 @@ export async function exportWordAPA7(payload: ExportPayload): Promise<void> {
                 font: "Times New Roman",
               }),
               new TextRun({
-                text:    `(${ref})`,
+                text: `(${ref})`,
                 italics: true,
-                size:    24,
-                font:    "Times New Roman",
+                size: 24,
+                font: "Times New Roman",
               }),
             ],
             spacing: SPACING,
@@ -342,11 +361,11 @@ export async function exportWordAPA7(payload: ExportPayload): Promise<void> {
           new Paragraph({
             children: [
               new TextRun({
-                text:    `[Not: ${seg.memo}]`,
-                size:    22,
-                color:   "888888",
+                text: `[Not: ${seg.memo}]`,
+                size: 22,
+                color: "888888",
                 italics: true,
-                font:    "Times New Roman",
+                font: "Times New Roman",
               }),
             ],
             spacing: SPACING,
@@ -359,14 +378,44 @@ export async function exportWordAPA7(payload: ExportPayload): Promise<void> {
     children.push(new Paragraph({ children: [new TextRun({ text: "" })], spacing: SPACING }));
   });
 
+  // ── AI Sentezleri ──
+  if (payload.syntheses && payload.syntheses.length > 0) {
+    children.push(new Paragraph({ children: [new TextRun({ text: "", break: 1 })], pageBreakBefore: true }));
+    children.push(
+      new Paragraph({
+        text: "AI Sentez Raporu",
+        heading: HeadingLevel.HEADING_1,
+        spacing: SPACING,
+      }),
+    );
+
+    payload.syntheses.forEach(s => {
+      const code = codes.find(c => c.id === s.codeId);
+      children.push(
+        new Paragraph({
+          text: `${code?.name ?? "Bilinmeyen Kod"}${s.propertyKey ? ` (${s.propertyKey}: ${s.propertyValue})` : " (Tüm Belgeler)"}`,
+          heading: HeadingLevel.HEADING_2,
+          spacing: SPACING,
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: s.content, size: 24, font: "Times New Roman" })
+          ],
+          spacing: SPACING,
+        }),
+        new Paragraph({ children: [new TextRun({ text: "" })], spacing: SPACING })
+      );
+    });
+  }
+
   // ── References page ──
   children.push(
     new Paragraph({ children: [new TextRun({ text: "", break: 1 })], pageBreakBefore: true }),
     new Paragraph({
-      text:      "Kaynaklar",
-      heading:   HeadingLevel.HEADING_1,
+      text: "Kaynaklar",
+      heading: HeadingLevel.HEADING_1,
       alignment: AlignmentType.CENTER,
-      spacing:   SPACING,
+      spacing: SPACING,
     }),
     ...documents.map(
       (d) =>
@@ -378,7 +427,7 @@ export async function exportWordAPA7(payload: ExportPayload): Promise<void> {
               font: "Times New Roman",
             }),
           ],
-          indent:  { hanging: convertInchesToTwip(0.5) },
+          indent: { hanging: convertInchesToTwip(0.5) },
           spacing: SPACING,
         }),
     ),
@@ -420,10 +469,10 @@ export async function exportChartImage(
   filename: string,
   format: "png" | "jpeg" = "png",
 ): Promise<void> {
-  const canvas  = document.createElement("canvas");
-  const dpr     = window.devicePixelRatio || 1;
-  const rect    = element.getBoundingClientRect();
-  canvas.width  = rect.width  * dpr;
+  const canvas = document.createElement("canvas");
+  const dpr = window.devicePixelRatio || 1;
+  const rect = element.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
   canvas.height = rect.height * dpr;
   const ctx = canvas.getContext("2d")!;
   ctx.scale(dpr, dpr);
@@ -445,9 +494,9 @@ export async function exportChartImage(
     throw new Error("Dışa aktarılacak grafik bulunamadı.");
   }
 
-  const svgData  = new XMLSerializer().serializeToString(svgEl);
-  const svgBlob  = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
-  const svgUrl   = URL.createObjectURL(svgBlob);
+  const svgData = new XMLSerializer().serializeToString(svgEl);
+  const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+  const svgUrl = URL.createObjectURL(svgBlob);
 
   await new Promise<void>((resolve, reject) => {
     const img = new Image();
@@ -473,33 +522,33 @@ export async function exportChartImage(
 
 function buildSegmentRows(payload: ExportPayload) {
   return payload.segments.map((seg) => {
-    const src   = payload.documents.find((d) => d.id === seg.documentId);
+    const src = payload.documents.find((d) => d.id === seg.documentId);
     const codeNames = payload.codes
       .filter((c) => seg.codeIds.includes(c.id))
       .map((c) => c.name)
       .join("; ");
     return {
-      "Belge":           src?.name ?? "",
-      "Kod(lar)":        codeNames,
-      "Metin Alıntısı":  seg.text,
-      "Başlangıç":       seg.start,
-      "Bitiş":           seg.end,
-      "Not":             seg.memo ?? "",
-      "Vurgulama":       seg.isHighlight ? "Evet" : "Hayır",
-      "Oluşturulma":     new Date(seg.createdAt).toLocaleDateString("tr-TR"),
+      "Belge": src?.name ?? "",
+      "Kod(lar)": codeNames,
+      "Metin Alıntısı": seg.text,
+      "Başlangıç": seg.start,
+      "Bitiş": seg.end,
+      "Not": seg.memo ?? "",
+      "Vurgulama": seg.isHighlight ? "Evet" : "Hayır",
+      "Oluşturulma": new Date(seg.createdAt).toLocaleDateString("tr-TR"),
     };
   });
 }
 
 function buildHierarchyRows(payload: ExportPayload) {
   return payload.codes.map((code) => {
-    const parent     = payload.codes.find((c) => c.id === code.parentId);
+    const parent = payload.codes.find((c) => c.id === code.parentId);
     const usageCount = payload.segments.filter((s) => s.codeIds.includes(code.id)).length;
     return {
-      "Seviye 1 (Üst)":  parent?.name ?? code.name,
-      "Seviye 2 (Alt)":  parent ? code.name : "",
-      "Kullanım":        usageCount,
-      "Renk":            code.color,
+      "Seviye 1 (Üst)": parent?.name ?? code.name,
+      "Seviye 2 (Alt)": parent ? code.name : "",
+      "Kullanım": usageCount,
+      "Renk": code.color,
     };
   });
 }
@@ -510,8 +559,8 @@ function styleHeaderRow(ws: XLSX.WorkSheet, keys: string[]) {
     const cell = ws[XLSX.utils.encode_cell({ r: 0, c: i })];
     if (cell) {
       cell.s = {
-        font:   { bold: true, color: { rgb: "FFFFFF" } },
-        fill:   { fgColor: { rgb: "4B4080" }, patternType: "solid" },
+        font: { bold: true, color: { rgb: "FFFFFF" } },
+        fill: { fgColor: { rgb: "4B4080" }, patternType: "solid" },
         border: {
           bottom: { style: "thin", color: { rgb: "FFFFFF" } },
         },

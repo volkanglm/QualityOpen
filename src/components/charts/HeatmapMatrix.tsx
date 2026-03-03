@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { Code, Document as QODocument, Segment } from "@/types";
 import { truncate } from "@/lib/utils";
 import { flattenCodes } from "@/lib/tree";
+import { SegmentDrawer } from "@/components/analysis/SegmentDrawer";
 
 interface HeatmapProps {
   codes: Code[];
@@ -15,6 +16,8 @@ interface HeatmapProps {
 
 export function HeatmapMatrix({ codes, docs, segments, zoom = 1.0 }: HeatmapProps) {
   const [hoveredCell, setHoveredCell] = useState<{ codeId: string; docId: string } | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerContext, setDrawerContext] = useState<{ codeId: string; docId: string } | null>(null);
 
   const flatCodes = flattenCodes(codes, undefined, 0);
 
@@ -143,6 +146,12 @@ export function HeatmapMatrix({ codes, docs, segments, zoom = 1.0 }: HeatmapProp
                 style={{ position: "relative", flexShrink: 0 }}
                 onMouseEnter={() => setHoveredCell({ codeId: code.id, docId: doc.id })}
                 onMouseLeave={() => setHoveredCell(null)}
+                onDoubleClick={() => {
+                  if (count > 0) {
+                    setDrawerContext({ codeId: code.id, docId: doc.id });
+                    setDrawerOpen(true);
+                  }
+                }}
               >
                 <motion.div
                   initial={{ opacity: 0, scale: 0.6 }}
@@ -277,6 +286,15 @@ export function HeatmapMatrix({ codes, docs, segments, zoom = 1.0 }: HeatmapProp
           (Her hücre: bir belgedeki segment sayısı)
         </span>
       </div>
+
+      {drawerContext && (
+        <SegmentDrawer
+          isOpen={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          code={codes.find(c => c.id === drawerContext.codeId) || null as any}
+          filterDocIds={[drawerContext.docId]}
+        />
+      )}
     </div>
   );
 }
