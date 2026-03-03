@@ -21,11 +21,11 @@
         "decorations": false,
         "transparent": false,
         "center": true,
-        "devtools": true
+        "devtools": false
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; worker-src blob:; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; media-src 'self' blob: data:; font-src 'self' data:; connect-src 'self' https://*.googleapis.com wss://*.googleapis.com; frame-src 'none'; object-src 'none'; base-uri 'none';"
     }
   },
   "bundle": {

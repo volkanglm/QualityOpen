@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import type { DocumentFormat } from "@/types";
 
 export interface ImportedFile {
@@ -42,10 +43,18 @@ async function importDocx(file: File): Promise<ImportedFile> {
     .replace(/<p><\/p>/g, "")
     .replace(/<p>\s*<\/p>/g, "");
 
-  // Extract plain text while preserving paragraph breaks
+  // Extract plain text while preserving paragraph breaks.
+  // DOMPurify strips any script / event-handler injected via a malicious .docx
+  // before we set innerHTML, so XSS payloads embedded in Word documents are
+  // neutralised even on a disconnected (off-DOM) element.
   const div = globalThis.document?.createElement("div");
   if (div) {
-    div.innerHTML = html.replace(/<\/p>/g, "</p>\n\n");
+    const safeHtml = DOMPurify.sanitize(html.replace(/<\/p>/g, "</p>\n\n"), {
+      ALLOWED_TAGS: ["p", "br", "b", "i", "em", "strong", "span", "div",
+                     "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li"],
+      ALLOWED_ATTR: [],
+    });
+    div.innerHTML = safeHtml;
     const text = div.textContent?.trim() ?? "";
     return {
       name: file.name.replace(/\.[^.]+$/, ""),

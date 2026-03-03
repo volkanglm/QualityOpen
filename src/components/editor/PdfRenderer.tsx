@@ -35,7 +35,13 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
         setLoading(true);
         setError(null);
         const pdfjs = await import("pdfjs-dist");
-        pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+        // Security: use locally-bundled worker instead of an external CDN.
+        // Vite resolves `new URL(...)` at build time and copies the worker
+        // into the dist output — no network request, no supply-chain risk.
+        pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+          "pdfjs-dist/build/pdf.worker.min.mjs",
+          import.meta.url,
+        ).href;
 
         const binary = atob(base64);
         const bytes = new Uint8Array(binary.length);
