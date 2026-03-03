@@ -38,13 +38,15 @@ import { DemographicDistribution } from "@/components/charts/DemographicDistribu
 import { SubCodeDistribution } from "@/components/charts/SubCodeDistribution";
 import { SynthesisGrid } from "@/components/analysis/SynthesisGrid";
 import { flattenCodes } from "@/lib/tree";
+import { Counter } from "@/components/ui/Counter";
+import { assignClusters, computeGraphData } from "@/lib/graph.utils";
 
 const pageVariants: Variants = {
   hidden: { opacity: 0, y: 10 },
   show: { opacity: 1, y: 0, transition: { duration: 0.18, ease: [0.2, 0, 0, 1] } },
 };
 
-type TabId = "dashboard" | "overview" | "cloud" | "matrix" | "network" | "synthesis";
+type TabId = "dashboard" | "overview" | "cloud" | "matrix" | "network" | "synthesis" | "typology";
 
 export function AnalysisPage() {
   const t = useT();
@@ -97,6 +99,7 @@ export function AnalysisPage() {
     { id: "cloud", label: t("analysis.cloud"), icon: <Box className="h-3.5 w-3.5" /> },
     { id: "matrix", label: t("analysis.matrix"), icon: <TrendingUp className="h-3.5 w-3.5" /> },
     { id: "network", label: t("analysis.network"), icon: <Share2 className="h-3.5 w-3.5" /> },
+    { id: "typology", label: "Tipoloji", icon: <LayoutGrid className="h-3.5 w-3.5" /> },
     { id: "synthesis", label: t("synthesis.title"), icon: <Sparkles className="h-3.5 w-3.5" /> },
   ];
 
@@ -373,6 +376,12 @@ export function AnalysisPage() {
               <SynthesisGrid codes={projectCodes} />
             </motion.div>
           )}
+
+          {activeTab === "typology" && (
+            <motion.div key="typology" variants={pageVariants} initial="hidden" animate="show" className="h-full">
+              <TypologyTab docs={projectDocs} codes={projectCodes} segments={projectSegments} />
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
 
@@ -551,7 +560,7 @@ function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: any[]; co
     { label: t("nav.documents"), value: docs.length, color: "var(--text-muted)", icon: FileText },
     { label: t("analysis.codes"), value: codes.length, color: "var(--text-muted)", icon: Tag },
     { label: t("analysis.segments"), value: segments.length, color: "var(--text-muted)", icon: Hash },
-    { label: "Segment/Belge", value: docs.length ? (segments.length / docs.length).toFixed(1) : "0", icon: TrendingUp },
+    { label: "Segment/Belge", value: docs.length ? (segments.length / docs.length) : 0, icon: TrendingUp, isDecimal: true },
   ];
 
   return (
@@ -565,7 +574,9 @@ function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: any[]; co
             </div>
             <div>
               <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] font-bold">{s.label}</p>
-              <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{s.value}</p>
+              <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">
+                <Counter value={s.value as number} decimals={s.isDecimal ? 1 : 0} />
+              </p>
             </div>
           </div>
         ))}
@@ -606,6 +617,132 @@ function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: any[]; co
           <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2">{t("analysis.distribution")}</p>
           <p className="text-sm text-[var(--text-secondary)] text-center px-4">Kod dağılım grafiği ve detaylı analizler için diğer sekmeleri kullanabilirsiniz.</p>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function TypologyTab({ docs, codes, segments }: { docs: any[]; codes: any[]; segments: any[] }) {
+  const clusters = useMemo(() => {
+    // We only need the nodes to be clustered, the layout parameters are arbitrary
+    const { nodes, edges } = computeGraphData(codes, segments, 800, 600);
+    const clusteredNodes = assignClusters(nodes, edges);
+
+    // Group codes by their assigned cluster
+    const clusterMap = new Map<string, { clusterId: string, codes: any[] }>();
+    clusteredNodes.forEach(node => {
+      if (node.cluster) {
+        if (!clusterMap.has(node.cluster)) {
+          clusterMap.set(node.cluster, { clusterId: node.cluster, codes: [] });
+        }
+        clusterMap.get(node.cluster)!.codes.push(node.code);
+      }
+    });
+
+    // Score documents against clusters based on segment codes
+    const docClusterScores = new Map<string, Map<string, number>>();
+    segments.forEach(seg => {
+      const docId = seg.documentId;
+      if (!docClusterScores.has(docId)) docClusterScores.set(docId, new Map());
+
+      const scores = docClusterScores.get(docId)!;
+      seg.codeIds.forEach((cid: string) => {
+        const cNode = clusteredNodes.find(n => n.id === cid);
+        if (cNode && cNode.cluster) {
+          scores.set(cNode.cluster, (scores.get(cNode.cluster) || 0) + 1);
+        }
+      });
+    });
+
+    // Map each document to the cluster scoring the highest
+    const docToCluster = new Map<string, string>();
+    docs.forEach(doc => {
+      const scores = docClusterScores.get(doc.id);
+      if (scores && scores.size > 0) {
+        let maxCluster = "";
+        let maxScore = -1;
+        scores.forEach((score, cid) => {
+          if (score > maxScore) {
+            maxScore = score;
+            maxCluster = cid;
+          }
+        });
+        docToCluster.set(doc.id, maxCluster);
+      }
+    });
+
+    const results = Array.from(clusterMap.values()).map(c => {
+      const dDocs = docs.filter(d => docToCluster.get(d.id) === c.clusterId);
+      return { ...c, docs: dDocs };
+    }).filter(c => c.docs.length > 0);
+
+    return results;
+  }, [codes, segments, docs]);
+
+  if (clusters.length === 0) {
+    return (
+      <div className="flex h-full items-center justify-center text-[var(--text-muted)] italic text-sm">
+        <Sparkles className="h-5 w-5 mr-3 opacity-50" />
+        Vaka kümesi oluşturulabilmesi için yeterli bağlantı bulunmuyor.
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full flex flex-col pt-4">
+      <div className="mb-6 flex flex-col gap-2 px-8">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-2">
+          <LayoutGrid className="h-4 w-4 text-[var(--text-muted)]" />
+          Vaka Kümeleri (Tipoloji)
+        </h2>
+        <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+          Belgeler, en yoğun kodlandıkları tematik kümelere göre otomatik olarak sütunlara ayrılmıştır. Bu görünüm, benzer nitelikteki vakaları gruplandırmak için kullanılır.
+        </p>
+      </div>
+      <div className="flex-1 overflow-x-auto custom-scrollbar flex gap-6 px-8 pb-8 items-start">
+        {clusters.map((cluster, i) => (
+          <div key={cluster.clusterId} className="flex-shrink-0 w-80 flex flex-col bg-[var(--bg-secondary)]/40 border border-[var(--border)] rounded-2xl overflow-hidden max-h-[100%]">
+            <div className="p-4 border-b border-[var(--border)] bg-[var(--surface)]/50 backdrop-blur-sm shadow-sm z-10">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-[13px] text-[var(--text-primary)]">Tip {i + 1}</h3>
+                <span className="text-[10px] font-mono bg-[var(--bg-tertiary)] px-2 py-0.5 rounded border border-[var(--border)] text-[var(--text-secondary)]">
+                  {cluster.docs.length} Vaka
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {cluster.codes.slice(0, 3).map(c => (
+                  <span key={c.id} className="text-[9px] font-semibold px-2 py-1 rounded-full border truncate max-w-[120px]" style={{ borderColor: c.color + '40', color: c.color, backgroundColor: c.color + '10' }}>
+                    {c.name}
+                  </span>
+                ))}
+                {cluster.codes.length > 3 && (
+                  <span className="text-[9px] font-bold px-2 py-1 rounded-full bg-[var(--bg-tertiary)] border border-[var(--border)] text-[var(--text-muted)]">
+                    +{cluster.codes.length - 3}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex-1 p-4 overflow-y-auto custom-scrollbar flex flex-col gap-3 min-h-0">
+              {cluster.docs.map(doc => (
+                <div key={doc.id} className="p-3 bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-sm hover:border-[var(--border-strong)] transition-colors group cursor-pointer">
+                  <div className="flex items-center gap-2 text-[12px] font-medium text-[var(--text-primary)] mb-1 group-hover:text-blue-400 transition-colors">
+                    <FileText className="h-3.5 w-3.5 text-[var(--text-muted)] group-hover:text-blue-400" />
+                    <span className="truncate">{doc.name}</span>
+                  </div>
+                  {doc.properties && Object.keys(doc.properties).length > 0 && (
+                    <div className="flex items-center gap-1.5 mt-2.5 overflow-hidden flex-wrap">
+                      {Object.entries(doc.properties).filter(([_, v]) => String(v).trim().length > 0).slice(0, 2).map(([k, v]) => (
+                        <span key={k} className="text-[9px] bg-[var(--bg-secondary)] text-[var(--text-secondary)] px-1.5 py-0.5 rounded border border-[var(--border-subtle)] truncate max-w-[80px]" title={`${k}: ${v}`}>
+                          {v as React.ReactNode}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
