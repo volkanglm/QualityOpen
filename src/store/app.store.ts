@@ -29,6 +29,8 @@ interface AppStore extends AppState {
   setRightWidth: (w: number) => void;
   toggleLeftPanel: () => void;
   toggleRightPanel: () => void;
+  setLeftCollapsed: (fn: (prev: boolean) => boolean | boolean) => void;
+  setRightCollapsed: (fn: (prev: boolean) => boolean | boolean) => void;
 
   // AI / Command palette
   setActiveSelection: (s: ActiveSelection | null) => void;
@@ -85,6 +87,8 @@ export const useAppStore = create<AppStore>()(
       setRightWidth: (w) => set((s) => ({ panelWidths: { ...s.panelWidths, right: Math.max(w, MIN_RIGHT) } })),
       toggleLeftPanel: () => set((s) => ({ leftCollapsed: !s.leftCollapsed })),
       toggleRightPanel: () => set((s) => ({ rightCollapsed: !s.rightCollapsed })),
+      setLeftCollapsed: (fn) => set((s) => ({ leftCollapsed: typeof fn === "function" ? fn(s.leftCollapsed) : fn })),
+      setRightCollapsed: (fn) => set((s) => ({ rightCollapsed: typeof fn === "function" ? fn(s.rightCollapsed) : fn })),
 
       setActiveSelection: (s) => set({ activeSelection: s }),
       setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),

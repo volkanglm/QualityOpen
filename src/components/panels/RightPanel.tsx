@@ -398,7 +398,9 @@ function TreeLines({ flatCodes }: { flatCodes: FlatCode[] }) {
 
 export function RightPanel() {
   const { activeProjectId, activeDocumentId, setActiveCodeFilter } = useAppStore();
-  const { codes, segments, documents, createCode, updateCode, deleteCode, moveCode } = useProjectStore();
+  const { codes, segments, documents, createCode, updateCode, deleteCode, moveCode,
+    updateDocument
+  } = useProjectStore();
 
   const projectCodes = codes.filter((c) => c.projectId === activeProjectId);
   const activeDoc = documents.find((d) => d.id === activeDocumentId);
@@ -411,6 +413,13 @@ export function RightPanel() {
   const [collapsedParents, setCollapsedParents] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
+
+  // Properties State
+  const [newPropKey, setNewPropKey] = useState("");
+  const [newPropValue, setNewPropValue] = useState("");
+  const [isAddingProp, setIsAddingProp] = useState(false);
+  const [editingProp, setEditingProp] = useState<{ key: string; value: string } | null>(null);
+
   const [newCodeModal, setNewCodeModal] = useState(false);
   const [newCodeName, setNewCodeName] = useState("");
   const [newCodeParentId, setNewCodeParentId] = useState<string | null>(null);
@@ -583,6 +592,46 @@ export function RightPanel() {
   };
 
   const activeCode = activeId ? flatCodes.find((c) => c.id === activeId) : null;
+
+  // ─── Property Handlers ──────────────────────────────────────────────────────
+  const handleAddProperty = () => {
+    if (!activeDoc || !newPropKey.trim()) return;
+    const key = newPropKey.trim();
+    const val = newPropValue.trim();
+
+    const props = { ...(activeDoc.properties || {}) };
+    props[key] = val;
+    updateDocument(activeDoc.id, { properties: props });
+
+    setNewPropKey("");
+    setNewPropValue("");
+    setIsAddingProp(false);
+  };
+
+  const handleUpdateProperty = (oldKey: string, newKey: string, newValue: string) => {
+    if (!activeDoc) return;
+    const props = { ...(activeDoc.properties || {}) };
+
+    if (oldKey !== newKey) {
+      delete props[oldKey];
+    }
+
+    if (!newKey.trim() && !newValue.trim()) {
+      delete props[oldKey]; // Delete if both are empty
+    } else {
+      props[newKey || oldKey] = newValue.trim();
+    }
+
+    updateDocument(activeDoc.id, { properties: props });
+    setEditingProp(null);
+  };
+
+  const handleDeleteProperty = (key: string) => {
+    if (!activeDoc) return;
+    const props = { ...(activeDoc.properties || {}) };
+    delete props[key];
+    updateDocument(activeDoc.id, { properties: props });
+  };
 
   return (
     <div className="flex h-full flex-col overflow-hidden" style={{ background: "var(--bg-secondary)" }}>
@@ -806,6 +855,116 @@ export function RightPanel() {
                         {activeDoc.content.length.toLocaleString()}
                       </span>
                     </div>
+                  </div>
+                </section>
+
+                <section className="space-y-3 pt-4 border-t" style={{ borderColor: "var(--border-subtle)" }}>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+                      Özellikler
+                    </h3>
+                    {!isAddingProp && (
+                      <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => setIsAddingProp(true)}>
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    {/* Existing Properties */}
+                    {Object.entries(activeDoc.properties || {}).map(([key, value]) => (
+                      <div key={key} className="group flex items-center gap-2 text-[12px]">
+                        {editingProp?.key === key ? (
+                          <div className="flex-1 flex items-center gap-2 bg-[var(--surface-hover)] p-1 rounded-md">
+                            <input
+                              autoFocus
+                              value={editingProp.key}
+                              onChange={(e) => setEditingProp({ ...editingProp, key: e.target.value })}
+                              className="w-1/3 bg-transparent outline-none font-medium text-[var(--text-muted)]"
+                              placeholder="Özellik adı..."
+                            />
+                            <span className="text-zinc-600">:</span>
+                            <input
+                              value={editingProp.value}
+                              onChange={(e) => setEditingProp({ ...editingProp, value: e.target.value })}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleUpdateProperty(key, editingProp.key, editingProp.value);
+                                if (e.key === "Escape") setEditingProp(null);
+                              }}
+                              className="flex-1 bg-zinc-800 text-zinc-200 px-2 py-0.5 rounded outline-none"
+                              placeholder="Değer..."
+                            />
+                            <Button size="icon" variant="ghost" className="h-5 w-5 flex-shrink-0" onClick={() => handleUpdateProperty(key, editingProp.key, editingProp.value)}>
+                              <Check className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <div
+                              className="w-1/3 flex-shrink-0 text-[var(--text-muted)] truncate"
+                              onDoubleClick={() => setEditingProp({ key, value })}
+                            >
+                              {key}
+                            </div>
+                            <div
+                              className="flex-1 bg-zinc-800 text-zinc-200 px-2 py-0.5 rounded-md truncate cursor-text"
+                              onClick={() => setEditingProp({ key, value })}
+                            >
+                              {value || <span className="opacity-50 italic">Boş</span>}
+                            </div>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-5 w-5 opacity-0 group-hover:opacity-100 flex-shrink-0 text-red-500/50 hover:bg-red-500/10 hover:text-red-500 transition-all"
+                              onClick={() => handleDeleteProperty(key)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    ))}
+
+                    {/* Add New Property Row */}
+                    {isAddingProp && (
+                      <div className="flex-1 flex items-center gap-2 bg-[var(--surface-hover)] p-1 rounded-md text-[12px]">
+                        <input
+                          autoFocus
+                          value={newPropKey}
+                          onChange={(e) => setNewPropKey(e.target.value)}
+                          className="w-1/3 bg-transparent outline-none font-medium text-[var(--text-muted)] pl-1"
+                          placeholder="Özellik (örn. Yaş)"
+                        />
+                        <span className="text-zinc-600">:</span>
+                        <input
+                          value={newPropValue}
+                          onChange={(e) => setNewPropValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleAddProperty();
+                            if (e.key === "Escape") {
+                              setIsAddingProp(false);
+                              setNewPropKey("");
+                              setNewPropValue("");
+                            }
+                          }}
+                          className="flex-1 bg-zinc-800 text-zinc-200 px-2 py-0.5 rounded outline-none"
+                          placeholder="Değer..."
+                        />
+                        <Button size="icon" variant="ghost" className="h-5 w-5 flex-shrink-0" onClick={handleAddProperty}>
+                          <Check className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    )}
+
+                    {(!activeDoc.properties || Object.keys(activeDoc.properties).length === 0) && !isAddingProp && (
+                      <div
+                        className="text-[11px] py-1 border border-dashed rounded-[var(--radius-sm)] text-center cursor-pointer transition-colors"
+                        style={{ color: "var(--text-disabled)", borderColor: "var(--border-subtle)", background: "var(--bg-primary)" }}
+                        onClick={() => setIsAddingProp(true)}
+                      >
+                        + Özellik ekle
+                      </div>
+                    )}
                   </div>
                 </section>
               </>

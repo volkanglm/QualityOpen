@@ -16,6 +16,7 @@ import { useAuthStore, initAuthListener, initNetworkWatcher } from "@/store/auth
 import { AppLogo } from "@/components/ui/AppLogo";
 import { useSyncStore } from "@/store/sync.store";
 import { AiChatPanel } from "@/components/chat/AiChatPanel";
+import { ShortcutEngine } from "@/components/keyboard/ShortcutEngine";
 import { importFile, getFileCategory } from "@/lib/fileImport";
 import "./index.css";
 
@@ -87,7 +88,7 @@ function SplashScreen() {
 // ─── Main App ─────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const { theme, commandPaletteOpen, setCommandPaletteOpen } = useAppStore();
+  const { theme, commandPaletteOpen } = useAppStore();
   const { user, accessToken, booting, initialized } = useAuthStore();
   const { checkSchedule } = useSyncStore();
 
@@ -191,18 +192,6 @@ export default function App() {
     return () => { unlisten?.(); };
   }, []);
 
-  /* Global CMD+K / CTRL+K listener */
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setCommandPaletteOpen(true);
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [setCommandPaletteOpen]);
-
   /* Scheduled backup check */
   useEffect(() => {
     if (!accessToken) return;
@@ -242,6 +231,7 @@ export default function App() {
         )}
         {showMain && (
           <ErrorBoundary>
+            <ShortcutEngine />
             <TitleBar />
             <div className="flex flex-1 min-h-0 overflow-hidden">
               <PanelLayout />

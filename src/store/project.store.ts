@@ -37,6 +37,7 @@ interface ProjectStore {
 
   // Segments
   addSegment: (seg: Omit<Segment, "id" | "createdAt">) => Segment;
+  addSegments: (segs: Omit<Segment, "id" | "createdAt">[]) => Segment[];
   removeSegmentCode: (segId: ID, codeId: ID) => void;
   deleteSegment: (id: ID) => void;
 
@@ -204,6 +205,24 @@ export const useProjectStore = create<ProjectStore>()(
             return { segments: [...s.segments, newSeg], codes: updatedCodes };
           });
           return newSeg;
+        },
+        addSegments: (segs) => {
+          if (segs.length === 0) return [];
+          const now = Date.now();
+          const newSegs: Segment[] = segs.map(seg => ({ ...seg, id: uuid(), createdAt: now }));
+          set((s) => {
+            const codeUsageCounts: Record<string, number> = {};
+            for (const seg of segs) {
+              for (const cid of seg.codeIds) {
+                codeUsageCounts[cid] = (codeUsageCounts[cid] || 0) + 1;
+              }
+            }
+            const updatedCodes = s.codes.map((c) =>
+              codeUsageCounts[c.id] ? { ...c, usageCount: (c.usageCount ?? 0) + codeUsageCounts[c.id] } : c
+            );
+            return { segments: [...s.segments, ...newSegs], codes: updatedCodes };
+          });
+          return newSegs;
         },
         removeSegmentCode: (segId, codeId) =>
           set((s) => ({

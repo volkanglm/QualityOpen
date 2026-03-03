@@ -3,6 +3,7 @@ import {
   useCallback,
   useState,
   useEffect,
+  useMemo,
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -35,6 +36,7 @@ import { LineNumbers } from "@/components/editor/LineNumbers";
 import { PdfRenderer } from "@/components/editor/PdfRenderer";
 import { VideoPlayer } from "@/components/media/VideoPlayer";
 import { ImageViewer } from "@/components/media/ImageViewer";
+import { DatabaseView } from "@/components/panels/DatabaseView";
 import { importFile, getFileCategory, ACCEPTED_EXTENSIONS } from "@/lib/fileImport";
 import { countWords, formatVideoTime } from "@/lib/utils";
 
@@ -81,6 +83,7 @@ export function CenterPanel() {
     createCode,
     createDocument,
     addSegment,
+    addSegments,
     deleteSegment,
     updateDocument,
   } = useProjectStore();
@@ -103,7 +106,27 @@ export function CenterPanel() {
   const [noteVal, setNoteVal] = useState(doc?.note ?? "");
   const [searchOpen, setSearchOpen] = useState(false);
   const [useRegex, setUseRegex] = useState(false);
+  const [matchCase, setMatchCase] = useState(false);
+  const [wholeWord, setWholeWord] = useState(false);
   const [summarizing, setSummarizing] = useState(false);
+  const [isAutoCoding, setIsAutoCoding] = useState(false);
+
+  const autoCodeMatches = useMemo(() => {
+    if (!searchOpen || !searchQuery.trim() || !doc?.content) return [];
+    let pattern = searchQuery;
+    if (!useRegex) pattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); // escape regex
+    if (wholeWord) pattern = `\\b${pattern}\\b`;
+    const flags = matchCase ? "g" : "gi";
+    try {
+      const regex = new RegExp(pattern, flags);
+      const matches = Array.from(doc.content.matchAll(regex));
+      return matches.map((m) => ({
+        start: m.index,
+        end: m.index + m[0].length,
+        text: m[0],
+      }));
+    } catch { return []; }
+  }, [searchOpen, searchQuery, doc?.content, useRegex, matchCase, wholeWord]);
 
   const readerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -298,6 +321,32 @@ export function CenterPanel() {
     handleApplyCode(newCode);
   };
 
+  // ── Global Custom Events (Shortcuts) ──────────────────────────────────────
+  useEffect(() => {
+    const handleOpenSearch = () => {
+      if (!searchOpen) {
+        setSearchOpen(true);
+      } else {
+        searchInputRef.current?.focus();
+      }
+    };
+
+    const handleOpenCodeMenu = (e: Event) => {
+      const customEvent = e as CustomEvent<{ x: number, y: number, pos: FloatingMenuPos }>;
+      if (customEvent.detail) {
+        setCtxMenu(customEvent.detail);
+      }
+    };
+
+    window.addEventListener("open-local-search", handleOpenSearch);
+    window.addEventListener("open-code-menu", handleOpenCodeMenu);
+
+    return () => {
+      window.removeEventListener("open-local-search", handleOpenSearch);
+      window.removeEventListener("open-code-menu", handleOpenCodeMenu);
+    };
+  }, [searchOpen]);
+
   // ── Context menu handlers ─────────────────────────────────────────────────
   const handleCtxSelect = (code: { id: string; name: string; color: string }) => {
     if (!ctxMenu || !doc || !activeProjectId) return;
@@ -397,9 +446,44 @@ export function CenterPanel() {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // EMPTY STATE
+  // EMPTY STATE / DATABASE VIEW
   // ─────────────────────────────────────────────────────────────────────────
   if (!doc) {
+    if (documents.filter(d => d.projectId === activeProjectId).length > 0 && activeProjectId) {
+      return (
+        <div
+          className="flex h-full flex-col overflow-hidden relative"
+          style={{ background: "var(--bg-primary)" }}
+          onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+          onDragLeave={() => setIsDragOver(false)}
+          onDrop={async (e) => {
+            setIsDragOver(false);
+            e.preventDefault();
+            const file = e.dataTransfer.files[0];
+            if (!file || !activeProjectId) return;
+            const cat = getFileCategory(file);
+            const docType = cat === "video" ? "video" : cat === "image" ? "image" : "document";
+            const newDoc = createDocument(activeProjectId, file.name.replace(/\.[^.]+$/, ""), docType);
+            setActiveDocument(newDoc.id);
+            await applyImport(file, newDoc.id);
+          }}
+        >
+          {isDragOver && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+              <div className="flex flex-col items-center gap-4 rounded-2xl bg-[var(--surface)] p-8 shadow-2xl scale-105 transition-transform">
+                <div className="rounded-full bg-[var(--accent-subtle)] p-4 text-[var(--accent)]">
+                  <Upload className="h-8 w-8" />
+                </div>
+                <h3 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>Bırakın yüklensin</h3>
+                <p className="text-sm" style={{ color: "var(--text-muted)" }}>Dosya projeye eklenecek</p>
+              </div>
+            </div>
+          )}
+          <DatabaseView />
+        </div>
+      );
+    }
+
     return (
       <EmptyState
         isDragOver={isDragOver}
@@ -483,18 +567,57 @@ export function CenterPanel() {
                 className="flex-1 text-[13px] bg-transparent outline-none"
                 style={{ color: "var(--text-primary)" }}
               />
-              <button
-                onClick={() => setUseRegex((v) => !v)}
-                className="flex-shrink-0 h-5 px-1.5 rounded text-[11px] font-mono transition-colors"
-                style={{
-                  background: useRegex ? "var(--accent-border)" : "var(--surface)",
-                  color: useRegex ? "var(--accent)" : "var(--text-muted)",
-                  border: "1px solid var(--border)",
-                }}
-                title="Toggle Regex"
-              >
-                .*
-              </button>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <button
+                  onClick={() => setMatchCase((v) => !v)}
+                  className="flex-shrink-0 h-5 px-1.5 rounded text-[11px] font-mono transition-colors"
+                  style={{
+                    background: matchCase ? "var(--accent-border)" : "var(--surface)",
+                    color: matchCase ? "var(--accent)" : "var(--text-muted)",
+                    border: "1px solid var(--border)",
+                  }}
+                  title="Büyük/Küçük Harf (Match Case)"
+                >
+                  Aa
+                </button>
+                <button
+                  onClick={() => setWholeWord((v) => !v)}
+                  className="flex-shrink-0 h-5 px-1.5 rounded text-[11px] font-mono transition-colors"
+                  style={{
+                    background: wholeWord ? "var(--accent-border)" : "var(--surface)",
+                    color: wholeWord ? "var(--accent)" : "var(--text-muted)",
+                    border: "1px solid var(--border)",
+                  }}
+                  title="Tam Kelime (Whole Word)"
+                >
+                  \b
+                </button>
+                <button
+                  onClick={() => setUseRegex((v) => !v)}
+                  className="flex-shrink-0 h-5 px-1.5 rounded text-[11px] font-mono transition-colors"
+                  style={{
+                    background: useRegex ? "var(--accent-border)" : "var(--surface)",
+                    color: useRegex ? "var(--accent)" : "var(--text-muted)",
+                    border: "1px solid var(--border)",
+                  }}
+                  title="Düzenli İfade (Regex)"
+                >
+                  .*
+                </button>
+              </div>
+              {searchQuery && autoCodeMatches.length > 0 && (
+                <button
+                  onClick={() => setIsAutoCoding(true)}
+                  className="flex-shrink-0 h-5 px-2 rounded text-[11px] font-medium transition-colors"
+                  style={{
+                    background: "var(--accent)",
+                    color: "white",
+                  }}
+                  title="Tüm sonuçlara aynı kodu ata"
+                >
+                  Tüm {autoCodeMatches.length} Sonucu Kodla
+                </button>
+              )}
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
@@ -527,6 +650,43 @@ export function CenterPanel() {
             onApply={handleApplyCode}
             onCreate={handleCreateAndApplyCode}
             onClose={() => setCodePanelSel(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── Auto code assign panel ── */}
+      <AnimatePresence>
+        {isAutoCoding && autoCodeMatches.length > 0 && doc && activeProjectId && (
+          <CodeAssignPanel
+            key="autocode-panel"
+            selectionText={`${autoCodeMatches.length} adet sonuca kod ata:`}
+            codes={projectCodes}
+            onApply={(code) => {
+              addSegments(autoCodeMatches.map(m => ({
+                documentId: doc.id,
+                projectId: activeProjectId,
+                start: m.start,
+                end: m.end,
+                text: m.text,
+                codeIds: [code.id]
+              })));
+              setIsAutoCoding(false);
+              setSearchOpen(false);
+            }}
+            onCreate={(name) => {
+              const newCode = createCode(activeProjectId, name);
+              addSegments(autoCodeMatches.map(m => ({
+                documentId: doc.id,
+                projectId: activeProjectId,
+                start: m.start,
+                end: m.end,
+                text: m.text,
+                codeIds: [newCode.id]
+              })));
+              setIsAutoCoding(false);
+              setSearchOpen(false);
+            }}
+            onClose={() => setIsAutoCoding(false)}
           />
         )}
       </AnimatePresence>
@@ -693,8 +853,10 @@ export function CenterPanel() {
                         content={doc.content}
                         segments={docSegments}
                         codes={codes}
-                        searchQuery={searchQuery}
+                        searchQuery={searchOpen ? searchQuery : ""}
                         useRegex={useRegex}
+                        matchCase={matchCase}
+                        wholeWord={wholeWord}
                       />
                     ) : (
                       <span style={{ color: "var(--text-disabled)" }}>
@@ -1066,7 +1228,7 @@ function DocHeader({
   onToggleChat,
   onToggleLineNumbers,
 }: {
-  doc: { name: string; format?: string };
+  doc: import("@/types").Document;
   wordCount: number;
   segmentCount: number;
   editMode: boolean;
@@ -1083,42 +1245,58 @@ function DocHeader({
 }) {
   return (
     <div
-      className="flex items-center gap-3 px-5 py-2.5 border-b flex-shrink-0"
-      style={{ borderColor: "var(--border-subtle)", background: "var(--bg-secondary)" }}
+      className="flex-shrink-0 flex items-center justify-between px-6 p-4 border-b overflow-x-auto custom-scrollbar gap-8"
+      style={{
+        borderColor: "var(--border-subtle)",
+        background: "var(--bg-secondary)",
+      }}
     >
-      <FileText className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "var(--text-muted)" }} />
-      <span
-        className="flex-1 text-sm font-medium truncate"
-        style={{ color: "var(--text-primary)" }}
-      >
-        {doc.name}
-      </span>
+      <div className="flex items-center gap-4 min-w-max">
+        <FileText className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "var(--text-muted)" }} />
+        <span
+          className="flex-1 text-sm font-medium truncate"
+          style={{ color: "var(--text-primary)" }}
+        >
+          {doc.name}
+        </span>
 
-      {/* Stats */}
-      <div className="flex items-center gap-2 text-[11px]" style={{ color: "var(--text-muted)" }}>
-        {wordCount > 0 && <span>{wordCount.toLocaleString()} words</span>}
-        {segmentCount > 0 && (
-          <>
-            <span style={{ color: "var(--border)" }}>·</span>
-            <span>{segmentCount} coded</span>
-          </>
-        )}
-        {doc.format && doc.format !== "text" && (
-          <>
-            <span style={{ color: "var(--border)" }}>·</span>
-            <span className="uppercase font-semibold" style={{ color: "var(--text-disabled)" }}>
-              {doc.format}
-            </span>
-          </>
-        )}
-        {summarizing && (
-          <span style={{ color: "var(--code-8)" }}>AI…</span>
-        )}
+        {/* Stats */}
+        <div className="flex items-center gap-2 text-[11px]" style={{ color: "var(--text-muted)" }}>
+          {wordCount > 0 && <span>{wordCount.toLocaleString()} words</span>}
+          {segmentCount > 0 && (
+            <>
+              <span style={{ color: "var(--border)" }}>·</span>
+              <span>{segmentCount} coded</span>
+            </>
+          )}
+          {doc.format && doc.format !== "text" && (
+            <>
+              <span style={{ color: "var(--border)" }}>·</span>
+              <span className="uppercase font-semibold" style={{ color: "var(--text-disabled)" }}>
+                {doc.format}
+              </span>
+            </>
+          )}
+          {summarizing && (
+            <span style={{ color: "var(--code-8)" }}>AI…</span>
+          )}
+        </div>
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-1">
-        {/* Search toggle */}
+      <div className="flex items-center gap-2 min-w-max flex-shrink-0">
+        {!editMode && doc.format === "text" && (
+          <Button
+            size="sm"
+            variant={showLineNumbers ? "primary" : "ghost"}
+            className="h-6 gap-1 text-[11px]"
+            onClick={onToggleLineNumbers}
+            title="Satır Numaraları"
+          >
+            <List className="h-3 w-3" />
+          </Button>
+        )}
+
         <Button
           size="sm"
           variant={searchOpen ? "primary" : "ghost"}

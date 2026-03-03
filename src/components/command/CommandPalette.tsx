@@ -7,11 +7,10 @@ import {
   Tag,
   CheckCircle2,
   AlertCircle,
-  Search,
-  Key,
+  Search, Key, LayoutGrid, FileText, MessageSquare
 } from "lucide-react";
-import { useAppStore }      from "@/store/app.store";
-import { useProjectStore }  from "@/store/project.store";
+import { useAppStore } from "@/store/app.store";
+import { useProjectStore } from "@/store/project.store";
 import { useSettingsStore } from "@/store/settings.store";
 import { analyzeThematicCodes } from "@/lib/ai";
 import { CODE_COLORS } from "@/lib/constants";
@@ -21,13 +20,13 @@ import { CODE_COLORS } from "@/lib/constants";
 type PaletteState = "idle" | "loading" | "success" | "error";
 
 interface Command {
-  id:          string;
-  icon:        React.ReactNode;
-  label:       string;
+  id: string;
+  icon: React.ReactNode;
+  label: string;
   description: string;
-  badge?:      string;
-  category:    string;
-  disabled?:   boolean;
+  badge?: string;
+  category: string;
+  disabled?: boolean;
   disabledReason?: string;
 }
 
@@ -42,7 +41,7 @@ function AiSkeletonLoader() {
           className="h-8 w-8 rounded-[var(--radius-sm)] flex items-center justify-center flex-shrink-0"
           style={{
             background: "var(--surface)",
-            border:     "1px solid var(--border)",
+            border: "1px solid var(--border)",
           }}
         >
           <Sparkles className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
@@ -137,22 +136,24 @@ export function CommandPalette() {
     toggleTheme,
     setActiveView,
     setCommandPaletteOpen,
+    setChatOpen,
+    setActiveDocument,
   } = useAppStore();
 
-  const { codes, createCode, addSegment } = useProjectStore();
-  const { getActiveKey, getProvider }     = useSettingsStore();
+  const { codes, documents, createCode, addSegment } = useProjectStore();
+  const { getActiveKey, getProvider } = useSettingsStore();
 
-  const [query,         setQuery]        = useState("");
-  const [paletteState,  setPaletteState] = useState<PaletteState>("idle");
-  const [selectedIdx,   setSelectedIdx]  = useState(0);
-  const [error,         setError]        = useState("");
-  const [appliedCodes,  setAppliedCodes] = useState<string[]>([]);
+  const [query, setQuery] = useState("");
+  const [paletteState, setPaletteState] = useState<PaletteState>("idle");
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const [error, setError] = useState("");
+  const [appliedCodes, setAppliedCodes] = useState<string[]>([]);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
   const hasSelection = !!activeSelection?.text;
-  const hasApiKey    = !!getActiveKey();
-  const provider     = getProvider();
+  const hasApiKey = !!getActiveKey();
+  const provider = getProvider();
 
   const close = useCallback(() => {
     setCommandPaletteOpen(false);
@@ -165,53 +166,88 @@ export function CommandPalette() {
   useEffect(() => { setTimeout(() => inputRef.current?.focus(), 60); }, []);
 
   // Build command list
+  const docCommands: Command[] = documents
+    .filter((d) => d.projectId === activeProjectId)
+    .map((d) => ({
+      id: `doc-${d.id}`,
+      icon: <FileText className="h-3.5 w-3.5" />,
+      label: d.name,
+      description: "Belgeye git",
+      category: "Belgeler",
+    }));
+
   const allCommands: Command[] = [
+    ...docCommands,
     {
-      id:          "thematic-code",
-      icon:        <Sparkles className="h-3.5 w-3.5" />,
-      label:       "Tematik Olarak Kodla",
+      id: "thematic-code",
+      icon: <Sparkles className="h-3.5 w-3.5" />,
+      label: "Tematik Olarak Kodla",
       description: hasSelection
         ? `"${activeSelection.text.slice(0, 48)}${activeSelection.text.length > 48 ? "…" : ""}"`
         : "Önce bir metin seçin",
-      badge:       provider ?? "AI",
-      category:    "AI",
-      disabled:    !hasSelection || !hasApiKey,
+      badge: provider ?? "AI",
+      category: "AI",
+      disabled: !hasSelection || !hasApiKey,
       disabledReason: !hasApiKey
         ? "API anahtarı yok — Ayarlar'dan ekleyin"
         : !hasSelection
-        ? "Önce belgeden metin seçin"
-        : undefined,
+          ? "Önce belgeden metin seçin"
+          : undefined,
     },
     {
-      id:          "open-api-settings",
-      icon:        <Key className="h-3.5 w-3.5" />,
-      label:       "API Ayarları",
+      id: "open-api-settings",
+      icon: <Key className="h-3.5 w-3.5" />,
+      label: "API Ayarları",
       description: hasApiKey
         ? `${provider === "anthropic" ? "Anthropic" : "OpenAI"} anahtarı aktif`
         : "OpenAI veya Anthropic anahtarı ekle",
-      category:    "Ayarlar",
+      category: "Ayarlar",
     },
     {
-      id:          "open-settings",
-      icon:        <Settings className="h-3.5 w-3.5" />,
-      label:       "Ayarlar",
+      id: "open-settings",
+      icon: <Settings className="h-3.5 w-3.5" />,
+      label: "Ayarlar",
       description: "Uygulama tercihlerini yönet",
-      category:    "Ayarlar",
+      category: "Ayarlar",
     },
     {
-      id:          "toggle-theme",
-      icon:        <Sun className="h-3.5 w-3.5" />,
-      label:       "Temayı Değiştir",
+      id: "toggle-theme",
+      icon: <Sun className="h-3.5 w-3.5" />,
+      label: "Temayı Değiştir",
       description: theme === "dark" ? "Light moda geç" : "Dark moda geç",
-      category:    "Görünüm",
+      category: "Görünüm",
     },
     {
-      id:          "new-code",
-      icon:        <Tag className="h-3.5 w-3.5" />,
-      label:       "Yeni Kod",
+      id: "new-code",
+      icon: <Tag className="h-3.5 w-3.5" />,
+      label: "Yeni Kod",
       description: "Kod sistemine yeni bir kod ekle",
-      category:    "Kodlama",
-      disabled:    !activeProjectId,
+      category: "Kodlama",
+      disabled: !activeProjectId,
+    },
+    {
+      id: "open-dashboard",
+      icon: <LayoutGrid className="h-3.5 w-3.5" />,
+      label: "Dashboard'u Aç",
+      description: "Proje analiz panosuna git",
+      category: "Görünüm",
+      disabled: !activeProjectId,
+    },
+    {
+      id: "open-documents",
+      icon: <FileText className="h-3.5 w-3.5" />,
+      label: "Belgeler",
+      description: "Tüm belgeler listesine dön",
+      category: "Görünüm",
+      disabled: !activeProjectId,
+    },
+    {
+      id: "open-chat",
+      icon: <MessageSquare className="h-3.5 w-3.5" />,
+      label: "AI Chat Aç",
+      description: "Yapay zeka asistanını başlat",
+      category: "AI",
+      disabled: !activeProjectId,
     },
   ];
 
@@ -223,7 +259,7 @@ export function CommandPalette() {
   // Keyboard navigation
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape")  { close(); return; }
+      if (e.key === "Escape") { close(); return; }
       if (e.key === "ArrowDown") {
         e.preventDefault();
         setSelectedIdx((i) => Math.min(i + 1, filtered.length - 1));
@@ -240,7 +276,7 @@ export function CommandPalette() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtered, selectedIdx, close]);
 
   // Reset selection when query changes
@@ -257,6 +293,18 @@ export function CommandPalette() {
     }
 
     if (id === "new-code") {
+      setActiveView("coding");
+      close();
+      return;
+    }
+
+    if (id === "open-dashboard") { setActiveView("dashboard"); close(); return; }
+    if (id === "open-documents") { setActiveView("documents"); close(); return; }
+    if (id === "open-chat") { setChatOpen(true); close(); return; }
+
+    if (id.startsWith("doc-")) {
+      const docId = id.replace("doc-", "");
+      setActiveDocument(docId);
       setActiveView("coding");
       close();
       return;
@@ -292,10 +340,10 @@ export function CommandPalette() {
         // Add segment with all codes assigned
         addSegment({
           documentId: activeSelection.documentId,
-          projectId:  activeProjectId,
-          start:      activeSelection.start,
-          end:        activeSelection.end,
-          text:       activeSelection.text,
+          projectId: activeProjectId,
+          start: activeSelection.start,
+          end: activeSelection.end,
+          text: activeSelection.text,
           codeIds,
         });
 
@@ -330,9 +378,9 @@ export function CommandPalette() {
         transition={{ duration: 0.15, ease: [0.2, 0, 0, 1] }}
         className="w-full max-w-[520px] rounded-[var(--radius-lg)] border overflow-hidden"
         style={{
-          background:   "var(--bg-secondary)",
-          borderColor:  "var(--border)",
-          boxShadow:    "var(--float-shadow)",
+          background: "var(--bg-secondary)",
+          borderColor: "var(--border)",
+          boxShadow: "var(--float-shadow)",
         }}
       >
         {/* ── Search input ── */}
@@ -369,7 +417,7 @@ export function CommandPalette() {
             className="px-4 py-2 border-b flex items-center gap-2"
             style={{
               borderColor: "var(--border-subtle)",
-              background:  "var(--surface)",
+              background: "var(--surface)",
             }}
           >
             <span
@@ -411,8 +459,8 @@ export function CommandPalette() {
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors"
                         style={{
                           background: isSelected ? "var(--surface-hover)" : "transparent",
-                          opacity:    cmd.disabled ? 0.45 : 1,
-                          cursor:     cmd.disabled ? "not-allowed" : "pointer",
+                          opacity: cmd.disabled ? 0.45 : 1,
+                          cursor: cmd.disabled ? "not-allowed" : "pointer",
                         }}
                       >
                         {/* Icon */}
@@ -420,7 +468,7 @@ export function CommandPalette() {
                           className="h-7 w-7 rounded-[var(--radius-sm)] flex items-center justify-center flex-shrink-0"
                           style={{
                             background: isSelected ? "var(--surface-active)" : "var(--surface)",
-                            color:      "var(--text-secondary)",
+                            color: "var(--text-secondary)",
                           }}
                         >
                           {cmd.icon}
@@ -436,9 +484,9 @@ export function CommandPalette() {
                               <span
                                 className="text-[10px] px-1.5 py-0.5 rounded-[var(--radius-xs)] font-medium uppercase"
                                 style={{
-                                  background:  "var(--surface)",
-                                  color:       "var(--text-muted)",
-                                  border:      "1px solid var(--border)",
+                                  background: "var(--surface)",
+                                  color: "var(--text-muted)",
+                                  border: "1px solid var(--border)",
                                 }}
                               >
                                 {cmd.badge}
@@ -455,8 +503,8 @@ export function CommandPalette() {
                           <kbd
                             className="text-[10px] px-1.5 py-0.5 rounded border flex-shrink-0"
                             style={{
-                              color:       "var(--text-muted)",
-                              background:  "var(--surface)",
+                              color: "var(--text-muted)",
+                              background: "var(--surface)",
                               borderColor: "var(--border)",
                             }}
                           >
@@ -500,7 +548,7 @@ export function CommandPalette() {
               className="text-xs px-3 py-1.5 rounded-[var(--radius-sm)] transition-colors"
               style={{
                 background: "var(--surface-hover)",
-                color:      "var(--text-secondary)",
+                color: "var(--text-secondary)",
               }}
             >
               Geri dön
@@ -514,7 +562,7 @@ export function CommandPalette() {
             className="flex items-center justify-between px-4 py-2 border-t"
             style={{
               borderColor: "var(--border-subtle)",
-              background:  "var(--bg-tertiary)",
+              background: "var(--bg-tertiary)",
             }}
           >
             <div className="flex items-center gap-3">
