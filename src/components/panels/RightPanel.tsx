@@ -771,13 +771,10 @@ export function RightPanel() {
 
             {/* Stats footer */}
             <div className="flex-shrink-0 border-t px-3 py-2 flex items-center gap-3" style={{ borderColor: "var(--border-subtle)" }}>
+              <StatChip icon={<FileText className="h-3 w-3" />} value={documents.filter((d) => d.projectId === activeProjectId).length} label="belge" />
               <StatChip icon={<Hash className="h-3 w-3" />} value={projectCodes.length} label="kod" />
               <StatChip icon={<Tag className="h-3 w-3" />}
                 value={segments.filter((s) => s.projectId === activeProjectId).length} label="segment" />
-              {activeDocumentId && segments.filter(s => s.documentId === activeDocumentId).length > 0 && (
-                <StatChip icon={<Tag className="h-3 w-3" />}
-                  value={segments.filter(s => s.documentId === activeDocumentId).length} label="belgede" />
-              )}
             </div>
           </motion.div>
         ) : (
@@ -1079,7 +1076,7 @@ export function RightPanel() {
           />
         )}
       </AnimatePresence>
-    </div>
+    </div >
   );
 }
 
