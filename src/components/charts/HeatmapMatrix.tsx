@@ -8,11 +8,12 @@ interface HeatmapProps {
   codes: Code[];
   docs: QODocument[];
   segments: Segment[];
+  zoom?: number;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function HeatmapMatrix({ codes, docs, segments }: HeatmapProps) {
+export function HeatmapMatrix({ codes, docs, segments, zoom = 1.0 }: HeatmapProps) {
   const [hoveredCell, setHoveredCell] = useState<{ codeId: string; docId: string } | null>(null);
 
   const flatCodes = flattenCodes(codes, undefined, 0);
@@ -44,9 +45,9 @@ export function HeatmapMatrix({ codes, docs, segments }: HeatmapProps) {
   const allCounts = Object.values(matrix).flatMap((row) => Object.values(row));
   const maxCount = Math.max(...allCounts, 1);
 
-  const CELL = 40;
-  const LABEL_W = 130;
-  const HEADER_H = 92;
+  const CELL = 40 * zoom;
+  const LABEL_W = 130 * zoom;
+  const HEADER_H = 92 * zoom;
 
   return (
     <div style={{ overflowX: "auto", overflowY: "auto", padding: "20px 24px 24px" }}>
@@ -69,11 +70,11 @@ export function HeatmapMatrix({ codes, docs, segments }: HeatmapProps) {
                 left: CELL / 2 - 4,
                 transform: "rotate(-42deg)",
                 transformOrigin: "left bottom",
-                fontSize: 10,
+                fontSize: Math.max(8, 10 * zoom),
                 color: "var(--text-muted)",
                 whiteSpace: "nowrap",
                 fontWeight: 500,
-                maxWidth: 72,
+                maxWidth: 72 * zoom,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
               }}
@@ -88,25 +89,25 @@ export function HeatmapMatrix({ codes, docs, segments }: HeatmapProps) {
       {flatCodes.map((code, ri) => (
         <div
           key={code.id}
-          style={{ display: "flex", alignItems: "center", marginBottom: 3 }}
+          style={{ display: "flex", alignItems: "center", marginBottom: 3 * zoom }}
         >
           {/* Code label with indentation */}
           <div
             style={{
               width: LABEL_W,
               flexShrink: 0,
-              paddingRight: 10,
+              paddingRight: 10 * zoom,
               display: "flex",
               alignItems: "center",
               justifyContent: "flex-end",
-              gap: 6,
-              paddingLeft: code.depth * 12,
+              gap: 6 * zoom,
+              paddingLeft: code.depth * 12 * zoom,
             }}
           >
             <span
               style={{
-                width: 6,
-                height: 6,
+                width: 6 * zoom,
+                height: 6 * zoom,
                 borderRadius: "50%",
                 background: code.color,
                 flexShrink: 0,
@@ -115,7 +116,7 @@ export function HeatmapMatrix({ codes, docs, segments }: HeatmapProps) {
             />
             <span
               style={{
-                fontSize: 11,
+                fontSize: Math.max(8, 11 * zoom),
                 color: code.depth === 0 ? "var(--text-primary)" : "var(--text-secondary)",
                 fontWeight: code.depth === 0 ? 600 : 400,
                 textAlign: "right",
@@ -125,7 +126,7 @@ export function HeatmapMatrix({ codes, docs, segments }: HeatmapProps) {
                 opacity: code.depth === 0 ? 1 : 0.8,
               }}
             >
-              {truncate(code.name, 16 - code.depth * 2)}
+              {truncate(code.name, Math.max(8, Math.floor(16 - code.depth * 2)))}
             </span>
           </div>
 
@@ -250,28 +251,28 @@ export function HeatmapMatrix({ codes, docs, segments }: HeatmapProps) {
       {/* Legend */}
       <div
         style={{
-          marginTop: 20,
-          paddingLeft: LABEL_W + 4,
+          marginTop: 20 * zoom,
+          paddingLeft: LABEL_W + 4 * zoom,
           display: "flex",
           alignItems: "center",
-          gap: 6,
+          gap: 6 * zoom,
         }}
       >
-        <span style={{ fontSize: 10, color: "var(--text-disabled)" }}>Az</span>
+        <span style={{ fontSize: Math.max(8, 10 * zoom), color: "var(--text-disabled)" }}>Az</span>
         {[0.12, 0.30, 0.50, 0.70, 0.90].map((op, k) => (
           <div
             key={k}
             style={{
-              width: 14,
-              height: 14,
-              borderRadius: 3,
-              background: "var(--accent)",
+              width: 14 * zoom,
+              height: 14 * zoom,
+              borderRadius: 3 * zoom,
+              background: "var(--text-primary)",
               opacity: op,
             }}
           />
         ))}
-        <span style={{ fontSize: 10, color: "var(--text-disabled)" }}>Çok</span>
-        <span style={{ marginLeft: 12, fontSize: 10, color: "var(--text-disabled)" }}>
+        <span style={{ fontSize: Math.max(8, 10 * zoom), color: "var(--text-disabled)" }}>Çok</span>
+        <span style={{ marginLeft: 12 * zoom, fontSize: Math.max(8, 10 * zoom), color: "var(--text-disabled)" }}>
           (Her hücre: bir belgedeki segment sayısı)
         </span>
       </div>

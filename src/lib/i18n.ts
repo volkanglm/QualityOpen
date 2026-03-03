@@ -9,7 +9,7 @@ const translations = {
   // ── Navigation ──────────────────────────────────────────────────────────────
   "nav.documents": { tr: "Belgeler", en: "Documents" },
   "nav.coding": { tr: "Kodlama", en: "Coding" },
-  "nav.analysis": { tr: "Analiz", en: "Analysis" },
+  "nav.analysis": { tr: "Dashboard", en: "Dashboard" },
   "nav.memos": { tr: "Notlar", en: "Memos" },
   "nav.settings": { tr: "Ayarlar", en: "Settings" },
 
@@ -58,7 +58,7 @@ const translations = {
   "float.askAi": { tr: "AI'ya Sor", en: "Ask AI" },
 
   // ── Analysis ─────────────────────────────────────────────────────────────────
-  "analysis.title": { tr: "Analiz", en: "Analysis" },
+  "analysis.title": { tr: "Dashboard / Görsel Araçlar", en: "Dashboard / Visual Tools" },
   "analysis.noProject": { tr: "Proje seçilmedi", en: "No project selected" },
   "analysis.noCodes": { tr: "Henüz kod yok", en: "No codes yet" },
   "analysis.frequency": { tr: "Kod Frekansı", en: "Code Frequency" },
@@ -151,3 +151,13 @@ export type TranslationKey = keyof typeof translations;
 export function t(key: TranslationKey, lang: Language): string {
   return translations[key]?.[lang] ?? translations[key]?.["tr"] ?? key;
 }
+
+/**
+ * Hook for using translations in components.
+ */
+export function useT() {
+  const { language } = useAppStore.getState();
+  return (key: TranslationKey) => t(key, language);
+}
+
+import { useAppStore } from "@/store/app.store";

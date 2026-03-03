@@ -18,19 +18,19 @@ import {
   StickyNote,
   ArrowLeft,
 } from "lucide-react";
-import { useAppStore }    from "@/store/app.store";
+import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
-import { Button }          from "@/components/ui/Button";
-import { SettingsPage }    from "@/pages/SettingsPage";
-import { AnalysisPage }    from "@/pages/AnalysisPage";
-import { Badge }           from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { SettingsPage } from "@/pages/SettingsPage";
+import { AnalysisPage } from "@/pages/AnalysisPage";
+import { Badge } from "@/components/ui/Badge";
 import { SearchHighlighter } from "@/components/editor/SearchHighlighter";
 import { FloatingMenu, type FloatingMenuPos } from "@/components/editor/FloatingMenu";
 import { ContextCodeMenu } from "@/components/editor/ContextCodeMenu";
 import { CodeAssignPanel } from "@/components/editor/CodeAssignPanel";
-import { PdfRenderer }     from "@/components/editor/PdfRenderer";
-import { VideoPlayer }     from "@/components/media/VideoPlayer";
-import { ImageViewer }     from "@/components/media/ImageViewer";
+import { PdfRenderer } from "@/components/editor/PdfRenderer";
+import { VideoPlayer } from "@/components/media/VideoPlayer";
+import { ImageViewer } from "@/components/media/ImageViewer";
 import { importFile, getFileCategory, ACCEPTED_EXTENSIONS } from "@/lib/fileImport";
 import { countWords, formatVideoTime } from "@/lib/utils";
 
@@ -38,15 +38,15 @@ const HIGHLIGHT_COLOR = "#fcd34d";
 
 // ─── Reading typography ───────────────────────────────────────────────────────
 const PROSE_STYLE: React.CSSProperties = {
-  fontFamily:    '"Charter", "Georgia", "Times New Roman", serif',
-  fontSize:      "16px",
-  lineHeight:    "1.90",
+  fontFamily: '"Charter", "Georgia", "Times New Roman", serif',
+  fontSize: "16px",
+  lineHeight: "1.90",
   letterSpacing: "0.01em",
-  color:         "var(--text-primary)",
-  maxWidth:      "68ch",
-  margin:        "0 auto",
-  userSelect:    "text",
-  cursor:        "text",
+  color: "var(--text-primary)",
+  maxWidth: "68ch",
+  margin: "0 auto",
+  userSelect: "text",
+  cursor: "text",
 };
 
 const PROSE_CLASS = "px-8 py-10 w-full outline-none";
@@ -79,28 +79,28 @@ export function CenterPanel() {
     updateDocument,
   } = useProjectStore();
 
-  const doc          = documents.find((d) => d.id === activeDocumentId);
-  const format       = doc?.format ?? "text";
+  const doc = documents.find((d) => d.id === activeDocumentId);
+  const format = doc?.format ?? "text";
   const projectCodes = codes.filter((c) => c.projectId === activeProjectId);
-  const docSegments  = segments.filter((s) => s.documentId === activeDocumentId);
+  const docSegments = segments.filter((s) => s.documentId === activeDocumentId);
 
   // ── UI state ──
-  const [editMode,      setEditMode]      = useState(false);
-  const [editContent,   setEditContent]   = useState(doc?.content ?? "");
-  const [floatPos,      setFloatPos]      = useState<FloatingMenuPos | null>(null);
-  const [codePanelSel,  setCodePanelSel]  = useState<FloatingMenuPos | null>(null);
-  const [ctxMenu,       setCtxMenu]       = useState<{ x: number; y: number; pos: FloatingMenuPos } | null>(null);
-  const [importing,     setImporting]     = useState(false);
-  const [isDragOver,    setIsDragOver]    = useState(false);
-  const [noteExpanded,  setNoteExpanded]  = useState(false);
-  const [noteVal,       setNoteVal]       = useState(doc?.note ?? "");
-  const [searchOpen,    setSearchOpen]    = useState(false);
-  const [useRegex,      setUseRegex]      = useState(false);
-  const [summarizing,   setSummarizing]   = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editContent, setEditContent] = useState(doc?.content ?? "");
+  const [floatPos, setFloatPos] = useState<FloatingMenuPos | null>(null);
+  const [codePanelSel, setCodePanelSel] = useState<FloatingMenuPos | null>(null);
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; pos: FloatingMenuPos } | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [noteExpanded, setNoteExpanded] = useState(false);
+  const [noteVal, setNoteVal] = useState(doc?.note ?? "");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [useRegex, setUseRegex] = useState(false);
+  const [summarizing, setSummarizing] = useState(false);
 
-  const readerRef    = useRef<HTMLDivElement>(null);
+  const readerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const saveTimer    = useRef<number | undefined>(undefined);
+  const saveTimer = useRef<number | undefined>(undefined);
   const noteSaveTimer = useRef<number | undefined>(undefined);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -148,10 +148,10 @@ export function CenterPanel() {
     const label = formatVideoTime(seconds);
     setCodePanelSel({
       centerX: 0,
-      topY:    0,
-      text:    `[${label}]`,
-      start:   seconds,
-      end:     seconds,
+      topY: 0,
+      text: `[${label}]`,
+      start: seconds,
+      end: seconds,
     });
   }, [doc, activeProjectId]);
 
@@ -166,15 +166,15 @@ export function CenterPanel() {
       return;
     }
     const range = sel.getRangeAt(0);
-    const text  = sel.toString().trim();
+    const text = sel.toString().trim();
     if (!text) { setFloatPos(null); setActiveSelection(null); return; }
 
-    const rect               = range.getBoundingClientRect();
-    const { start, end }     = getOffsets(range, readerRef.current);
+    const rect = range.getBoundingClientRect();
+    const { start, end } = getOffsets(range, readerRef.current);
 
     setFloatPos({
       centerX: rect.left + rect.width / 2,
-      topY:    rect.top,
+      topY: rect.top,
       text,
       start,
       end,
@@ -186,18 +186,18 @@ export function CenterPanel() {
   // ── Right-click → context code menu ──────────────────────────────────────
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     if (editMode || format === "video" || format === "image") return;
-    const sel  = window.getSelection();
+    const sel = window.getSelection();
     const text = sel?.toString().trim() ?? "";
     if (!text || !doc || !activeProjectId) return;
 
     e.preventDefault();
     setFloatPos(null);  // hide floating menu
 
-    const range           = sel!.getRangeAt(0);
-    const { start, end }  = getOffsets(range, readerRef.current);
+    const range = sel!.getRangeAt(0);
+    const { start, end } = getOffsets(range, readerRef.current);
     setCtxMenu({
-      x:   e.clientX,
-      y:   e.clientY,
+      x: e.clientX,
+      y: e.clientY,
       pos: { centerX: e.clientX, topY: e.clientY, text, start, end },
     });
 
@@ -216,13 +216,13 @@ export function CenterPanel() {
   const handleHighlight = (pos: FloatingMenuPos) => {
     if (!doc || !activeProjectId) return;
     addSegment({
-      documentId:     doc.id,
-      projectId:      activeProjectId,
-      start:          pos.start,
-      end:            pos.end,
-      text:           pos.text,
-      codeIds:        [],
-      isHighlight:    true,
+      documentId: doc.id,
+      projectId: activeProjectId,
+      start: pos.start,
+      end: pos.end,
+      text: pos.text,
+      codeIds: [],
+      isHighlight: true,
       highlightColor: HIGHLIGHT_COLOR,
     });
     window.getSelection()?.removeAllRanges();
@@ -241,15 +241,15 @@ export function CenterPanel() {
       const summary = result.codes.map((c) => `${c.name}: ${c.rationale}`).join("\n");
       // Add as a highlight segment with memo
       addSegment({
-        documentId:     doc.id,
-        projectId:      activeProjectId,
-        start:          pos.start,
-        end:            pos.end,
-        text:           pos.text,
-        codeIds:        [],
-        isHighlight:    true,
+        documentId: doc.id,
+        projectId: activeProjectId,
+        start: pos.start,
+        end: pos.end,
+        text: pos.text,
+        codeIds: [],
+        isHighlight: true,
         highlightColor: "#86efac",
-        memo:           summary,
+        memo: summary,
       });
     } catch (err) {
       console.error("Summarize failed:", err);
@@ -263,11 +263,11 @@ export function CenterPanel() {
     if (!codePanelSel || !doc || !activeProjectId) return;
     addSegment({
       documentId: doc.id,
-      projectId:  activeProjectId,
-      start:      codePanelSel.start,
-      end:        codePanelSel.end,
-      text:       codePanelSel.text,
-      codeIds:    [code.id],
+      projectId: activeProjectId,
+      start: codePanelSel.start,
+      end: codePanelSel.end,
+      text: codePanelSel.text,
+      codeIds: [code.id],
     });
     window.getSelection()?.removeAllRanges();
     setCodePanelSel(null);
@@ -284,11 +284,11 @@ export function CenterPanel() {
     if (!ctxMenu || !doc || !activeProjectId) return;
     addSegment({
       documentId: doc.id,
-      projectId:  activeProjectId,
-      start:      ctxMenu.pos.start,
-      end:        ctxMenu.pos.end,
-      text:       ctxMenu.pos.text,
-      codeIds:    [code.id],
+      projectId: activeProjectId,
+      start: ctxMenu.pos.start,
+      end: ctxMenu.pos.end,
+      text: ctxMenu.pos.text,
+      codeIds: [code.id],
     });
     window.getSelection()?.removeAllRanges();
     setCtxMenu(null);
@@ -304,13 +304,13 @@ export function CenterPanel() {
   const applyImport = useCallback(async (file: File, targetDocId?: string) => {
     setImporting(true);
     try {
-      const imported     = await importFile(file);
-      const resolvedId   = targetDocId ?? doc?.id;
+      const imported = await importFile(file);
+      const resolvedId = targetDocId ?? doc?.id;
       if (resolvedId) {
         updateDocument(resolvedId, {
-          name:      imported.name || file.name,
-          content:   imported.content,
-          format:    imported.format,
+          name: imported.name || file.name,
+          content: imported.content,
+          format: imported.format,
           wordCount: imported.wordCount,
         });
         if (imported.format === "text") setEditContent(imported.content);
@@ -326,9 +326,9 @@ export function CenterPanel() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!doc && activeProjectId) {
-      const cat     = getFileCategory(file);
+      const cat = getFileCategory(file);
       const docType = cat === "video" ? "video" : cat === "image" ? "image" : "document";
-      const newDoc  = createDocument(activeProjectId, file.name.replace(/\.[^.]+$/, ""), docType);
+      const newDoc = createDocument(activeProjectId, file.name.replace(/\.[^.]+$/, ""), docType);
       setActiveDocument(newDoc.id);
       await applyImport(file, newDoc.id);
     } else {
@@ -342,9 +342,9 @@ export function CenterPanel() {
     const file = e.dataTransfer.files[0];
     if (!file) return;
     if (!doc && activeProjectId) {
-      const cat     = getFileCategory(file);
+      const cat = getFileCategory(file);
       const docType = cat === "video" ? "video" : cat === "image" ? "image" : "document";
-      const newDoc  = createDocument(activeProjectId, file.name.replace(/\.[^.]+$/, ""), docType);
+      const newDoc = createDocument(activeProjectId, file.name.replace(/\.[^.]+$/, ""), docType);
       setActiveDocument(newDoc.id);
       await applyImport(file, newDoc.id);
     } else {
@@ -356,7 +356,7 @@ export function CenterPanel() {
   // SETTINGS / ANALYSIS VIEW
   // ─────────────────────────────────────────────────────────────────────────
   if (activeView === "settings") return <SettingsPage />;
-  if (activeView === "analysis") return <AnalysisPage />;
+  if (activeView === "analysis" || activeView === "dashboard") return <AnalysisPage />;
 
   // ─────────────────────────────────────────────────────────────────────────
   // CODE FILTER / RETRIEVAL VIEW
@@ -392,9 +392,9 @@ export function CenterPanel() {
           setIsDragOver(false);
           const file = e.dataTransfer.files[0];
           if (!file || !activeProjectId) return;
-          const cat     = getFileCategory(file);
+          const cat = getFileCategory(file);
           const docType = cat === "video" ? "video" : cat === "image" ? "image" : "document";
-          const newDoc  = createDocument(activeProjectId, file.name.replace(/\.[^.]+$/, ""), docType);
+          const newDoc = createDocument(activeProjectId, file.name.replace(/\.[^.]+$/, ""), docType);
           setActiveDocument(newDoc.id);
           await applyImport(file, newDoc.id);
         }}
@@ -466,9 +466,9 @@ export function CenterPanel() {
                 onClick={() => setUseRegex((v) => !v)}
                 className="flex-shrink-0 h-5 px-1.5 rounded text-[11px] font-mono transition-colors"
                 style={{
-                  background:  useRegex ? "var(--accent-border)" : "var(--surface)",
-                  color:       useRegex ? "var(--accent)" : "var(--text-muted)",
-                  border:      "1px solid var(--border)",
+                  background: useRegex ? "var(--accent-border)" : "var(--surface)",
+                  color: useRegex ? "var(--accent)" : "var(--text-muted)",
+                  border: "1px solid var(--border)",
                 }}
                 title="Toggle Regex"
               >
@@ -555,8 +555,8 @@ export function CenterPanel() {
           className="flex items-center gap-1 px-4 py-1 border-b text-[10px] transition-colors w-full text-left flex-shrink-0"
           style={{
             borderColor: "var(--border-subtle)",
-            background:  "var(--bg-secondary)",
-            color:       doc.note ? "var(--text-secondary)" : "var(--text-disabled)",
+            background: "var(--bg-secondary)",
+            color: doc.note ? "var(--text-secondary)" : "var(--text-disabled)",
           }}
         >
           <StickyNote className="h-3 w-3 flex-shrink-0" />
@@ -615,17 +615,17 @@ export function CenterPanel() {
               className={PROSE_CLASS}
               style={{
                 ...PROSE_STYLE,
-                display:    "block",
-                resize:     "none",
-                width:      "100%",
-                height:     "100%",
-                minHeight:  "100%",
+                display: "block",
+                resize: "none",
+                width: "100%",
+                height: "100%",
+                minHeight: "100%",
                 background: "transparent",
-                border:     "none",
-                outline:    "none",
+                border: "none",
+                outline: "none",
                 caretColor: "var(--accent)",
                 fontFamily: '"Inter", system-ui, sans-serif',
-                fontSize:   "14px",
+                fontSize: "14px",
                 lineHeight: "1.75",
               }}
               spellCheck={false}
@@ -705,7 +705,7 @@ export function CenterPanel() {
             className="flex-shrink-0 border-t px-5 py-2 flex items-center gap-2 overflow-x-auto"
             style={{
               borderColor: "var(--border-subtle)",
-              background:  "var(--bg-secondary)",
+              background: "var(--bg-secondary)",
             }}
           >
             <span
@@ -716,7 +716,7 @@ export function CenterPanel() {
             </span>
             {docSegments.map((seg) => {
               const segCodes = codes.filter((c) => seg.codeIds.includes(c.id));
-              const color    = seg.isHighlight
+              const color = seg.isHighlight
                 ? seg.highlightColor ?? HIGHLIGHT_COLOR
                 : segCodes[0]?.color ?? "var(--accent)";
 
@@ -822,11 +822,11 @@ function RetrievalView({
   onClose,
   onSelectDoc,
 }: {
-  codeId:     string;
-  codes:      import("@/types").Code[];
-  segments:   import("@/types").Segment[];
-  documents:  import("@/types").Document[];
-  onClose:    () => void;
+  codeId: string;
+  codes: import("@/types").Code[];
+  segments: import("@/types").Segment[];
+  documents: import("@/types").Document[];
+  onClose: () => void;
   onSelectDoc: (docId: string) => void;
 }) {
   const code = codes.find((c) => c.id === codeId);
@@ -877,8 +877,8 @@ function RetrievalView({
                 className="rounded-[var(--radius-md)] border p-4 cursor-pointer transition-colors"
                 style={{
                   borderColor: `${code?.color ?? "var(--border)"}40`,
-                  background:  `${code?.color ?? "transparent"}08`,
-                  borderLeft:  `3px solid ${code?.color ?? "var(--border)"}`,
+                  background: `${code?.color ?? "transparent"}08`,
+                  borderLeft: `3px solid ${code?.color ?? "var(--border)"}`,
                 }}
                 onClick={() => { if (doc) onSelectDoc(doc.id); }}
               >
@@ -922,18 +922,18 @@ function DocHeader({
   onToggleSearch,
   onToggleChat,
 }: {
-  doc:           { name: string; format?: string };
-  wordCount:     number;
-  segmentCount:  number;
-  editMode:      boolean;
-  importing:     boolean;
-  searchOpen:    boolean;
-  chatOpen:      boolean;
-  summarizing:   boolean;
-  onToggleEdit:  () => void;
-  onImport:      () => void;
+  doc: { name: string; format?: string };
+  wordCount: number;
+  segmentCount: number;
+  editMode: boolean;
+  importing: boolean;
+  searchOpen: boolean;
+  chatOpen: boolean;
+  summarizing: boolean;
+  onToggleEdit: () => void;
+  onImport: () => void;
   onToggleSearch: () => void;
-  onToggleChat:  () => void;
+  onToggleChat: () => void;
 }) {
   return (
     <div
@@ -1038,18 +1038,18 @@ function EmptyState({
   isDragOver,
   hasProject,
 }: {
-  onDrop:      (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
   onDragEnter: () => void;
   onDragLeave: () => void;
-  isDragOver:  boolean;
-  hasProject:  boolean;
+  isDragOver: boolean;
+  hasProject: boolean;
 }) {
   return (
     <div
       className="flex h-full flex-col items-center justify-center gap-5 text-center p-8 transition-colors"
       style={{
-        background:    isDragOver ? "var(--accent-subtle)" : "var(--bg-primary)",
-        outline:       isDragOver ? "2px dashed var(--accent)" : "none",
+        background: isDragOver ? "var(--accent-subtle)" : "var(--bg-primary)",
+        outline: isDragOver ? "2px dashed var(--accent)" : "none",
         outlineOffset: "-2px",
       }}
       onDragOver={(e) => { e.preventDefault(); onDragEnter(); }}
@@ -1062,7 +1062,7 @@ function EmptyState({
         style={{ background: isDragOver ? "var(--accent-border)" : "var(--surface)" }}
       >
         {isDragOver
-          ? <Upload    className="h-7 w-7" style={{ color: "var(--accent)" }} />
+          ? <Upload className="h-7 w-7" style={{ color: "var(--accent)" }} />
           : <AlignLeft className="h-7 w-7" style={{ color: "var(--text-muted)" }} />
         }
       </div>
@@ -1102,7 +1102,7 @@ function getOffsets(range: Range, container: HTMLElement | null): { start: numbe
     pre.selectNodeContents(container);
     pre.setEnd(range.startContainer, range.startOffset);
     const start = pre.toString().length;
-    const end   = start + range.toString().length;
+    const end = start + range.toString().length;
     return { start, end };
   } catch {
     return { start: 0, end: 0 };

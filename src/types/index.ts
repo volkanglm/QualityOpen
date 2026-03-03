@@ -71,7 +71,7 @@ export interface Memo {
 
 // ─── UI State Types ───────────────────────────────────────────────────────────
 
-export type ViewMode = "documents" | "coding" | "analysis" | "memos" | "settings";
+export type ViewMode = "documents" | "coding" | "analysis" | "memos" | "settings" | "dashboard";
 
 export type Language = "tr" | "en";
 
@@ -84,31 +84,31 @@ export interface PanelWidths {
 }
 
 export interface ActiveSelection {
-  text:       string;
-  start:      number;
-  end:        number;
+  text: string;
+  start: number;
+  end: number;
   documentId: ID;
 }
 
 export interface AppState {
-  activeProjectId:    ID | null;
-  activeDocumentId:   ID | null;
-  activeView:         ViewMode;
-  theme:              Theme;
-  language:           Language;
-  panelWidths:        PanelWidths;
-  leftCollapsed:      boolean;
-  rightCollapsed:     boolean;
+  activeProjectId: ID | null;
+  activeDocumentId: ID | null;
+  activeView: ViewMode;
+  theme: Theme;
+  language: Language;
+  panelWidths: PanelWidths;
+  leftCollapsed: boolean;
+  rightCollapsed: boolean;
   /** Most recent text selection in the document editor */
-  activeSelection:    ActiveSelection | null;
+  activeSelection: ActiveSelection | null;
   /** Whether the CMD+K command palette is open */
   commandPaletteOpen: boolean;
   /** Code ID filter for segment retrieval view (null = normal document view) */
-  activeCodeFilter:   ID | null;
+  activeCodeFilter: ID | null;
   /** Whether AI chat panel is open */
-  chatOpen:           boolean;
+  chatOpen: boolean;
   /** Document search query */
-  searchQuery:        string;
+  searchQuery: string;
 }
 
 // ─── Auth Types ───────────────────────────────────────────────────────────────
@@ -127,26 +127,26 @@ export type SyncStatus = "idle" | "syncing" | "success" | "error";
 export type BackupSchedule = "manual" | "daily" | "weekly" | "monthly";
 
 export interface SyncState {
-  status:           SyncStatus;
-  lastSyncAt:       number | null;    // unix ms
-  lastBackupAt:     number | null;
-  backupSchedule:   BackupSchedule;
-  errorMessage:     string | null;
-  driveFolderId:    string | null;
+  status: SyncStatus;
+  lastSyncAt: number | null;    // unix ms
+  lastBackupAt: number | null;
+  backupSchedule: BackupSchedule;
+  errorMessage: string | null;
+  driveFolderId: string | null;
   /** True when Drive returned 401/403 — local-only mode until re-auth */
-  driveDisabled:    boolean;
+  driveDisabled: boolean;
 }
 
 export interface AuthState {
-  user:         User | null;
-  accessToken:  string | null;
-  loading:      boolean;
-  initialized:  boolean;
-  error:        string | null;
+  user: User | null;
+  accessToken: string | null;
+  loading: boolean;
+  initialized: boolean;
+  error: string | null;
   /** Firebase custom claim: premium=true → full access */
-  premium:      boolean | null;
+  premium: boolean | null;
   /** True when the app is running from an offline cache session */
-  offlineMode:  boolean;
+  offlineMode: boolean;
   /** True during the initial boot splash screen */
-  booting:      boolean;
+  booting: boolean;
 }

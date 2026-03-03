@@ -3,62 +3,64 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { Code, Segment } from "@/types";
 
 interface CoOccurrenceGraphProps {
-  codes:    Code[];
+  codes: Code[];
   segments: Segment[];
+  zoom?: number;
 }
 
 interface LayoutNode {
-  id:    string;
-  code:  Code;
-  x:     number;
-  y:     number;
-  r:     number;
+  id: string;
+  code: Code;
+  x: number;
+  y: number;
+  r: number;
   count: number;
 }
 
 interface LayoutEdge {
-  id:     string;
-  ai:     number;
-  bi:     number;
+  id: string;
+  ai: number;
+  bi: number;
   weight: number;
 }
 
 // ─── Force layout ─────────────────────────────────────────────────────────────
 
 function computeForceLayout(
-  codes:   Code[],
-  edges:   LayoutEdge[],
-  freq:    Map<string, number>,
-  width:   number,
-  height:  number,
+  codes: Code[],
+  edges: LayoutEdge[],
+  freq: Map<string, number>,
+  width: number,
+  height: number,
+  zoom: number = 1.0,
 ): LayoutNode[] {
   if (codes.length === 0) return [];
 
-  const maxFreq  = Math.max(...Array.from(freq.values()), 1);
+  const maxFreq = Math.max(...Array.from(freq.values()), 1);
   const maxEdgeW = Math.max(...edges.map((e) => e.weight), 1);
-  const cx = width  / 2;
+  const cx = width / 2;
   const cy = height / 2;
 
   type Node = LayoutNode & { vx: number; vy: number };
 
   const nodes: Node[] = codes.map((c, i) => {
-    const angle  = (i / codes.length) * Math.PI * 2;
+    const angle = (i / codes.length) * Math.PI * 2;
     const spread = Math.min(width, height) * 0.30;
     return {
-      id:    c.id,
-      code:  c,
-      x:     cx + Math.cos(angle) * spread,
-      y:     cy + Math.sin(angle) * spread,
-      r:     13 + ((freq.get(c.id) ?? 0) / maxFreq) * 18,
+      id: c.id,
+      code: c,
+      x: cx + Math.cos(angle) * spread * zoom,
+      y: cy + Math.sin(angle) * spread * zoom,
+      r: (13 + ((freq.get(c.id) ?? 0) / maxFreq) * 18) * zoom,
       count: freq.get(c.id) ?? 0,
-      vx:    0,
-      vy:    0,
+      vx: 0,
+      vy: 0,
     };
   });
 
-  const REPULSION  = 3200;
+  const REPULSION = 3200;
   const ATTRACTION = 0.012;
-  const DAMPING    = 0.82;
+  const DAMPING = 0.82;
 
   for (let iter = 0; iter < 280; iter++) {
     nodes.forEach((n) => { n.vx = 0; n.vy = 0; });
@@ -72,12 +74,12 @@ function computeForceLayout(
     // Repulsion between all nodes
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
-        const a  = nodes[i], b = nodes[j];
+        const a = nodes[i], b = nodes[j];
         const dx = b.x - a.x;
         const dy = b.y - a.y;
         const d2 = dx * dx + dy * dy || 1;
-        const f  = REPULSION / d2;
-        const d  = Math.sqrt(d2);
+        const f = REPULSION / d2;
+        const d = Math.sqrt(d2);
         a.vx -= (dx / d) * f;
         a.vy -= (dy / d) * f;
         b.vx += (dx / d) * f;
@@ -87,13 +89,13 @@ function computeForceLayout(
 
     // Spring attraction along edges
     edges.forEach(({ ai, bi, weight }) => {
-      const a      = nodes[ai], b = nodes[bi];
-      const dx     = b.x - a.x;
-      const dy     = b.y - a.y;
-      const len    = Math.sqrt(dx * dx + dy * dy) || 1;
-      const target = 80 + (1 - weight / maxEdgeW) * 120;
-      const delta  = len - target;
-      const str    = ATTRACTION * delta;
+      const a = nodes[ai], b = nodes[bi];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      const target = (80 + (1 - weight / maxEdgeW) * 120) * zoom;
+      const delta = len - target;
+      const str = ATTRACTION * delta;
       a.vx += (dx / len) * str;
       a.vy += (dy / len) * str;
       b.vx -= (dx / len) * str;
@@ -103,8 +105,8 @@ function computeForceLayout(
     nodes.forEach((n) => {
       n.x += n.vx * DAMPING;
       n.y += n.vy * DAMPING;
-      n.x  = Math.max(n.r + 12, Math.min(width  - n.r - 12, n.x));
-      n.y  = Math.max(n.r + 12, Math.min(height - n.r - 12, n.y));
+      n.x = Math.max(n.r + 12, Math.min(width - n.r - 12, n.x));
+      n.y = Math.max(n.r + 12, Math.min(height - n.r - 12, n.y));
     });
   }
 
@@ -113,9 +115,9 @@ function computeForceLayout(
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function CoOccurrenceGraph({ codes, segments }: CoOccurrenceGraphProps) {
+export function CoOccurrenceGraph({ codes, segments, zoom = 1.0 }: CoOccurrenceGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [size, setSize]   = useState({ width: 600, height: 420 });
+  const [size, setSize] = useState({ width: 600, height: 420 });
   const [hovered, setHov] = useState<string | null>(null);
 
   useEffect(() => {
@@ -161,8 +163,8 @@ export function CoOccurrenceGraph({ codes, segments }: CoOccurrenceGraphProps) {
   }, [codes, segments]);
 
   const nodes = useMemo(
-    () => computeForceLayout(codes, edges, freq, size.width, size.height),
-    [codes, edges, freq, size.width, size.height],
+    () => computeForceLayout(codes, edges, freq, size.width, size.height, zoom),
+    [codes, edges, freq, size.width, size.height, zoom],
   );
 
   const maxEdgeW = Math.max(...edges.map((e) => e.weight), 1);
@@ -196,7 +198,7 @@ export function CoOccurrenceGraph({ codes, segments }: CoOccurrenceGraphProps) {
         <defs>
           {nodes.map((n) => (
             <radialGradient key={`grad-${n.id}`} id={`grad-${n.id}`}>
-              <stop offset="0%"   stopColor={n.code.color} stopOpacity={0.35} />
+              <stop offset="0%" stopColor={n.code.color} stopOpacity={0.35} />
               <stop offset="100%" stopColor={n.code.color} stopOpacity={0.08} />
             </radialGradient>
           ))}
@@ -238,7 +240,7 @@ export function CoOccurrenceGraph({ codes, segments }: CoOccurrenceGraphProps) {
             >
               <defs>
                 <linearGradient id={`edge-${edge.id}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} gradientUnits="userSpaceOnUse">
-                  <stop offset="0%"   stopColor={aColor} />
+                  <stop offset="0%" stopColor={aColor} />
                   <stop offset="100%" stopColor={bColor} />
                 </linearGradient>
               </defs>
@@ -274,8 +276,8 @@ export function CoOccurrenceGraph({ codes, segments }: CoOccurrenceGraphProps) {
 
         {/* Nodes */}
         {nodes.map((node, i) => {
-          const isHov  = hovered === node.id;
-          const isDim  = hovered && !isHov;
+          const isHov = hovered === node.id;
+          const isDim = hovered && !isHov;
 
           return (
             <motion.g
@@ -283,17 +285,17 @@ export function CoOccurrenceGraph({ codes, segments }: CoOccurrenceGraphProps) {
               initial={{ opacity: 0, scale: 0 }}
               animate={{
                 opacity: isDim ? 0.38 : 1,
-                scale:   1,
+                scale: 1,
               }}
               transition={{
-                delay:     i * 0.05,
-                type:      "spring",
+                delay: i * 0.05,
+                type: "spring",
                 stiffness: 260,
-                damping:   22,
+                damping: 22,
               }}
               style={{ transformOrigin: `${node.x}px ${node.y}px`, cursor: "default" }}
               onHoverStart={() => setHov(node.id)}
-              onHoverEnd={()   => setHov(null)}
+              onHoverEnd={() => setHov(null)}
             >
               {/* Glow */}
               <AnimatePresence>
