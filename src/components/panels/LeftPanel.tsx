@@ -15,6 +15,7 @@ import {
   Upload,
   Download,
   Palette,
+  FileUp,
 } from "lucide-react";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
@@ -302,15 +303,31 @@ export function LeftPanel() {
                       transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}
                     >
                       {docs.length === 0 ? (
-                        <div className="pl-7 pr-2 py-1">
-                          <button
-                            className="text-[11px] transition-colors"
-                            style={{ color: "var(--text-muted)" }}
-                            onClick={() => setNewDocModal(true)}
-                          >
-                            + Add document
-                          </button>
-                        </div>
+                        <motion.div
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
+                          className="mx-2 mt-1 mb-2 flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed py-4 px-3 cursor-pointer transition-all text-center"
+                          style={{
+                            borderColor: "var(--border)",
+                            background: "var(--bg-primary)",
+                          }}
+                          onClick={() => fileInputRef.current?.click()}
+                          onMouseEnter={(e) => {
+                            (e.currentTarget as HTMLElement).style.borderColor = "var(--border-active, var(--text-muted))";
+                          }}
+                          onMouseLeave={(e) => {
+                            (e.currentTarget as HTMLElement).style.borderColor = "var(--border)";
+                          }}
+                        >
+                          <FileUp className="h-5 w-5" style={{ color: "var(--text-muted)", opacity: 0.7 }} />
+                          <p className="text-[11px] leading-tight" style={{ color: "var(--text-muted)" }}>
+                            Belgeleri buraya sürükleyin
+                          </p>
+                          <p className="text-[10px]" style={{ color: "var(--text-disabled)" }}>
+                            veya tıklayın
+                          </p>
+                        </motion.div>
                       ) : (
                         docs.map((doc) => {
                           const isDocActive = doc.id === activeDocumentId;

@@ -1122,14 +1122,23 @@ function StatChip({ icon, value, label }: { icon: React.ReactNode; value: number
 
 function EmptyCodeState({ onNew }: { onNew: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 py-10 px-4 text-center">
-      <div className="h-9 w-9 rounded-[var(--radius-sm)] flex items-center justify-center" style={{ background: "var(--surface)" }}>
-        <Tag className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex flex-col items-center justify-center gap-4 py-12 px-6 text-center"
+    >
+      <div className="h-10 w-10 rounded-xl flex items-center justify-center border shadow-sm" style={{ background: "var(--bg-secondary)", borderColor: "var(--border)" }}>
+        <Tag className="h-5 w-5" style={{ color: "var(--text-muted)" }} />
       </div>
-      <p className="text-xs" style={{ color: "var(--text-muted)" }}>Henüz kod yok</p>
-      <Button variant="outline" size="sm" onClick={onNew}>
-        <Plus className="h-3.5 w-3.5" />Yeni kod
+      <div className="space-y-2">
+        <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>İlk Kodunu Yarat</p>
+        <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
+          Henüz hiç kodunuz yok. Orta panelde bir metni seçin ve klavyenizden <kbd className="px-1 py-0.5 rounded border bg-zinc-800 text-zinc-300 font-mono text-[10px]">C</kbd> tuşuna basarak ilk kodunuzu oluşturun.
+        </p>
+      </div>
+      <Button variant="ghost" size="sm" onClick={onNew} className="mt-2 text-[11px]">
+        <Plus className="h-3 w-3 mr-1" /> Manuel Kod Ekle
       </Button>
-    </div>
+    </motion.div>
   );
 }

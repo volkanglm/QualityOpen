@@ -7,7 +7,6 @@ import {
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  AlignLeft,
   Upload,
   FileText,
   Lock,
@@ -1405,7 +1404,7 @@ function EmptyState({
   const t = useT();
   return (
     <div
-      className="flex h-full flex-col items-center justify-center gap-5 text-center p-8 transition-colors"
+      className="flex h-full flex-col items-center justify-center gap-0 text-center p-8 transition-colors"
       style={{
         background: isDragOver ? "var(--accent-subtle)" : "var(--bg-primary)",
         outline: isDragOver ? "2px dashed var(--accent)" : "none",
@@ -1416,34 +1415,52 @@ function EmptyState({
       onDragLeave={() => onDragLeave()}
       onDrop={onDrop}
     >
-      <div
-        className="h-16 w-16 rounded-2xl flex items-center justify-center transition-colors"
-        style={{ background: isDragOver ? "var(--accent-border)" : "var(--surface)" }}
-      >
-        {isDragOver
-          ? <Upload className="h-7 w-7" style={{ color: "var(--accent)" }} />
-          : <AlignLeft className="h-7 w-7" style={{ color: "var(--text-muted)" }} />
-        }
-      </div>
-      <div>
-        <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-          {isDragOver ? t("center.dropHint") : t("center.noDoc")}
-        </p>
-        <p className="text-xs mt-1.5 leading-relaxed max-w-xs" style={{ color: "var(--text-muted)" }}>
-          {isDragOver
-            ? hasProject ? "Belge olarak içe aktarılacak" : "Önce sol panelden bir proje seçin"
-            : <>Select a document from the Explorer, or drag a <strong>.txt, .docx, .pdf</strong> file here.</>
-          }
-        </p>
-      </div>
-      {!isDragOver && (
-        <div
-          className="flex items-center gap-2 text-[11px] px-3 py-2 rounded-[var(--radius-md)] border border-dashed"
-          style={{ borderColor: "var(--border)", color: "var(--text-disabled)" }}
+      {isDragOver ? (
+        <motion.div
+          key="drag-over"
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="flex flex-col items-center gap-4"
         >
-          <Upload className="h-3.5 w-3.5" />
-          {t("center.import")}
-        </div>
+          <div className="h-16 w-16 rounded-2xl flex items-center justify-center" style={{ background: "var(--accent-border)" }}>
+            <Upload className="h-7 w-7" style={{ color: "var(--accent)" }} />
+          </div>
+          <p className="text-sm font-medium" style={{ color: "var(--accent)" }}>
+            {hasProject ? "Belge olarak içe aktarılacak" : "Önce sol panelden bir proje seçin"}
+          </p>
+        </motion.div>
+      ) : (
+        <motion.div
+          key="empty"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
+          className="flex flex-col items-center gap-5"
+        >
+          {/* Giant faded icon */}
+          <FileText
+            className="mb-2"
+            style={{ width: 64, height: 64, color: "var(--border)", opacity: 0.5 }}
+            strokeWidth={1}
+          />
+
+          <div className="space-y-2">
+            <p className="text-base font-medium" style={{ color: "var(--text-secondary)" }}>
+              Okumaya Başla
+            </p>
+            <p className="text-sm leading-relaxed max-w-[260px]" style={{ color: "var(--text-muted)" }}>
+              Okumaya ve kodlamaya başlamak için sol panelden bir belge seçin.
+            </p>
+          </div>
+
+          <div
+            className="flex items-center gap-2 text-[11px] px-3 py-2 rounded-[var(--radius-md)] border border-dashed mt-2"
+            style={{ borderColor: "var(--border)", color: "var(--text-disabled)" }}
+          >
+            <Upload className="h-3.5 w-3.5" />
+            {t("center.import")}
+          </div>
+        </motion.div>
       )}
     </div>
   );
