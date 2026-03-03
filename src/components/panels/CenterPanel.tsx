@@ -20,7 +20,7 @@ import {
   ChevronDown,
   ArrowLeft,
 } from "lucide-react";
-import { useT } from "@/hooks/useT";
+import { useT } from "@/lib/i18n";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
 import { Button } from "@/components/ui/Button";
@@ -1355,7 +1355,7 @@ function DocHeader({
             variant={showLineNumbers ? "primary" : "ghost"}
             className="h-6 gap-1 text-[11px]"
             onClick={onToggleLineNumbers}
-            title="Satır Numaraları"
+            title={t("center.lineNumbers")}
           >
             <List className="h-3 w-3" />
           </Button>
@@ -1367,7 +1367,7 @@ function DocHeader({
           variant={splitView ? "primary" : "ghost"}
           className="h-6 gap-1 text-[11px]"
           onClick={onToggleSplitView}
-          title="Bölünmüş Görünüm"
+          title={t("center.splitView")}
         >
           <Columns className="h-3 w-3" />
         </Button>
@@ -1378,7 +1378,7 @@ function DocHeader({
             variant={editMode ? "primary" : "ghost"}
             className="h-6 gap-1 text-[11px]"
             onClick={onToggleEdit}
-            title={editMode ? "Kilitle (Salt Okuma)" : "Kilidi Aç (Düzenle)"}
+            title={editMode ? t("center.lock") : t("center.unlock")}
           >
             {editMode ? (
               <Unlock className="h-3 w-3" />
@@ -1432,30 +1432,21 @@ function EmptyState({
             <Upload className="h-7 w-7" style={{ color: "var(--accent)" }} />
           </div>
           <p className="text-sm font-medium" style={{ color: "var(--accent)" }}>
-            {hasProject ? "Belge olarak içe aktarılacak" : "Önce sol panelden bir proje seçin"}
+            {hasProject ? t("center.importHint") : t("center.selectProjectFirst")}
           </p>
         </motion.div>
       ) : (
         <motion.div
-          key="empty"
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
-          className="flex flex-col items-center gap-5"
+          className="flex flex-col items-center gap-5 text-center"
         >
-          {/* Giant faded icon */}
-          <FileText
-            className="mb-2"
-            style={{ width: 64, height: 64, color: "var(--border)", opacity: 0.5 }}
-            strokeWidth={1}
-          />
-
-          <div className="space-y-2">
+          <div className="space-y-2 flex flex-col items-center">
             <p className="text-base font-medium" style={{ color: "var(--text-secondary)" }}>
-              Okumaya Başla
+              {t('welcome.startReading')}
             </p>
             <p className="text-sm leading-relaxed max-w-[260px]" style={{ color: "var(--text-muted)" }}>
-              Okumaya ve kodlamaya başlamak için sol panelden bir belge seçin.
+              {t('welcome.selectDoc')}
             </p>
           </div>
 

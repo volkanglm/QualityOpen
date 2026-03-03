@@ -17,6 +17,7 @@ import {
   Palette,
   FileUp,
 } from "lucide-react";
+import { useT } from "@/lib/i18n";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
 import { useAuthStore } from "@/store/auth.store";
@@ -28,7 +29,6 @@ import { Input } from "@/components/ui/Input";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { cn } from "@/lib/utils";
 import { importFile, getFileCategory, ACCEPTED_EXTENSIONS } from "@/lib/fileImport";
-import { useT } from "@/hooks/useT";
 import type { Document } from "@/types";
 
 const DOC_COLORS = {
@@ -55,6 +55,7 @@ export function LeftPanel() {
     setActiveDocument,
     setActiveView,
   } = useAppStore();
+  const t = useT();
   const { getProvider } = useSettingsStore();
 
   const { projects, documents, segments, createProject, createDocument, deleteDocument, updateDocument } =
@@ -74,7 +75,6 @@ export function LeftPanel() {
   const [importing, setImporting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const t = useT();
   const pushToast = useToastStore((s) => s.push);
 
   const toggleProject = (id: string) => {
@@ -226,12 +226,13 @@ export function LeftPanel() {
               <FileText className="h-3.5 w-3.5" />
             </Button>
           </Tooltip>
-          <Tooltip content="New project" side="bottom">
+          <Tooltip content={t('left.newProject')} side="bottom">
             <Button
-              size="icon"
               variant="ghost"
-              className="h-6 w-6"
+              size="sm"
               onClick={() => setNewProjectModal(true)}
+              className="h-8 w-8 p-0"
+              title={t('left.newProject')}
             >
               <Plus className="h-3.5 w-3.5" />
             </Button>
@@ -402,7 +403,7 @@ export function LeftPanel() {
                                     >
                                       <ContextItem
                                         icon={<Pencil className="h-3 w-3" />}
-                                        label="Yeniden Adlandır"
+                                        label={t('left.rename')}
                                         onClick={() => {
                                           setRenameDocId(doc.id);
                                           setRenameVal(doc.name);
@@ -437,7 +438,7 @@ export function LeftPanel() {
                                       <div className="h-px my-1" style={{ background: "#333" }} />
                                       <ContextItem
                                         icon={<Trash2 className="h-3 w-3" />}
-                                        label="Sil"
+                                        label={t('left.deleteDocument')}
                                         danger
                                         onClick={() => {
                                           deleteDocument(doc.id);
@@ -501,42 +502,35 @@ export function LeftPanel() {
             onDrop={handleDrop}
             onClick={() => activeProjectId && !importing && fileInputRef.current?.click()}
           >
-            <div className={cn(
-              "p-2 rounded-full",
-              isDragging ? "bg-blue-500/20 text-blue-400" : "bg-zinc-800/50 text-zinc-500"
-            )}>
-              {importing ? (
-                <div className="h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Upload className="h-5 w-5" />
-              )}
+            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center border-2 border-dashed rounded-xl m-4 transition-colors hover:border-blue-500/50 hover:bg-blue-500/5 bg-white/5 border-white/10 group cursor-pointer"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <FileUp className="h-6 w-6 text-blue-500" />
+              </div>
+              <p className="text-sm font-medium text-white mb-1">{t('welcome.dropFiles')}</p>
+              <p className="text-xs text-neutral-500">{t('welcome.selectDoc')}</p>
             </div>
-            <div className="text-center">
-              <p className="text-[12px] font-medium text-zinc-300">
-                {isDragging ? "Buraya Bırak" : "Dosya Yükle"}
-              </p>
-              <p className="text-[10px] text-zinc-500 mt-0.5">
-                .txt, .docx, .pdf, video veya görsel
-              </p>
-            </div>
-          </div>
-          {!activeProjectId && (
-            <p className="text-[10px] mt-2 text-center text-zinc-600">
-              {t("left.noProjects")}
+            <p className="text-[10px] text-zinc-500 mt-0.5">
+              .txt, .docx, .pdf, video veya görsel
             </p>
-          )}
+          </div>
         </div>
-
-        {/* Hidden file input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={ACCEPTED_EXTENSIONS}
-          className="hidden"
-          onChange={handleImportFile}
-        />
+        {!activeProjectId && (
+          <p className="text-[10px] mt-2 text-center text-zinc-600">
+            {t("left.noProjects")}
+          </p>
+        )}
       </div>
 
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={ACCEPTED_EXTENSIONS}
+        className="hidden"
+        onChange={handleImportFile}
+      />
       {/* ── Settings / API nav footer ── */}
       <div
         className="flex-shrink-0 border-t px-2 py-1.5 flex flex-col gap-0.5"
@@ -709,14 +703,15 @@ export function LeftPanel() {
         </div>
       </Modal>
 
-      {/* Click-outside backdrop for context menu */}
-      {contextMenu && (
-        <div
-          className="fixed inset-0 z-[998]"
-          onClick={() => { setContextMenu(null); setContextMenuPos(null); }}
-        />
-      )}
-    </div>
+      {
+        contextMenu && contextMenuPos && (
+          <div
+            className="fixed inset-0 z-[998]"
+            onClick={() => { setContextMenu(null); setContextMenuPos(null); }}
+          />
+        )
+      }
+    </div >
   );
 }
 

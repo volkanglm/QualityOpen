@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuthStore } from "@/store/auth.store";
 import { firebaseConfigured } from "@/lib/firebase";
 import { AppLogo } from "@/components/ui/AppLogo";
+import { useT } from "@/lib/i18n";
 
 /* Google "G" SVG — crisp at small sizes */
 function GoogleIcon() {
@@ -43,6 +44,7 @@ function LogoMark() {
 // ─── Login page ────────────────────────────────────────────────────────────────
 
 export function LoginPage() {
+  const t = useT();
   const { loading, error, signIn } = useAuthStore();
 
   const isConfigured = firebaseConfigured;
@@ -87,7 +89,7 @@ export function LoginPage() {
               className="text-sm mt-1"
               style={{ color: "var(--text-muted)" }}
             >
-              Qualitative data analysis for researchers
+              {t("login.subtitle")}
             </motion.p>
           </div>
         </div>
@@ -109,14 +111,13 @@ export function LoginPage() {
               className="text-sm font-semibold"
               style={{ color: "var(--text-primary)" }}
             >
-              Sign in to continue
+              {t("login.title")}
             </p>
             <p
               className="text-xs mt-1 leading-relaxed"
               style={{ color: "var(--text-muted)" }}
             >
-              Your data is stored locally and synced to your own Google Drive.
-              We never store anything on our servers.
+              {t("login.desc")}
             </p>
           </div>
 
@@ -155,7 +156,7 @@ export function LoginPage() {
                     className="h-4 w-4 rounded-full border-2 border-t-transparent animate-spin"
                     style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }}
                   />
-                  <span style={{ color: "var(--text-secondary)" }}>Signing in…</span>
+                  <span style={{ color: "var(--text-secondary)" }}>{t("login.signingIn")}</span>
                 </motion.span>
               ) : (
                 <motion.span
@@ -167,7 +168,7 @@ export function LoginPage() {
                   className="flex items-center gap-2"
                 >
                   <GoogleIcon />
-                  Continue with Google
+                  {t("login.google")}
                 </motion.span>
               )}
             </AnimatePresence>
@@ -188,7 +189,7 @@ export function LoginPage() {
                   color: "#fca319",
                 }}
               >
-                <strong>Firebase not configured.</strong> Add your Firebase credentials to{" "}
+                <strong>{t("login.notConfigured")}</strong> Add your Firebase credentials to{" "}
                 <code className="opacity-80">.env</code> to enable sign-in.
                 <br />
                 See <code className="opacity-80">.env.example</code> for reference.
@@ -229,7 +230,7 @@ export function LoginPage() {
             className="text-center text-[11px] leading-relaxed"
             style={{ color: "var(--text-disabled)" }}
           >
-            Offline-first · Your data stays yours
+            {t("login.footer")}
           </motion.p>
 
           <motion.button
@@ -237,7 +238,7 @@ export function LoginPage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8 }}
             onClick={async () => {
-              if (confirm("Uygulama verilerini sıfırlamak istediğinize emin misiniz? Bu işlem çıkış yapmanızı sağlar ve yerel önbelleği temizler.")) {
+              if (confirm(t("login.emergencyResetConfirm"))) {
                 localStorage.clear();
                 sessionStorage.clear();
 
