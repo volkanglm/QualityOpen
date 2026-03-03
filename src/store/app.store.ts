@@ -37,6 +37,8 @@ interface AppStore extends AppState {
   setActiveCodeFilter: (id: ID | null) => void;
   setChatOpen: (open: boolean) => void;
   setSearchQuery: (q: string) => void;
+  // Line numbers
+  toggleLineNumbers: () => void;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -56,6 +58,7 @@ export const useAppStore = create<AppStore>()(
       activeCodeFilter: null,
       chatOpen: false,
       searchQuery: "",
+      showLineNumbers: false,
 
       // ── navigation ──
       setActiveProject: (id) => set({ activeProjectId: id, activeDocumentId: null }),
@@ -88,6 +91,7 @@ export const useAppStore = create<AppStore>()(
       setActiveCodeFilter: (id) => set({ activeCodeFilter: id }),
       setChatOpen: (open) => set({ chatOpen: open }),
       setSearchQuery: (q) => set({ searchQuery: q }),
+      toggleLineNumbers: () => set((s) => ({ showLineNumbers: !s.showLineNumbers })),
     }),
     {
       name: "qo-app-state",
@@ -101,6 +105,7 @@ export const useAppStore = create<AppStore>()(
         panelWidths: s.panelWidths,
         leftCollapsed: s.leftCollapsed,
         rightCollapsed: s.rightCollapsed,
+        showLineNumbers: s.showLineNumbers,
       }),
       // Reapply theme on hydration
       onRehydrateStorage: () => (state) => {

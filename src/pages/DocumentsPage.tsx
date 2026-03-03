@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { FileText, Plus, Search, Upload, MoreHorizontal, Trash2, Edit3 } from "lucide-react";
 import { useAppStore } from "@/store/app.store";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
+import { FilterBar, type FilterChip } from "@/components/ui/FilterBar";
 import { cn, formatDate, countWords, truncate } from "@/lib/utils";
 import type { Document } from "@/types";
 
@@ -35,19 +36,47 @@ export function DocumentsPage() {
   const { documents, createDocument, deleteDocument } = useProjectStore();
 
   const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState<FilterChip[]>([]);
   const [newDocModal, setNewDocModal] = useState(false);
   const [newDocName, setNewDocName] = useState("");
   const [newDocType, setNewDocType] = useState<Document["type"]>("document");
   const [contextMenuDoc, setContextMenuDoc] = useState<string | null>(null);
 
-  const projectDocs = documents
-    .filter((d) => d.projectId === activeProjectId)
+  const allProjectDocs = documents.filter((d) => d.projectId === activeProjectId);
+
+  // Build filter field definitions from actual data
+  const filterFields = useMemo(() => {
+    const types = [...new Set(allProjectDocs.map((d) => d.type))];
+    const tags = [...new Set(allProjectDocs.flatMap((d) => d.tags))];
+    return [
+      { key: "type", label: "Tür", values: types },
+      ...(tags.length > 0 ? [{ key: "tags", label: "Etiket", values: tags }] : []),
+    ];
+  }, [allProjectDocs]);
+
+  const projectDocs = allProjectDocs
     .filter(
       (d) =>
         !search ||
         d.name.toLowerCase().includes(search.toLowerCase()) ||
         d.content.toLowerCase().includes(search.toLowerCase())
     )
+    .filter((d) => {
+      if (filters.length === 0) return true;
+      return filters.every((f) => {
+        if (f.field === "type") {
+          return f.operator === "equals" ? d.type === f.value
+            : f.operator === "not_equals" ? d.type !== f.value
+              : d.type.includes(f.value);
+        }
+        if (f.field === "tags") {
+          return f.operator === "equals" ? d.tags.includes(f.value)
+            : f.operator === "not_equals" ? !d.tags.includes(f.value)
+              : d.tags.some((t) => t.includes(f.value));
+        }
+        return true;
+      });
+    })
     .sort((a, b) => b.updatedAt - a.updatedAt);
 
   const handleCreate = () => {
@@ -101,13 +130,18 @@ export function DocumentsPage() {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="px-6 py-3 border-b border-[var(--color-border-subtle)]">
+      {/* Search + Filters */}
+      <div className="px-6 py-3 border-b border-[var(--color-border-subtle)] space-y-2">
         <Input
           placeholder="Search documents…"
           icon={<Search className="h-3.5 w-3.5" />}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+        />
+        <FilterBar
+          fields={filterFields}
+          filters={filters}
+          onChange={setFilters}
         />
       </div>
 

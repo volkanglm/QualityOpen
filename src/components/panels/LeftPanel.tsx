@@ -2,20 +2,19 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRef } from "react";
 import {
+  Folder,
   FolderOpen,
   FileText,
   ChevronRight,
   Plus,
   MoreHorizontal,
-  Mic,
-  FileImage,
-  Film,
-  Image,
   Trash2,
   Pencil,
   Settings,
   BarChart2,
   Upload,
+  Download,
+  Palette,
 } from "lucide-react";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
@@ -31,15 +30,6 @@ import { importFile, getFileCategory, ACCEPTED_EXTENSIONS } from "@/lib/fileImpo
 import { useT } from "@/hooks/useT";
 import type { Document } from "@/types";
 
-const DOC_ICONS = {
-  interview: Mic,
-  fieldnote: FileText,
-  document: FileText,
-  memo: FileImage,
-  video: Film,
-  image: Image,
-} as const;
-
 const DOC_COLORS = {
   interview: "var(--code-1)",
   fieldnote: "var(--code-2)",
@@ -48,6 +38,12 @@ const DOC_COLORS = {
   video: "var(--code-3)",
   image: "var(--code-6)",
 } as const;
+
+/** Colors available in the document color picker */
+const DOC_COLOR_PALETTE = [
+  "#a78bfa", "#6ee7b7", "#fca5a5", "#93c5fd", "#fcd34d", "#f9a8d4",
+  "#86efac", "#7dd3fc", "#c4b5fd", "#a5f3fc", "#fed7aa", "#bbf7d0",
+];
 
 export function LeftPanel() {
   const {
@@ -60,7 +56,7 @@ export function LeftPanel() {
   } = useAppStore();
   const { getProvider } = useSettingsStore();
 
-  const { projects, documents, createProject, createDocument, deleteDocument } =
+  const { projects, documents, segments, createProject, createDocument, deleteDocument, updateDocument } =
     useProjectStore();
 
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
@@ -70,6 +66,10 @@ export function LeftPanel() {
   const [newDocName, setNewDocName] = useState("");
   const [newDocType, setNewDocType] = useState<Document["type"]>("interview");
   const [contextMenu, setContextMenu] = useState<string | null>(null);
+  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [renameDocId, setRenameDocId] = useState<string | null>(null);
+  const [renameVal, setRenameVal] = useState("");
+  const [colorPickerDoc, setColorPickerDoc] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const t = useT();
@@ -212,7 +212,7 @@ export function LeftPanel() {
                 >
                   <motion.div
                     animate={{ rotate: isExpanded ? 90 : 0 }}
-                    transition={{ duration: 0.15, ease: [0.2, 0, 0, 1] }}
+                    transition={{ duration: 0.12, ease: [0.25, 0.1, 0.25, 1] }}
                   >
                     <ChevronRight
                       className="h-3 w-3 flex-shrink-0"
@@ -220,10 +220,11 @@ export function LeftPanel() {
                     />
                   </motion.div>
 
-                  <span
-                    className="h-2 w-2 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: project.color ?? "var(--accent)" }}
-                  />
+                  {isExpanded ? (
+                    <FolderOpen className="h-4 w-4 flex-shrink-0" style={{ color: "var(--text-muted)" }} />
+                  ) : (
+                    <Folder className="h-4 w-4 flex-shrink-0" style={{ color: "var(--text-muted)" }} />
+                  )}
 
                   <span
                     className="flex-1 text-xs font-medium truncate"
@@ -262,9 +263,8 @@ export function LeftPanel() {
                         </div>
                       ) : (
                         docs.map((doc) => {
-                          const Icon = DOC_ICONS[doc.type as keyof typeof DOC_ICONS] ?? FileText;
-                          const color = DOC_COLORS[doc.type as keyof typeof DOC_COLORS] ?? "var(--text-muted)";
                           const isDocActive = doc.id === activeDocumentId;
+                          const docSegmentCount = segments.filter((s) => s.documentId === doc.id).length;
 
                           return (
                             <div
@@ -276,10 +276,15 @@ export function LeftPanel() {
                                   : "hover:bg-[var(--surface-hover)]"
                               )}
                               onClick={() => openDoc(doc)}
+                              onContextMenu={(e) => {
+                                e.preventDefault();
+                                setContextMenu(doc.id);
+                                setContextMenuPos({ x: e.clientX, y: e.clientY });
+                              }}
                             >
-                              <Icon
-                                className="h-3 w-3 flex-shrink-0"
-                                style={{ color }}
+                              <FileText
+                                className="h-4 w-4 flex-shrink-0"
+                                style={{ color: "var(--text-muted)" }}
                               />
                               <span
                                 className="flex-1 text-[12px] truncate"
@@ -289,6 +294,14 @@ export function LeftPanel() {
                               >
                                 {doc.name}
                               </span>
+                              {docSegmentCount > 0 && (
+                                <span
+                                  className="text-[10px] tabular-nums flex-shrink-0"
+                                  style={{ color: "var(--text-muted)" }}
+                                >
+                                  {docSegmentCount}
+                                </span>
+                              )}
 
                               {/* Context menu trigger */}
                               <div className="relative" onClick={(e) => e.stopPropagation()}>
@@ -305,29 +318,65 @@ export function LeftPanel() {
                                   <MoreHorizontal className="h-3 w-3" />
                                 </button>
                                 <AnimatePresence>
-                                  {contextMenu === doc.id && (
+                                  {contextMenu === doc.id && contextMenuPos && (
                                     <motion.div
                                       initial={{ opacity: 0, scale: 0.9, y: -4 }}
                                       animate={{ opacity: 1, scale: 1, y: 0 }}
                                       exit={{ opacity: 0, scale: 0.9 }}
                                       transition={{ duration: 0.1 }}
-                                      className="absolute right-0 top-5 z-50 rounded-[var(--radius-md)] border p-1 min-w-[140px] shadow-lg"
+                                      className="fixed z-[999] rounded-lg border p-1.5 min-w-[180px] shadow-xl"
                                       style={{
-                                        background: "var(--bg-secondary)",
-                                        borderColor: "var(--border)",
-                                        boxShadow: "var(--float-shadow)",
+                                        left: contextMenuPos.x,
+                                        top: contextMenuPos.y,
+                                        background: "#1c1c1e",
+                                        borderColor: "#333",
+                                        boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
                                       }}
                                     >
                                       <ContextItem
                                         icon={<Pencil className="h-3 w-3" />}
-                                        label="Open"
-                                        onClick={() => { openDoc(doc); setContextMenu(null); }}
+                                        label="Yeniden Adlandır"
+                                        onClick={() => {
+                                          setRenameDocId(doc.id);
+                                          setRenameVal(doc.name);
+                                          setContextMenu(null);
+                                          setContextMenuPos(null);
+                                        }}
                                       />
                                       <ContextItem
+                                        icon={<Download className="h-3 w-3" />}
+                                        label="Dışa Aktar"
+                                        onClick={() => {
+                                          const blob = new Blob([doc.content], { type: "text/plain" });
+                                          const a = document.createElement("a");
+                                          a.href = URL.createObjectURL(blob);
+                                          a.download = `${doc.name}.txt`;
+                                          a.click();
+                                          URL.revokeObjectURL(a.href);
+                                          setContextMenu(null);
+                                          setContextMenuPos(null);
+                                        }}
+                                      />
+                                      <div className="h-px my-1" style={{ background: "#333" }} />
+                                      <ContextItem
+                                        icon={<Palette className="h-3 w-3" />}
+                                        label="Belge Rengi Ata"
+                                        onClick={() => {
+                                          setColorPickerDoc(doc.id);
+                                          setContextMenu(null);
+                                          setContextMenuPos(null);
+                                        }}
+                                      />
+                                      <div className="h-px my-1" style={{ background: "#333" }} />
+                                      <ContextItem
                                         icon={<Trash2 className="h-3 w-3" />}
-                                        label="Delete"
+                                        label="Sil"
                                         danger
-                                        onClick={() => { deleteDocument(doc.id); setContextMenu(null); }}
+                                        onClick={() => {
+                                          deleteDocument(doc.id);
+                                          setContextMenu(null);
+                                          setContextMenuPos(null);
+                                        }}
                                       />
                                     </motion.div>
                                   )}
@@ -496,6 +545,92 @@ export function LeftPanel() {
           </div>
         </div>
       </Modal>
+
+      {/* Rename Document Modal */}
+      <Modal open={!!renameDocId} onClose={() => setRenameDocId(null)} title="Yeniden Adlandır">
+        <div className="space-y-4">
+          <Input
+            label="Belge adı"
+            value={renameVal}
+            onChange={(e) => setRenameVal(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && renameDocId && renameVal.trim()) {
+                updateDocument(renameDocId, { name: renameVal.trim() });
+                setRenameDocId(null);
+              }
+            }}
+            autoFocus
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setRenameDocId(null)}>İptal</Button>
+            <Button
+              variant="primary"
+              disabled={!renameVal.trim()}
+              onClick={() => {
+                if (renameDocId && renameVal.trim()) {
+                  updateDocument(renameDocId, { name: renameVal.trim() });
+                  setRenameDocId(null);
+                }
+              }}
+            >
+              Kaydet
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Color Picker Modal */}
+      <Modal open={!!colorPickerDoc} onClose={() => setColorPickerDoc(null)} title="Belge Rengi">
+        <div className="space-y-3">
+          <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>
+            Bu belge için bir renk seçin:
+          </p>
+          <div className="grid grid-cols-6 gap-2">
+            {DOC_COLOR_PALETTE.map((c) => (
+              <motion.button
+                key={c}
+                whileHover={{ scale: 1.2 }}
+                whileTap={{ scale: 0.9 }}
+                className="h-7 w-7 rounded-full mx-auto"
+                style={{
+                  backgroundColor: c,
+                  outline: documents.find((d) => d.id === colorPickerDoc)?.color === c
+                    ? `2px solid ${c}`
+                    : "2px solid transparent",
+                  outlineOffset: "2px",
+                }}
+                onClick={() => {
+                  if (colorPickerDoc) {
+                    updateDocument(colorPickerDoc, { color: c });
+                    setColorPickerDoc(null);
+                  }
+                }}
+              />
+            ))}
+            {/* Clear color */}
+            <button
+              className="h-7 w-7 rounded-full mx-auto border-2 border-dashed flex items-center justify-center text-[10px]"
+              style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+              onClick={() => {
+                if (colorPickerDoc) {
+                  updateDocument(colorPickerDoc, { color: undefined });
+                  setColorPickerDoc(null);
+                }
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Click-outside backdrop for context menu */}
+      {contextMenu && (
+        <div
+          className="fixed inset-0 z-[998]"
+          onClick={() => { setContextMenu(null); setContextMenuPos(null); }}
+        />
+      )}
     </div>
   );
 }

@@ -30,6 +30,8 @@ export interface Document {
   mediaDuration?: number;
   /** Document-level researcher note */
   note?: string;
+  /** Custom color assigned via context menu */
+  color?: string;
 }
 
 export interface Code {
@@ -109,6 +111,8 @@ export interface AppState {
   chatOpen: boolean;
   /** Document search query */
   searchQuery: string;
+  /** Whether line numbers are shown in the reader */
+  showLineNumbers: boolean;
 }
 
 // ─── Auth Types ───────────────────────────────────────────────────────────────

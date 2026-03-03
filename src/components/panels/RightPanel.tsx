@@ -29,6 +29,8 @@ import {
   Check,
   X,
   Palette,
+  Info,
+  FileText,
 } from "lucide-react";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
@@ -396,9 +398,13 @@ function TreeLines({ flatCodes }: { flatCodes: FlatCode[] }) {
 
 export function RightPanel() {
   const { activeProjectId, activeDocumentId, setActiveCodeFilter } = useAppStore();
-  const { codes, segments, createCode, updateCode, deleteCode, moveCode } = useProjectStore();
+  const { codes, segments, documents, createCode, updateCode, deleteCode, moveCode } = useProjectStore();
 
   const projectCodes = codes.filter((c) => c.projectId === activeProjectId);
+  const activeDoc = documents.find((d) => d.id === activeDocumentId);
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<"codes" | "info">("codes");
 
   // ── UI state ──
   const [expandedCode, setExpandedCode] = useState<string | null>(null);
@@ -580,116 +586,233 @@ export function RightPanel() {
 
   return (
     <div className="flex h-full flex-col overflow-hidden" style={{ background: "var(--bg-secondary)" }}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2.5 border-b flex-shrink-0"
+      {/* Tab Header */}
+      <div className="flex items-center border-b flex-shrink-0"
         style={{ borderColor: "var(--border-subtle)" }}>
-        <div className="flex items-center gap-1.5">
-          <Tag className="h-3.5 w-3.5" style={{ color: "var(--text-muted)" }} />
-          <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
-            Kod Sistemi
-          </span>
-        </div>
-        <Tooltip content="Yeni kod" side="left">
-          <Button size="icon" variant="ghost" className="h-6 w-6"
-            disabled={!activeProjectId} onClick={() => setNewCodeModal(true)}>
-            <Plus className="h-3.5 w-3.5" />
-          </Button>
-        </Tooltip>
-      </div>
-
-      {/* Hint */}
-      {projectCodes.length > 0 && (
-        <p className="text-[10px] px-3 py-1" style={{ color: "var(--text-disabled)" }}>
-          Sürükle: taşı / yeniden sırala · Sol-sağ: seviye değiştir
-        </p>
-      )}
-
-      {/* Code tree (flat sortable list) */}
-      <div className="flex-1 overflow-y-auto py-1">
-        {!activeProjectId ? (
-          <p className="text-[11px] px-4 py-3" style={{ color: "var(--text-muted)" }}>
-            Kodları görmek için bir proje açın.
-          </p>
-        ) : flatCodes.length === 0 ? (
-          <EmptyCodeState onNew={() => setNewCodeModal(true)} />
-        ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragMove={handleDragMove}
-            onDragOver={handleDragOver}
-            onDragEnd={handleDragEnd}
-            onDragCancel={handleDragCancel}
-          >
-            <SortableContext
-              items={flatCodes.map((c) => c.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <div style={{ position: "relative" }}>
-                {/* Tree lines */}
-                <TreeLines flatCodes={flatCodes} />
-
-                {flatCodes.map((code) => {
-                  const isPotentialParent = projection?.parentId === code.id;
-                  return (
-                    <SortableCodeItem
-                      key={code.id}
-                      id={code.id}
-                      {...rowProps}
-                      code={code}
-                      isActive={code.id === activeId}
-                      overId={overId}
-                      projection={projection}
-                      isPotentialParent={isPotentialParent}
-                    />
-                  );
-                })}
-              </div>
-            </SortableContext>
-
-            {/* Drag overlay */}
-            <DragOverlay dropAnimation={null}>
-              {activeCode && (
-                <div style={{ pointerEvents: "none" }}>
-                  <CodeRow
-                    {...rowProps}
-                    code={activeCode}
-                    projDepth={projection?.depth ?? activeCode.depth}
-                    isDragOverlay
-                  />
-                </div>
-              )}
-            </DragOverlay>
-          </DndContext>
+        <button
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-widest transition-colors"
+          style={{
+            color: activeTab === "codes" ? "var(--accent)" : "var(--text-muted)",
+            borderBottom: activeTab === "codes" ? "2px solid var(--accent)" : "2px solid transparent",
+          }}
+          onClick={() => setActiveTab("codes")}
+        >
+          <Tag className="h-3.5 w-3.5" />
+          Kodlar
+        </button>
+        <button
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-widest transition-colors"
+          style={{
+            color: activeTab === "info" ? "var(--accent)" : "var(--text-muted)",
+            borderBottom: activeTab === "info" ? "2px solid var(--accent)" : "2px solid transparent",
+          }}
+          onClick={() => setActiveTab("info")}
+        >
+          <Info className="h-3.5 w-3.5" />
+          Bilgi
+        </button>
+        {activeTab === "codes" && (
+          <Tooltip content="Yeni kod" side="left">
+            <Button size="icon" variant="ghost" className="h-6 w-6 mr-2"
+              disabled={!activeProjectId} onClick={() => setNewCodeModal(true)}>
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+          </Tooltip>
         )}
       </div>
 
-      {/* Palette strip */}
-      <div className="flex-shrink-0 border-t px-3 py-2.5" style={{ borderColor: "var(--border-subtle)" }}>
-        <div className="flex items-center gap-1.5 mb-2">
-          <Palette className="h-3 w-3" style={{ color: "var(--text-muted)" }} />
-          <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Palet</p>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {CODE_COLORS.map((color) => (
-            <Tooltip key={color} content={color} side="top">
-              <motion.div whileHover={{ scale: 1.25 }} whileTap={{ scale: 0.9 }}
-                className="h-3.5 w-3.5 rounded-full cursor-default"
-                style={{ backgroundColor: color, outline: `2px solid ${color}50`, outlineOffset: "1px" }}
-              />
-            </Tooltip>
-          ))}
-        </div>
-      </div>
+      <AnimatePresence mode="wait">
+        {activeTab === "codes" ? (
+          <motion.div
+            key="codes"
+            className="flex-1 flex flex-col overflow-hidden"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -10 }}
+            transition={{ duration: 0.15 }}
+          >
+            {/* Hint */}
+            {projectCodes.length > 0 && (
+              <p className="text-[10px] px-3 py-1" style={{ color: "var(--text-disabled)" }}>
+                Sürükle: taşı / yeniden sırala · Sol-sağ: seviye değiştir
+              </p>
+            )}
 
-      {/* Stats footer */}
-      <div className="flex-shrink-0 border-t px-3 py-2 flex items-center gap-3" style={{ borderColor: "var(--border-subtle)" }}>
-        <StatChip icon={<Hash className="h-3 w-3" />} value={projectCodes.length} label="kod" />
-        <StatChip icon={<Tag className="h-3 w-3" />}
-          value={segments.filter((s) => s.projectId === activeProjectId).length} label="segment" />
-        {(() => { const n = segments.filter((s) => s.documentId === activeDocumentId).length; return n > 0 ? <StatChip icon={<Tag className="h-3 w-3" />} value={n} label="belgede" /> : null; })()}
-      </div>
+            {/* Code tree (flat sortable list) */}
+            <div className="flex-1 overflow-y-auto py-1">
+              {!activeProjectId ? (
+                <p className="text-[11px] px-4 py-3" style={{ color: "var(--text-muted)" }}>
+                  Kodları görmek için bir proje açın.
+                </p>
+              ) : flatCodes.length === 0 ? (
+                <EmptyCodeState onNew={() => setNewCodeModal(true)} />
+              ) : (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragStart={handleDragStart}
+                  onDragMove={handleDragMove}
+                  onDragOver={handleDragOver}
+                  onDragEnd={handleDragEnd}
+                  onDragCancel={handleDragCancel}
+                >
+                  <SortableContext
+                    items={flatCodes.map((c) => c.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div style={{ position: "relative" }}>
+                      {/* Tree lines */}
+                      <TreeLines flatCodes={flatCodes} />
+
+                      {flatCodes.map((code) => {
+                        const isPotentialParent = projection?.parentId === code.id;
+                        return (
+                          <SortableCodeItem
+                            key={code.id}
+                            id={code.id}
+                            {...rowProps}
+                            code={code}
+                            isActive={code.id === activeId}
+                            overId={overId}
+                            projection={projection}
+                            isPotentialParent={isPotentialParent}
+                          />
+                        );
+                      })}
+                    </div>
+                  </SortableContext>
+
+                  <DragOverlay dropAnimation={null}>
+                    {activeCode && (
+                      <div style={{ pointerEvents: "none" }}>
+                        <CodeRow
+                          {...rowProps}
+                          code={activeCode}
+                          projDepth={projection?.depth ?? activeCode.depth}
+                          isDragOverlay
+                        />
+                      </div>
+                    )}
+                  </DragOverlay>
+                </DndContext>
+              )}
+            </div>
+
+            {/* Palette strip */}
+            <div className="flex-shrink-0 border-t px-3 py-2.5" style={{ borderColor: "var(--border-subtle)" }}>
+              <div className="flex items-center gap-1.5 mb-2">
+                <Palette className="h-3 w-3" style={{ color: "var(--text-muted)" }} />
+                <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Palet</p>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {CODE_COLORS.map((color) => (
+                  <Tooltip key={color} content={color} side="top">
+                    <motion.div whileHover={{ scale: 1.25 }} whileTap={{ scale: 0.9 }}
+                      className="h-3.5 w-3.5 rounded-full cursor-default"
+                      style={{ backgroundColor: color, outline: `2px solid ${color}50`, outlineOffset: "1px" }}
+                    />
+                  </Tooltip>
+                ))}
+              </div>
+            </div>
+
+            {/* Stats footer */}
+            <div className="flex-shrink-0 border-t px-3 py-2 flex items-center gap-3" style={{ borderColor: "var(--border-subtle)" }}>
+              <StatChip icon={<Hash className="h-3 w-3" />} value={projectCodes.length} label="kod" />
+              <StatChip icon={<Tag className="h-3 w-3" />}
+                value={segments.filter((s) => s.projectId === activeProjectId).length} label="segment" />
+              {activeDocumentId && segments.filter(s => s.documentId === activeDocumentId).length > 0 && (
+                <StatChip icon={<Tag className="h-3 w-3" />}
+                  value={segments.filter(s => s.documentId === activeDocumentId).length} label="belgede" />
+              )}
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="info"
+            className="flex-1 overflow-y-auto p-5 space-y-6"
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+            transition={{ duration: 0.15 }}
+          >
+            {!activeDoc ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <FileText className="h-8 w-8 mb-3" style={{ color: "var(--border)" }} />
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                  Bilgileri görmek için bir belge seçin.
+                </p>
+              </div>
+            ) : (
+              <>
+                <section className="space-y-4">
+                  <h3 className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+                    Genel Bilgiler
+                  </h3>
+                  <div className="space-y-3">
+                    <InfoRow
+                      label="Belge Adı"
+                      value={activeDoc.name}
+                      icon={<FileText className="h-3 w-3" />}
+                    />
+                    <InfoRow
+                      label="Format"
+                      value={activeDoc.format?.toUpperCase() ?? "TEXT"}
+                    />
+                    <InfoRow
+                      label="Tür"
+                      value={activeDoc.type}
+                      capitalize
+                    />
+                    <InfoRow
+                      label="Kelime Sayısı"
+                      value={activeDoc.wordCount?.toLocaleString() ?? "0"}
+                    />
+                    <InfoRow
+                      label="Oluşturulma"
+                      value={new Date(activeDoc.createdAt).toLocaleDateString()}
+                    />
+                  </div>
+                </section>
+
+                {activeDoc.color && (
+                  <section className="space-y-4 pt-4 border-t" style={{ borderColor: "var(--border-subtle)" }}>
+                    <h3 className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+                      Görünüm
+                    </h3>
+                    <div className="flex items-center gap-3">
+                      <div className="h-4 w-4 rounded-full" style={{ backgroundColor: activeDoc.color }} />
+                      <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                        Özel belge rengi atandı
+                      </span>
+                    </div>
+                  </section>
+                )}
+
+                <section className="space-y-4 pt-4 border-t" style={{ borderColor: "var(--border-subtle)" }}>
+                  <h3 className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+                    İstatistikler
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg border p-3 flex flex-col gap-1" style={{ borderColor: "var(--border)", background: "var(--bg-primary)" }}>
+                      <span className="text-[10px] uppercase font-bold" style={{ color: "var(--text-disabled)" }}>Kodlama</span>
+                      <span className="text-lg font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>
+                        {segments.filter(s => s.documentId === activeDoc.id).length}
+                      </span>
+                    </div>
+                    <div className="rounded-lg border p-3 flex flex-col gap-1" style={{ borderColor: "var(--border)", background: "var(--bg-primary)" }}>
+                      <span className="text-[10px] uppercase font-bold" style={{ color: "var(--text-disabled)" }}>Karakter</span>
+                      <span className="text-lg font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>
+                        {activeDoc.content.length.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </section>
+              </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Modals ── */}
 
@@ -798,6 +921,33 @@ export function RightPanel() {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function InfoRow({
+  label,
+  value,
+  icon,
+  capitalize
+}: {
+  label: string;
+  value: string | number;
+  icon?: React.ReactNode;
+  capitalize?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 text-left">
+      <div className="flex items-center gap-2 text-[11px] flex-shrink-0" style={{ color: "var(--text-muted)" }}>
+        {icon}
+        {label}
+      </div>
+      <div
+        className={cn("text-[12px] font-medium truncate", capitalize && "capitalize")}
+        style={{ color: "var(--text-primary)" }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
 
 function StatChip({ icon, value, label }: { icon: React.ReactNode; value: number; label: string }) {
   return (

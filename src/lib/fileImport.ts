@@ -82,6 +82,75 @@ async function importPdf(file: File): Promise<ImportedFile> {
   });
 }
 
+// ─── CSV ──────────────────────────────────────────────────────────────────────
+
+async function importCsv(file: File): Promise<ImportedFile> {
+  const text = await file.text();
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  if (lines.length === 0) {
+    return {
+      name: file.name.replace(/\.[^.]+$/, ""),
+      content: "",
+      format: "text",
+      wordCount: 0,
+    };
+  }
+
+  // Parse CSV: detect delimiter (comma, semicolon, tab)
+  const firstLine = lines[0];
+  const delimiters = [",", ";", "\t"];
+  const delimiter =
+    delimiters.sort(
+      (a, b) => firstLine.split(b).length - firstLine.split(a).length
+    )[0];
+
+  const parseRow = (row: string): string[] => {
+    const cells: string[] = [];
+    let current = "";
+    let inQuotes = false;
+    for (let i = 0; i < row.length; i++) {
+      const ch = row[i];
+      if (ch === '"') {
+        if (inQuotes && row[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (ch === delimiter && !inQuotes) {
+        cells.push(current.trim());
+        current = "";
+      } else {
+        current += ch;
+      }
+    }
+    cells.push(current.trim());
+    return cells;
+  };
+
+  const rows = lines.map(parseRow);
+  const headers = rows[0];
+  const dataRows = rows.slice(1);
+
+  // Format as readable text: "Header: Value" per row
+  const formatted = dataRows
+    .map((row, idx) => {
+      const pairs = headers
+        .map((h, i) => (row[i] ? `${h}: ${row[i]}` : null))
+        .filter(Boolean)
+        .join(" | ");
+      return `[${idx + 1}] ${pairs}`;
+    })
+    .join("\n\n");
+
+  return {
+    name: file.name.replace(/\.[^.]+$/, ""),
+    content: formatted,
+    format: "text",
+    wordCount: countWords(formatted),
+  };
+}
+
 // ─── Video ────────────────────────────────────────────────────────────────────
 // Video is stored as a blob URL for the current session.
 // Blob URLs are revoked when the app restarts; VideoPlayer shows a re-import prompt.
@@ -145,6 +214,7 @@ export async function importFile(file: File): Promise<ImportedFile> {
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
   switch (ext) {
     case "txt": return importTxt(file);
+    case "csv": return importCsv(file);
     case "docx":
     case "doc": return importDocx(file);
     case "pdf": return importPdf(file);
@@ -153,7 +223,7 @@ export async function importFile(file: File): Promise<ImportedFile> {
 }
 
 export const ACCEPTED_EXTENSIONS =
-  ".txt,.doc,.docx,.pdf,.mp4,.webm,.mov,.avi,.mkv,.jpg,.jpeg,.png,.gif,.webp,.svg";
+  ".txt,.csv,.doc,.docx,.pdf,.mp4,.webm,.mov,.avi,.mkv,.jpg,.jpeg,.png,.gif,.webp,.svg";
 export const ACCEPTED_MIME_TYPES =
   "text/plain,application/pdf,application/msword," +
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document," +
