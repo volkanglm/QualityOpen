@@ -97,6 +97,7 @@ function ColorPickerPopover({
   currentColor: string; anchorRect: DOMRect;
   onPick: (c: string) => void; onClose: () => void;
 }) {
+  const t = useT();
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
@@ -120,7 +121,7 @@ function ColorPickerPopover({
         background: "var(--bg-secondary)", border: "1px solid var(--border)",
         boxShadow: "var(--float-shadow)", zIndex: -1,
       }} />
-      <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--text-muted)" }}>Renk seç</p>
+      <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--text-muted)" }}>{t("right.colorSelect")}</p>
       <div className="grid grid-cols-4 gap-1.5">
         {CODE_COLORS.map((c) => (
           <motion.button key={c} whileHover={{ scale: 1.25 }} whileTap={{ scale: 0.88 }}
@@ -652,7 +653,7 @@ export function RightPanel() {
           onClick={() => setActiveTab("codes")}
         >
           <Tag className="h-3.5 w-3.5" />
-          Kodlar
+          {t("right.tabs.codes")}
         </button>
         <button
           className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-widest transition-colors"
@@ -663,7 +664,7 @@ export function RightPanel() {
           onClick={() => setActiveTab("info")}
         >
           <Info className="h-3.5 w-3.5" />
-          Bilgi
+          {t("right.tabs.info")}
         </button>
         {activeTab === "codes" && (
           <Tooltip content="Yeni kod" side="left">
@@ -688,7 +689,7 @@ export function RightPanel() {
             {/* Hint */}
             {projectCodes.length > 0 && (
               <p className="text-[10px] px-3 py-1" style={{ color: "var(--text-disabled)" }}>
-                Sürükle: taşı / yeniden sırala · Sol-sağ: seviye değiştir
+                {t("right.dragHint")}
               </p>
             )}
 
@@ -696,7 +697,7 @@ export function RightPanel() {
             <div className="flex-1 overflow-y-auto py-1">
               {!activeProjectId ? (
                 <p className="text-[11px] px-4 py-3" style={{ color: "var(--text-muted)" }}>
-                  Kodları görmek için bir proje açın.
+                  {t("right.selectProject")}
                 </p>
               ) : flatCodes.length === 0 ? (
                 <EmptyCodeState />
@@ -757,7 +758,7 @@ export function RightPanel() {
             <div className="flex-shrink-0 border-t px-3 py-2.5" style={{ borderColor: "var(--border-subtle)" }}>
               <div className="flex items-center gap-1.5 mb-2">
                 <Palette className="h-3 w-3" style={{ color: "var(--text-muted)" }} />
-                <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Palet</p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>{t("right.palette")}</p>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {CODE_COLORS.map((color) => (
@@ -773,10 +774,10 @@ export function RightPanel() {
 
             {/* Stats footer */}
             <div className="flex-shrink-0 border-t px-3 py-2 flex items-center gap-3" style={{ borderColor: "var(--border-subtle)" }}>
-              <StatChip icon={<FileText className="h-3 w-3" />} value={documents.filter((d) => d.projectId === activeProjectId).length} label="belge" />
-              <StatChip icon={<Hash className="h-3 w-3" />} value={projectCodes.length} label="kod" />
+              <StatChip icon={<FileText className="h-3 w-3" />} value={documents.filter((d) => d.projectId === activeProjectId).length} label={t("analysis.docs")} />
+              <StatChip icon={<Hash className="h-3 w-3" />} value={projectCodes.length} label={t("analysis.codes")} />
               <StatChip icon={<Tag className="h-3 w-3" />}
-                value={segments.filter((s) => s.projectId === activeProjectId).length} label="segment" />
+                value={segments.filter((s) => s.projectId === activeProjectId).length} label={t("analysis.segments")} />
             </div>
           </motion.div>
         ) : (
@@ -792,7 +793,7 @@ export function RightPanel() {
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <FileText className="h-8 w-8 mb-3" style={{ color: "var(--border)" }} />
                 <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  Bilgileri görmek için bir belge seçin.
+                  {t("right.selectDoc")}
                 </p>
               </div>
             ) : (
@@ -884,7 +885,7 @@ export function RightPanel() {
                               value={editingProp.key}
                               onChange={(e) => setEditingProp({ ...editingProp, key: e.target.value })}
                               className="w-1/3 bg-transparent outline-none font-medium text-[var(--text-muted)]"
-                              placeholder="Özellik adı..."
+                              placeholder={t("right.propNamePlaceholder")}
                             />
                             <span className="text-zinc-600">:</span>
                             <input
@@ -895,7 +896,7 @@ export function RightPanel() {
                                 if (e.key === "Escape") setEditingProp(null);
                               }}
                               className="flex-1 bg-zinc-800 text-zinc-200 px-2 py-0.5 rounded outline-none"
-                              placeholder="Değer..."
+                              placeholder={t("right.valPlaceholder")}
                             />
                             <Button size="icon" variant="ghost" className="h-5 w-5 flex-shrink-0" onClick={() => handleUpdateProperty(key, editingProp.key, editingProp.value)}>
                               <Check className="h-3.5 w-3.5" />

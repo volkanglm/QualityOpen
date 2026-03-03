@@ -5,6 +5,7 @@ import { useProjectStore } from "@/store/project.store";
 import { useAppStore } from "@/store/app.store";
 import { ChevronDown, BarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 
 const CHART_COLORS = [
     "#3b82f6", // blue-500
@@ -16,6 +17,7 @@ const CHART_COLORS = [
 ];
 
 export function DemographicDistribution() {
+    const t = useT();
     const { documents } = useProjectStore();
     const { activeProjectId } = useAppStore();
 
@@ -73,9 +75,9 @@ export function DemographicDistribution() {
         return (
             <div className="flex flex-col items-center justify-center p-8 text-center h-[240px] border border-dashed rounded-xl" style={{ borderColor: "var(--border-subtle)" }}>
                 <BarChart2 className="h-8 w-8 mb-3 opacity-20" />
-                <p className="text-[12px] font-medium" style={{ color: "var(--text-muted)" }}>Henüz Değişken Yok</p>
+                <p className="text-[12px] font-medium" style={{ color: "var(--text-muted)" }}>{t('analysis.noVariables')}</p>
                 <p className="text-[11px] mt-1 max-w-[200px]" style={{ color: "var(--text-disabled)" }}>
-                    Sağ panelden belgelere özellik (Örn: Yaş, Şehir) eklediğinizde grafikler burada belirecektir.
+                    {t('analysis.noVariablesDesc')}
                 </p>
             </div>
         );
@@ -86,7 +88,7 @@ export function DemographicDistribution() {
             {/* Header Selector */}
             <div className="flex items-center justify-between mb-4 relative z-10">
                 <h3 className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
-                    Değişken Dağılımı
+                    {t('analysis.distributionTitle')}
                 </h3>
 
                 <div className="relative">
@@ -160,7 +162,7 @@ export function DemographicDistribution() {
                                         <div className="px-3 py-1.5 rounded-md shadow-xl border bg-[var(--bg-tertiary)] border-[var(--border)]">
                                             <p className="text-[12px] font-bold text-white mb-0.5">{payload[0].payload.name}</p>
                                             <p className="text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-widest">
-                                                {payload[0].value} Belge
+                                                {t('analysis.belgeCount').replace('{count}', payload[0].value?.toString() || '0')}
                                             </p>
                                         </div>
                                     );

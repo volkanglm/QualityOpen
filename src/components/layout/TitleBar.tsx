@@ -7,6 +7,7 @@ import { useProjectStore } from "@/store/project.store";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { ExportMenu } from "@/components/layout/ExportMenu";
 import { AppLogo } from "@/components/ui/AppLogo";
+import { useT } from "@/lib/i18n";
 
 export function TitleBar() {
   const {
@@ -19,6 +20,8 @@ export function TitleBar() {
     toggleRightPanel,
     setCommandPaletteOpen,
   } = useAppStore();
+
+  const t = useT();
 
   const { projects } = useProjectStore();
   const activeProject = projects.find((p) => p.id === activeProjectId);
@@ -41,7 +44,7 @@ export function TitleBar() {
         </div>
 
         <TitleBtn
-          tooltip={leftCollapsed ? "Show Explorer" : "Hide Explorer"}
+          tooltip={leftCollapsed ? t("nav.showExplorer") : t("nav.hideExplorer")}
           active={!leftCollapsed}
           onClick={toggleLeftPanel}
         >
@@ -49,7 +52,7 @@ export function TitleBar() {
         </TitleBtn>
 
         <TitleBtn
-          tooltip={rightCollapsed ? "Show Code System" : "Hide Code System"}
+          tooltip={rightCollapsed ? t("nav.showCodes") : t("nav.hideCodes")}
           active={!rightCollapsed}
           onClick={toggleRightPanel}
         >
@@ -89,7 +92,7 @@ export function TitleBar() {
         <div className="w-px h-4 mx-0.5" style={{ background: "var(--border)" }} />
 
         {/* ⌘K Command Palette trigger */}
-        <Tooltip content="Komut Paleti (⌘K)" side="bottom">
+        <Tooltip content={`${t("nav.commandPalette")} (⌘K)`} side="bottom">
           <motion.button
             whileTap={{ scale: 0.88 }}
             onClick={() => setCommandPaletteOpen(true)}
@@ -110,7 +113,7 @@ export function TitleBar() {
         <div className="w-px h-4 mx-0.5" style={{ background: "var(--border)" }} />
 
         {/* Theme toggle */}
-        <Tooltip content={theme === "dark" ? "Light mode" : "Dark mode"} side="bottom">
+        <Tooltip content={theme === "dark" ? t("nav.lightMode") : t("nav.darkMode")} side="bottom">
           <motion.button
             whileTap={{ scale: 0.88 }}
             onClick={toggleTheme}
