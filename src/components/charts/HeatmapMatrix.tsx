@@ -72,6 +72,7 @@ export function HeatmapMatrix({ codes, docs, segments, zoom = 1.0 }: HeatmapProp
                 transformOrigin: "left bottom",
                 fontSize: Math.max(8, 10 * zoom),
                 color: "var(--text-muted)",
+                opacity: 0.7,
                 whiteSpace: "nowrap",
                 fontWeight: 500,
                 maxWidth: 72 * zoom,
@@ -117,13 +118,13 @@ export function HeatmapMatrix({ codes, docs, segments, zoom = 1.0 }: HeatmapProp
             <span
               style={{
                 fontSize: Math.max(8, 11 * zoom),
-                color: code.depth === 0 ? "var(--text-primary)" : "var(--text-secondary)",
+                color: "var(--text-secondary)",
                 fontWeight: code.depth === 0 ? 600 : 400,
                 textAlign: "right",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
-                opacity: code.depth === 0 ? 1 : 0.8,
+                opacity: code.depth === 0 ? 0.9 : 0.6,
               }}
             >
               {truncate(code.name, Math.max(8, Math.floor(16 - code.depth * 2)))}

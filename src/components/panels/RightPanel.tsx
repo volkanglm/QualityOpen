@@ -159,6 +159,7 @@ interface CodeRowProps {
   onFilterClick: (id: string) => void;
   onMoveCode: (id: string) => void;
   isPotentialParent?: boolean;
+  isFilterActive?: boolean;
 }
 
 function CodeRow(props: CodeRowProps) {
@@ -169,7 +170,7 @@ function CodeRow(props: CodeRowProps) {
     onToggleExpand, onToggleParent,
     onStartEdit, onCommitEdit, onCancelEdit, onEditName,
     onDelete, onColorClick, onAddSubCode, onFilterClick, onMoveCode,
-    isPotentialParent = false,
+    isPotentialParent = false, isFilterActive = false,
   } = props;
   const colorBtnRef = useRef<HTMLButtonElement>(null);
   const depth = projDepth ?? code.depth;
@@ -190,9 +191,11 @@ function CodeRow(props: CodeRowProps) {
             ? "shadow-lg opacity-90 bg-[var(--surface)]"
             : isExpanded
               ? "bg-[var(--surface)]"
-              : isPotentialParent
-                ? "bg-[var(--accent-subtle)] ring-1 ring-[var(--accent)] ring-inset"
-                : "hover:bg-[var(--surface-hover)]",
+              : isFilterActive
+                ? "bg-[var(--accent-subtle)] ring-1 ring-[var(--accent)]"
+                : isPotentialParent
+                  ? "bg-[var(--accent-subtle)] ring-1 ring-[var(--accent)] ring-inset"
+                  : "hover:bg-[var(--surface-hover)]",
         )}
         style={{ paddingLeft: `${8 + depth * INDENT_W}px` }}
       >
@@ -319,7 +322,7 @@ function CodeRow(props: CodeRowProps) {
 
 // ─── Sortable wrapper ─────────────────────────────────────────────────────────
 
-function SortableCodeItem(props: CodeRowProps & { isActive: boolean; overId: string | null; projection: any; id: string }) {
+function SortableCodeItem(props: CodeRowProps & { isActive: boolean; isFilterActive: boolean; overId: string | null; projection: any; id: string }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } =
     useSortable({ id: props.code.id });
 
@@ -397,7 +400,7 @@ function TreeLines({ flatCodes }: { flatCodes: FlatCode[] }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function RightPanel() {
-  const { activeProjectId, activeDocumentId, setActiveCodeFilter } = useAppStore();
+  const { activeProjectId, activeDocumentId, activeCodeFilters, toggleCodeFilter } = useAppStore();
   const { codes, segments, documents, createCode, updateCode, deleteCode, moveCode,
     updateDocument
   } = useProjectStore();
@@ -540,8 +543,8 @@ export function RightPanel() {
   }, []);
 
   const handleFilterClick = useCallback((id: string) => {
-    setActiveCodeFilter(id);
-  }, [setActiveCodeFilter]);
+    toggleCodeFilter(id);
+  }, [toggleCodeFilter]);
 
   // ── CRUD helpers ──
   const handleCreate = () => {
@@ -722,6 +725,7 @@ export function RightPanel() {
                             {...rowProps}
                             code={code}
                             isActive={code.id === activeId}
+                            isFilterActive={activeCodeFilters.includes(code.id)}
                             overId={overId}
                             projection={projection}
                             isPotentialParent={isPotentialParent}

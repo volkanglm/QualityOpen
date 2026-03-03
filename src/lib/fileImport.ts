@@ -42,24 +42,25 @@ async function importDocx(file: File): Promise<ImportedFile> {
     .replace(/<p><\/p>/g, "")
     .replace(/<p>\s*<\/p>/g, "");
 
-  // Extract plain text for word count
+  // Extract plain text while preserving paragraph breaks
   const div = globalThis.document?.createElement("div");
   if (div) {
-    div.innerHTML = html;
-    const text = div.textContent ?? "";
+    div.innerHTML = html.replace(/<\/p>/g, "</p>\n\n");
+    const text = div.textContent?.trim() ?? "";
     return {
       name: file.name.replace(/\.[^.]+$/, ""),
-      content: html,
-      format: "html",
+      content: text,
+      format: "text",
       wordCount: countWords(text),
     };
   }
 
+  const plainText = html.replace(/<[^>]+>/g, "\n\n").trim();
   return {
     name: file.name.replace(/\.[^.]+$/, ""),
-    content: html,
-    format: "html",
-    wordCount: 0,
+    content: plainText,
+    format: "text",
+    wordCount: countWords(plainText),
   };
 }
 

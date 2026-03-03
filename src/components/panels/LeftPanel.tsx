@@ -71,6 +71,7 @@ export function LeftPanel() {
   const [renameVal, setRenameVal] = useState("");
   const [colorPickerDoc, setColorPickerDoc] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const t = useT();
   const pushToast = useToastStore((s) => s.push);
@@ -141,7 +142,56 @@ export function LeftPanel() {
       pushToast(msg, "error");
     } finally {
       setImporting(false);
+      setIsDragging(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (!activeProjectId || importing) return;
+
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+
+    // Trigger the same logic as handleImportFile but with a mock event-like approach
+    // or just call a helper. Let's just pass the file to a helper.
+    await processFile(file);
+  };
+
+  const processFile = async (file: File) => {
+    setImporting(true);
+    try {
+      const cat = getFileCategory(file);
+      const docType = cat === "video" ? "video" : cat === "image" ? "image" : "document";
+      const imported = await importFile(file);
+      const newDoc = createDocument(activeProjectId!, imported.name || file.name, docType);
+
+      const { localFolderPath } = useAuthStore.getState();
+      if (localFolderPath) {
+        try {
+          const { copyDocumentToLocal } = await import("@/lib/localSync");
+          await copyDocumentToLocal(localFolderPath, file.name, imported.content, docType);
+        } catch (err) {
+          console.warn("[LocalSync] Failed to copy source to local:", err);
+        }
+      }
+
+      updateDocument(newDoc.id, {
+        content: imported.content,
+        format: imported.format,
+        wordCount: imported.wordCount,
+      });
+      setActiveDocument(newDoc.id);
+      setActiveView("coding");
+      setExpandedProjects((s) => new Set(s).add(activeProjectId!));
+    } catch (err) {
+      console.error("Import failed:", err);
+      const msg = err instanceof Error ? err.message : "Import failed";
+      pushToast(msg, "error");
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -418,28 +468,43 @@ export function LeftPanel() {
               </Button>
             </Tooltip>
           </div>
-          <button
-            className="w-full mt-1 flex items-center gap-2 rounded-[var(--radius-sm)] border border-dashed px-2 py-1.5 text-[11px] transition-colors"
-            style={{
-              borderColor: "var(--border)",
-              color: activeProjectId ? "var(--text-muted)" : "var(--text-disabled)",
-              cursor: activeProjectId ? "pointer" : "not-allowed",
+          <div
+            className={cn(
+              "w-full mt-1 flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-4 transition-all duration-200",
+              isDragging
+                ? "border-blue-500 bg-blue-500/10 scale-[1.02]"
+                : "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 hover:bg-zinc-900/60",
+              (!activeProjectId || importing) && "opacity-50 cursor-not-allowed"
+            )}
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (activeProjectId && !importing) setIsDragging(true);
             }}
-            disabled={!activeProjectId || importing}
-            onClick={() => fileInputRef.current?.click()}
-            onMouseEnter={(e) => {
-              if (activeProjectId)
-                (e.currentTarget as HTMLElement).style.borderColor = "var(--border-strong)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.borderColor = "var(--border)";
-            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+            onClick={() => activeProjectId && !importing && fileInputRef.current?.click()}
           >
-            <Upload className="h-3 w-3 flex-shrink-0" />
-            <span>.txt · .docx · .pdf · video · görsel</span>
-          </button>
+            <div className={cn(
+              "p-2 rounded-full",
+              isDragging ? "bg-blue-500/20 text-blue-400" : "bg-zinc-800/50 text-zinc-500"
+            )}>
+              {importing ? (
+                <div className="h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Upload className="h-5 w-5" />
+              )}
+            </div>
+            <div className="text-center">
+              <p className="text-[12px] font-medium text-zinc-300">
+                {isDragging ? "Buraya Bırak" : "Dosya Yükle"}
+              </p>
+              <p className="text-[10px] text-zinc-500 mt-0.5">
+                .txt, .docx, .pdf, video veya görsel
+              </p>
+            </div>
+          </div>
           {!activeProjectId && (
-            <p className="text-[10px] mt-1 pl-1" style={{ color: "var(--text-disabled)" }}>
+            <p className="text-[10px] mt-2 text-center text-zinc-600">
               {t("left.noProjects")}
             </p>
           )}
@@ -475,11 +540,10 @@ export function LeftPanel() {
         />
       </div>
 
-      {/* New Project Modal */}
-      <Modal open={newProjectModal} onClose={() => setNewProjectModal(false)} title="New Project">
+      <Modal open={newProjectModal} onClose={() => setNewProjectModal(false)} title={t("common.newProject")}>
         <div className="space-y-4">
           <Input
-            label="Project name"
+            label={t("common.projectName")}
             placeholder="e.g. Interview Study 2025"
             value={newProjectName}
             onChange={(e) => setNewProjectName(e.target.value)}
@@ -487,19 +551,19 @@ export function LeftPanel() {
             autoFocus
           />
           <div className="flex justify-end gap-2 pt-1">
-            <Button variant="ghost" onClick={() => setNewProjectModal(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setNewProjectModal(false)}>{t("common.cancel")}</Button>
             <Button variant="primary" onClick={handleCreateProject} disabled={!newProjectName.trim()}>
-              Create
+              {t("common.create")}
             </Button>
           </div>
         </div>
       </Modal>
 
       {/* New Document Modal */}
-      <Modal open={newDocModal} onClose={() => setNewDocModal(false)} title="New Document">
+      <Modal open={newDocModal} onClose={() => setNewDocModal(false)} title={t("common.newDocument")}>
         <div className="space-y-4">
           <Input
-            label="Document name"
+            label={t("common.docName")}
             placeholder="e.g. Interview with P01"
             value={newDocName}
             onChange={(e) => setNewDocName(e.target.value)}
@@ -508,21 +572,21 @@ export function LeftPanel() {
           />
           <div className="space-y-2">
             <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-              Type
+              {t("common.type")}
             </label>
             <div className="flex flex-wrap gap-2">
-              {(["interview", "fieldnote", "document", "memo", "video", "image"] as Document["type"][]).map((t) => {
-                const color = DOC_COLORS[t as keyof typeof DOC_COLORS] ?? "var(--text-muted)";
+              {(["interview", "fieldnote", "document", "memo", "video", "image"] as Document["type"][]).map((type) => {
+                const color = DOC_COLORS[type as keyof typeof DOC_COLORS] ?? "var(--text-muted)";
                 return (
                   <button
-                    key={t}
-                    onClick={() => setNewDocType(t)}
+                    key={type}
+                    onClick={() => setNewDocType(type)}
                     className={cn(
                       "rounded-full px-3 py-1 text-xs capitalize font-medium transition-all border",
-                      newDocType === t ? "border-transparent" : "border-[var(--border)]"
+                      newDocType === type ? "border-transparent" : "border-[var(--border)]"
                     )}
                     style={
-                      newDocType === t
+                      newDocType === type
                         ? {
                           background: `${color}22`,
                           color: color,
@@ -531,26 +595,30 @@ export function LeftPanel() {
                         : { color: "var(--text-secondary)" }
                     }
                   >
-                    {t}
+                    {type === "interview" ? "Görüşme" :
+                      type === "fieldnote" ? "Saha Notu" :
+                        type === "document" ? "Belge" :
+                          type === "memo" ? "Not" :
+                            type === "video" ? "Video" : "Görsel"}
                   </button>
                 );
               })}
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-1">
-            <Button variant="ghost" onClick={() => setNewDocModal(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setNewDocModal(false)}>{t("common.cancel")}</Button>
             <Button variant="primary" onClick={handleCreateDoc} disabled={!newDocName.trim()}>
-              Create
+              {t("common.create")}
             </Button>
           </div>
         </div>
       </Modal>
 
       {/* Rename Document Modal */}
-      <Modal open={!!renameDocId} onClose={() => setRenameDocId(null)} title="Yeniden Adlandır">
+      <Modal open={!!renameDocId} onClose={() => setRenameDocId(null)} title={t("common.rename")}>
         <div className="space-y-4">
           <Input
-            label="Belge adı"
+            label={t("common.docName")}
             value={renameVal}
             onChange={(e) => setRenameVal(e.target.value)}
             onKeyDown={(e) => {
@@ -562,7 +630,7 @@ export function LeftPanel() {
             autoFocus
           />
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setRenameDocId(null)}>İptal</Button>
+            <Button variant="ghost" onClick={() => setRenameDocId(null)}>{t("common.cancel")}</Button>
             <Button
               variant="primary"
               disabled={!renameVal.trim()}
@@ -573,14 +641,14 @@ export function LeftPanel() {
                 }
               }}
             >
-              Kaydet
+              {t("common.save")}
             </Button>
           </div>
         </div>
       </Modal>
 
       {/* Color Picker Modal */}
-      <Modal open={!!colorPickerDoc} onClose={() => setColorPickerDoc(null)} title="Belge Rengi">
+      <Modal open={!!colorPickerDoc} onClose={() => setColorPickerDoc(null)} title={t("common.color")}>
         <div className="space-y-3">
           <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>
             Bu belge için bir renk seçin:

@@ -224,27 +224,36 @@ export function CoOccurrenceGraph({ codes, segments, zoom = 1.0 }: CoOccurrenceG
           const aColor = a.code.color;
           const bColor = b.code.color;
 
+          const mx = (a.x + b.x) / 2;
+          const my = (a.y + b.y) / 2;
+          // Perpendicular offset for curve
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const len = Math.sqrt(dx * dx + dy * dy) || 1;
+          const offset = 18 * zoom;
+          const qx = mx - (dy / len) * offset;
+          const qy = my + (dx / len) * offset;
+
           return (
-            <motion.line
-              key={edge.id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity }}
-              transition={{ delay: 0.25, duration: 0.4 }}
-              x1={a.x}
-              y1={a.y}
-              x2={b.x}
-              y2={b.y}
-              stroke={`url(#edge-${edge.id})`}
-              strokeWidth={strokeW}
-              strokeLinecap="round"
-            >
+            <g key={edge.id}>
               <defs>
                 <linearGradient id={`edge-${edge.id}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} gradientUnits="userSpaceOnUse">
                   <stop offset="0%" stopColor={aColor} />
                   <stop offset="100%" stopColor={bColor} />
                 </linearGradient>
               </defs>
-            </motion.line>
+              <motion.path
+                initial={{ opacity: 0 }}
+                animate={{ opacity }}
+                transition={{ delay: 0.25, duration: 0.4 }}
+                d={`M ${a.x} ${a.y} Q ${qx} ${qy} ${b.x} ${b.y}`}
+                fill="none"
+                stroke={`url(#edge-${edge.id})`}
+                strokeWidth={strokeW}
+                strokeLinecap="round"
+                style={{ opacity: isRelated ? 1 : 0.2 }}
+              />
+            </g>
           );
         })}
 
@@ -339,8 +348,8 @@ export function CoOccurrenceGraph({ codes, segments, zoom = 1.0 }: CoOccurrenceG
                 y={node.y + node.r + 13}
                 textAnchor="middle"
                 fill={node.code.color}
-                fontSize={11}
-                fontWeight="600"
+                fontSize={10}
+                fontWeight="500"
                 fontFamily="Inter, system-ui, sans-serif"
                 opacity={isHov ? 1 : 0.80}
                 style={{ pointerEvents: "none", userSelect: "none" }}

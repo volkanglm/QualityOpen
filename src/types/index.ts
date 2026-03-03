@@ -107,14 +107,18 @@ export interface AppState {
   activeSelection: ActiveSelection | null;
   /** Whether the CMD+K command palette is open */
   commandPaletteOpen: boolean;
-  /** Code ID filter for segment retrieval view (null = normal document view) */
-  activeCodeFilter: ID | null;
+  /** Code ID filters for segment retrieval view (empty = normal document view) */
+  activeCodeFilters: ID[];
+  /** Logic for multi-code filtering */
+  filterLogic: "AND" | "OR";
   /** Whether AI chat panel is open */
   chatOpen: boolean;
   /** Document search query */
   searchQuery: string;
   /** Whether line numbers are shown in the reader */
   showLineNumbers: boolean;
+  /** Whether the center panel is rendering dual panes (Split View) */
+  splitView: boolean;
 }
 
 // ─── Auth Types ───────────────────────────────────────────────────────────────

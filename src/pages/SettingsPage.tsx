@@ -84,7 +84,7 @@ function ApiKeyInput({
               style={{ color: "var(--code-2)" }}
             >
               <span className="h-1.5 w-1.5 rounded-full bg-current" />
-              Active
+              {t("common.active")}
             </span>
             <button
               onClick={onClear}
@@ -342,7 +342,7 @@ export function SettingsPage() {
 
           <div className="space-y-5">
             <ApiKeyInput
-              label="API Anahtarı"
+              label={t("common.active")}
               provider="Anthropic"
               placeholder="sk-ant-api03-…"
               value={getAnthropicKey()}
@@ -353,7 +353,7 @@ export function SettingsPage() {
             <div className="h-px" style={{ background: "var(--border-subtle)" }} />
 
             <ApiKeyInput
-              label="API Anahtarı"
+              label={t("common.active")}
               provider="Gemini"
               placeholder="AIzaSy…"
               value={getGeminiKey()}
@@ -364,7 +364,7 @@ export function SettingsPage() {
             <div className="h-px" style={{ background: "var(--border-subtle)" }} />
 
             <ApiKeyInput
-              label="API Anahtarı"
+              label={t("common.active")}
               provider="OpenAI"
               placeholder="sk-proj-…"
               value={getOpenAIKey()}
@@ -497,10 +497,10 @@ export function SettingsPage() {
             </div>
             <div>
               <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                Veri Yönetimi
+                {t("settings.dataManagement")}
               </h2>
               <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-                Projeleri dışa / içe aktar, başkalarıyla paylaş
+                {t("settings.dataSubtitle")}
               </p>
             </div>
           </div>
@@ -509,9 +509,9 @@ export function SettingsPage() {
             {/* Export */}
             <div className="flex items-center justify-between py-1">
               <div>
-                <p className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>Yedek Dışa Aktar</p>
+                <p className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>{t("settings.exportBackup")}</p>
                 <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-                  Tüm proje verilerini JSON dosyası olarak indir
+                  {t("settings.exportDesc")}
                 </p>
               </div>
               <Button
@@ -522,7 +522,7 @@ export function SettingsPage() {
                 disabled={projects.length === 0}
               >
                 <Download className="h-3 w-3" />
-                Dışa Aktar
+                {t("common.export")}
               </Button>
             </div>
 
@@ -531,21 +531,21 @@ export function SettingsPage() {
             {/* Import from file */}
             <div className="flex items-center justify-between py-1">
               <div>
-                <p className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>Dosyadan İçe Aktar</p>
+                <p className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>{t("settings.importFile")}</p>
                 <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-                  JSON yedek dosyasını yükle — mevcut veriler değiştirilir
+                  {t("settings.importDesc")}
                 </p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 {importStatus === "success" && (
                   <span className="text-[11px]" style={{ color: "var(--code-2)" }}>
                     <Check className="h-3 w-3 inline mr-0.5" />
-                    İçe aktarıldı
+                    {t("settings.saved")}
                   </span>
                 )}
                 {importStatus === "error" && (
                   <span className="text-[11px]" style={{ color: "var(--danger)" }}>
-                    Hatalı dosya
+                    {t("common.error")}
                   </span>
                 )}
                 <Button
@@ -555,7 +555,7 @@ export function SettingsPage() {
                   onClick={() => importRef.current?.click()}
                 >
                   <Upload className="h-3 w-3" />
-                  İçe Aktar
+                  {t("common.import")}
                 </Button>
                 <input
                   ref={importRef}
@@ -575,11 +575,11 @@ export function SettingsPage() {
                 <div>
                   <p className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--text-primary)" }}>
                     <FolderOpen className="h-3 w-3" style={{ color: "var(--text-muted)" }} />
-                    Yerel Klasör Yedekleme
-                    <span className="text-[9px] px-1 rounded bg-[var(--accent-subtle)] color-[var(--accent)] border border-[var(--accent-border)] ml-1">PREMIUM</span>
+                    {t("settings.localSync")}
+                    <span className="text-[9px] px-1 rounded bg-[var(--accent-subtle)] color-[var(--accent)] border border-[var(--accent-border)] ml-1">{t("settings.premium")}</span>
                   </p>
                   <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-                    Çalışmalarını bilgisayarındaki bir klasöre otomatik senkronize et
+                    {t("settings.localSubtitle")}
                   </p>
                 </div>
                 <Button
@@ -596,7 +596,7 @@ export function SettingsPage() {
                   }}
                 >
                   <Settings className="h-3 w-3" />
-                  {localFolderPath ? "Klasörü Değiştir" : "Klasör Seç"}
+                  {localFolderPath ? t("settings.changeFolder") : t("settings.selectFolder")}
                 </Button>
                 {localFolderPath && accessToken && (
                   <Button
@@ -607,7 +607,7 @@ export function SettingsPage() {
                     onClick={() => setSyncManagerOpen(true)}
                   >
                     <RefreshCw className="h-3 w-3" />
-                    Senkronizasyon Merkezi
+                    {t("settings.syncCenter")}
                   </Button>
                 )}
               </div>
@@ -630,7 +630,7 @@ export function SettingsPage() {
                 </div>
               ) : (
                 <p className="text-[10px]" style={{ color: "var(--text-disabled)" }}>
-                  Henüz bir klasör seçilmedi.
+                  {t("settings.noFolder")}
                 </p>
               )}
             </div>
@@ -657,7 +657,7 @@ export function SettingsPage() {
             </div>
           </div>
           <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-            A modern, minimalist QDA tool for researchers and academics. Built with Tauri, React and ❤️.
+            {t("settings.aboutDesc")}
           </p>
         </motion.div>
       </motion.div>
