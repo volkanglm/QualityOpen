@@ -60,6 +60,7 @@ const PROSE_CLASS = "px-8 py-10 w-full outline-none";
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function CenterPanel() {
+  const t = useT();
   const {
     activeDocumentId,
     activeProjectId,
@@ -497,8 +498,8 @@ export function CenterPanel() {
                 <div className="rounded-full bg-[var(--accent-subtle)] p-4 text-[var(--accent)]">
                   <Upload className="h-8 w-8" />
                 </div>
-                <h3 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>Bırakın yüklensin</h3>
-                <p className="text-sm" style={{ color: "var(--text-muted)" }}>Dosya projeye eklenecek</p>
+                <h3 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>{t('center.dropLoaded')}</h3>
+                <p className="text-sm" style={{ color: "var(--text-muted)" }}>{t('center.fileWillBeAdded')}</p>
               </div>
             </div>
           )}
@@ -588,7 +589,7 @@ export function CenterPanel() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Escape") setSearchOpen(false); }}
-                placeholder="Metin içinde ara… (Enter: Regex aç/kapat)"
+                placeholder={t('center.searchRegexHint')}
                 className="flex-1 text-[13px] bg-transparent outline-none"
                 style={{ color: "var(--text-primary)" }}
               />
@@ -601,7 +602,7 @@ export function CenterPanel() {
                     color: matchCase ? "var(--accent)" : "var(--text-muted)",
                     border: "1px solid var(--border)",
                   }}
-                  title="Büyük/Küçük Harf (Match Case)"
+                  title={t('center.matchCase')}
                 >
                   Aa
                 </button>
@@ -613,7 +614,7 @@ export function CenterPanel() {
                     color: wholeWord ? "var(--accent)" : "var(--text-muted)",
                     border: "1px solid var(--border)",
                   }}
-                  title="Tam Kelime (Whole Word)"
+                  title={t('center.wholeWord')}
                 >
                   \b
                 </button>
@@ -625,7 +626,7 @@ export function CenterPanel() {
                     color: useRegex ? "var(--accent)" : "var(--text-muted)",
                     border: "1px solid var(--border)",
                   }}
-                  title="Düzenli İfade (Regex)"
+                  title={t('center.regex')}
                 >
                   .*
                 </button>
@@ -638,9 +639,9 @@ export function CenterPanel() {
                     background: "var(--accent)",
                     color: "white",
                   }}
-                  title="Tüm sonuçlara aynı kodu ata"
+                  title={t('center.applyCodeToAll')}
                 >
-                  Tüm {autoCodeMatches.length} Sonucu Kodla
+                  {t('center.applyCodeToCount').replace('{count}', autoCodeMatches.length.toString())}
                 </button>
               )}
               {searchQuery && (
@@ -684,7 +685,7 @@ export function CenterPanel() {
         {isAutoCoding && autoCodeMatches.length > 0 && doc && activeProjectId && (
           <CodeAssignPanel
             key="autocode-panel"
-            selectionText={`${autoCodeMatches.length} adet sonuca kod ata:`}
+            selectionText={t('center.assignCodeToCount').replace('{count}', autoCodeMatches.length.toString())}
             codes={projectCodes}
             onApply={(code) => {
               addSegments(autoCodeMatches.map(m => ({
@@ -735,7 +736,7 @@ export function CenterPanel() {
                   className="text-[10px] font-semibold uppercase tracking-widest mb-1.5"
                   style={{ color: "var(--text-muted)" }}
                 >
-                  Belge Notu
+                  {t('center.docNote')}
                 </p>
                 <textarea
                   value={noteVal}
@@ -743,7 +744,7 @@ export function CenterPanel() {
                     setNoteVal(e.target.value);
                     saveNote(e.target.value);
                   }}
-                  placeholder="Bu belge hakkında araştırmacı notunuzu buraya yazın…"
+                  placeholder={t('center.addNoteHint')}
                   rows={3}
                   className="w-full bg-transparent outline-none resize-none text-[13px] leading-relaxed"
                   style={{ color: "var(--text-primary)" }}
@@ -767,7 +768,7 @@ export function CenterPanel() {
         >
           <StickyNote className="h-3 w-3 flex-shrink-0" />
           <span className="flex-1 truncate">
-            {doc.note ? doc.note.slice(0, 60) + (doc.note.length > 60 ? "…" : "") : "Belge notu ekle…"}
+            {doc.note ? doc.note.slice(0, 60) + (doc.note.length > 60 ? "…" : "") : t('center.addNote')}
           </span>
           <ChevronDown
             className="h-3 w-3 flex-shrink-0 transition-transform"
@@ -812,7 +813,7 @@ export function CenterPanel() {
                     setEditContent(e.target.value);
                     saveContent(e.target.value);
                   }}
-                  placeholder="Paste or type your research data here…"
+                  placeholder={t('welcome.startReading')}
                   className={PROSE_CLASS}
                   style={{
                     ...PROSE_STYLE,
@@ -893,7 +894,7 @@ export function CenterPanel() {
         {splitView && (
           <div className="flex-1 flex flex-col overflow-hidden relative bg-[var(--bg-secondary)]">
             <div className="sticky top-0 z-10 p-2 border-b border-[var(--border-subtle)] bg-[var(--surface)] text-[11px] font-bold text-[var(--text-muted)] tracking-widest uppercase flex items-center justify-center">
-              Kıyaslama Paneli
+              {t('center.comparisonPanel')}
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar relative">
@@ -912,7 +913,7 @@ export function CenterPanel() {
               )}
               {format !== "text" && (
                 <div className="h-full flex items-center justify-center text-[11px] text-[var(--text-muted)] uppercase tracking-widest p-8 text-center leading-relaxed">
-                  Bu dosya türü için kıyaslama<br />şu an desteklenmiyor
+                  {t('center.comparisonNotSupported')}
                 </div>
               )}
             </div>
@@ -992,7 +993,7 @@ export function CenterPanel() {
               style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }}
             />
             <span className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
-              AI özetleniyor…
+              {t('center.summarizing')}
             </span>
           </motion.div>
         )}
@@ -1062,7 +1063,7 @@ function RetrievalView({
           style={{ color: "var(--text-muted)" }}
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          Geri
+          {t('retrieval.back')}
         </button>
 
         <div className="h-4 w-px mx-1" style={{ background: "var(--border)" }} />
@@ -1089,7 +1090,7 @@ function RetrievalView({
                   filterLogic === "AND" ? "bg-[var(--accent)] text-white shadow-sm" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                 )}
               >
-                VE
+                {t('common.and')}
               </button>
               <button
                 onClick={() => onSetLogic("OR")}
@@ -1098,7 +1099,7 @@ function RetrievalView({
                   filterLogic === "OR" ? "bg-[var(--accent)] text-white shadow-sm" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                 )}
               >
-                VEYA
+                {t('common.or')}
               </button>
             </div>
           )}
@@ -1311,7 +1312,7 @@ function DocHeader({
             variant={showLineNumbers ? "primary" : "ghost"}
             className="h-6 gap-1 text-[11px]"
             onClick={onToggleLineNumbers}
-            title="Satır Numaraları"
+            title={t('center.lineNumbers')}
           >
             <List className="h-3 w-3" />
           </Button>
@@ -1332,7 +1333,7 @@ function DocHeader({
           variant={chatOpen ? "primary" : "ghost"}
           className="h-6 gap-1 text-[11px]"
           onClick={onToggleChat}
-          title="Belgelerle Sohbet"
+          title={t('chat.title')}
         >
           <MessageSquare className="h-3 w-3" />
         </Button>

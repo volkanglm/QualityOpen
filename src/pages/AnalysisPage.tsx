@@ -95,7 +95,7 @@ export function AnalysisPage() {
   }
 
   const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
-    { id: "dashboard", label: "Dashboard", icon: <LayoutGrid className="h-3.5 w-3.5" /> },
+    { id: "dashboard", label: t("nav.analysis"), icon: <LayoutGrid className="h-3.5 w-3.5" /> },
     { id: "overview", label: t("analysis.overview"), icon: <Activity className="h-3.5 w-3.5" /> },
     { id: "cloud", label: t("analysis.cloud"), icon: <Box className="h-3.5 w-3.5" /> },
     { id: "matrix", label: t("analysis.matrix"), icon: <TrendingUp className="h-3.5 w-3.5" /> },
@@ -179,8 +179,8 @@ export function AnalysisPage() {
                 )}
                 <span className="truncate text-[var(--text-primary)]">
                   {isProjectScope
-                    ? (projects.find(p => p.id === activeProjectId)?.name || "Proje Seç")
-                    : (activeDoc?.name || "Belge Seç")
+                    ? (projects.find(p => p.id === activeProjectId)?.name || t("analysis.selectProject"))
+                    : (activeDoc?.name || t("analysis.selectDoc"))
                   }
                 </span>
               </div>
@@ -457,26 +457,27 @@ export function AnalysisPage() {
 // -- Sub components --
 
 function ZoomControls({ zoom, onZoomChange }: { zoom: number; onZoomChange: (z: number | ((prev: number) => number)) => void }) {
+  const t = useT();
   return (
     <div className="flex items-center gap-1 bg-[var(--surface)] border border-[var(--border)] rounded-xl p-1 shadow-xl backdrop-blur-md">
       <button
         onClick={() => onZoomChange(prev => Math.max(prev - 0.2, 0.5))}
         className="p-1.5 rounded-lg hover:bg-[var(--surface-hover)] transition-colors text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-        title="Zoom Out"
+        title={t("analysis.zoomOut")}
       >
         <ZoomOut className="h-4 w-4" />
       </button>
       <button
         onClick={() => onZoomChange(1.0)}
         className="px-2 py-1 text-[10px] font-mono font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] rounded-md transition-colors"
-        title="Reset Zoom"
+        title={t("analysis.resetZoom")}
       >
         {Math.round(zoom * 100)}%
       </button>
       <button
         onClick={() => onZoomChange(prev => Math.min(prev + 0.2, 3.0))}
         className="p-1.5 rounded-lg hover:bg-[var(--surface-hover)] transition-colors text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-        title="Zoom In"
+        title={t("analysis.zoomIn")}
       >
         <ZoomIn className="h-4 w-4" />
       </button>
@@ -485,6 +486,7 @@ function ZoomControls({ zoom, onZoomChange }: { zoom: number; onZoomChange: (z: 
 }
 
 function DashboardCard({ title, icon, children, className, onMaximize }: { title: string; icon: React.ReactNode; children: React.ReactNode; className?: string; onMaximize?: (zoom: number) => void }) {
+  const t = useT();
   const [zoom, setZoom] = useState(1.0);
 
   const handleZoomIn = (e: React.MouseEvent) => {
@@ -518,21 +520,21 @@ function DashboardCard({ title, icon, children, className, onMaximize }: { title
           <button
             onClick={handleZoomOut}
             className="p-1.5 rounded-lg hover:bg-[var(--surface-hover)] transition-all text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-            title="Zoom Out"
+            title={t("analysis.zoomOut")}
           >
             <ZoomOut className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={handleReset}
             className="p-1.5 rounded-lg hover:bg-[var(--surface-hover)] transition-all text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-            title="Reset Zoom"
+            title={t("analysis.resetZoom")}
           >
             <RotateCcw className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={handleZoomIn}
             className="p-1.5 rounded-lg hover:bg-[var(--surface-hover)] transition-all text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-            title="Zoom In"
+            title={t("analysis.zoomIn")}
           >
             <ZoomIn className="h-3.5 w-3.5" />
           </button>
@@ -540,7 +542,7 @@ function DashboardCard({ title, icon, children, className, onMaximize }: { title
           <button
             onClick={() => onMaximize?.(zoom)}
             className="p-1.5 rounded-lg hover:bg-[var(--surface-hover)] transition-all text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-            title="Maximize"
+            title={t("analysis.maximize")}
           >
             <Maximize2 className="h-3.5 w-3.5" />
           </button>

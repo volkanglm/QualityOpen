@@ -26,40 +26,40 @@ type ExportFormat = "csv" | "excel" | "word" | "png" | "jpeg";
 
 const MENU_ITEMS: {
   id: ExportFormat;
-  label: string;
-  sub: string;
+  labelKey: string;
+  subKey: string;
   icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   divider?: boolean;
 }[] = [
     {
       id: "excel",
-      label: "Excel",
-      sub: "Segmentler, kodlar, hiyerarşi",
+      labelKey: "Excel", // Keep label as is if it's a fixed name, or use a key if preferred
+      subKey: "analysis.export.excelDesc",
       icon: FileSpreadsheet,
     },
     {
       id: "csv",
-      label: "CSV",
-      sub: "Tüm segmentleri düz metin",
+      labelKey: "CSV",
+      subKey: "analysis.export.csvDesc",
       icon: Table2,
     },
     {
       id: "word",
-      label: "Word (APA 7)",
-      sub: "Alıntılar + otomatik atıf",
+      labelKey: "Word (APA 7)",
+      subKey: "analysis.export.wordDesc",
       icon: FileText,
       divider: true,
     },
     {
       id: "png",
-      label: "PNG",
-      sub: "Aktif grafiği görsel olarak kaydet",
+      labelKey: "PNG",
+      subKey: "analysis.export.pngDesc",
       icon: FileImage,
     },
     {
       id: "jpeg",
-      label: "JPEG",
-      sub: "Aktif grafiği JPEG olarak kaydet",
+      labelKey: "JPEG",
+      subKey: "analysis.export.jpegDesc",
       icon: FileImage,
     },
   ];
@@ -92,7 +92,7 @@ export function ExportMenu() {
 
   const handleExport = async (format: ExportFormat) => {
     if (!project) {
-      push("Dışa aktarmak için önce bir proje seçin.", "error");
+      push(t("analysis.export.selectProject"), "error");
       return;
     }
 
@@ -110,36 +110,36 @@ export function ExportMenu() {
     try {
       if (format === "csv") {
         exportCSV(payload);
-        push(`${project.name} CSV olarak dışa aktarıldı.`, "success");
+        push(t("analysis.export.success").replace("{name}", project.name).replace("{format}", "CSV"), "success");
       } else if (format === "excel") {
         exportExcel(payload);
-        push(`${project.name} Excel olarak dışa aktarıldı.`, "success");
+        push(t("analysis.export.success").replace("{name}", project.name).replace("{format}", "Excel"), "success");
       } else if (format === "word") {
         await exportWordAPA7(payload);
-        push(`${project.name} Word (APA 7) olarak dışa aktarıldı.`, "success");
+        push(t("analysis.export.success").replace("{name}", project.name).replace("{format}", "Word (APA 7)"), "success");
       } else if (format === "png" || format === "jpeg") {
         // Find the chart SVG in the DOM (Analysis page must be active)
         if (activeView !== "analysis") {
-          push("Grafik dışa aktarmak için Analiz sekmesine gidin.", "info");
+          push(t("analysis.export.goAnalysis"), "info");
           setLoading(null);
           return;
         }
         const chartEl = document.querySelector<HTMLElement>(".analysis-chart-area svg, .analysis-chart-area");
         if (!chartEl) {
-          push("Dışa aktarılacak grafik bulunamadı.", "error");
+          push(t("analysis.export.noChart"), "error");
           setLoading(null);
           return;
         }
         await exportChartImage(
           chartEl as HTMLElement | SVGSVGElement,
-          `${sanitize(project.name)}_grafik.${format}`,
+          `${project.name.replace(/[^a-zA-ZğüşıöçĞÜŞİÖÇ0-9_\- ]/g, "_").trim() || "export"}_grafik.${format}`,
           format,
         );
-        push(`Grafik ${format.toUpperCase()} olarak dışa aktarıldı.`, "success");
+        push(t("analysis.export.success").replace("{name}", "Grafik").replace("{format}", format.toUpperCase()), "success");
       }
     } catch (err) {
       console.error("Export error:", err);
-      push("Dışa aktarma sırasında bir hata oluştu.", "error");
+      push(t("analysis.export.error"), "error");
     } finally {
       setLoading(null);
     }
@@ -167,14 +167,14 @@ export function ExportMenu() {
         onMouseLeave={(e) => {
           if (!open) (e.currentTarget as HTMLElement).style.background = "transparent";
         }}
-        title={disabled ? "Dışa aktarmak için proje seçin" : "Dışa Aktar"}
+        title={disabled ? t("analysis.export.selectProject") : t("common.export")}
       >
         {loading ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
         ) : (
           <Upload className="h-3.5 w-3.5" />
         )}
-        <span>{t("center.import")}</span>
+        <span>{t("common.export")}</span>
         <ChevronDown
           className="h-3 w-3 transition-transform"
           style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
@@ -208,7 +208,7 @@ export function ExportMenu() {
               style={{ borderColor: "var(--border-subtle)" }}
             >
               <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
-                {t("center.import")}
+                {t("common.export")}
               </p>
               {project && (
                 <p className="text-[11px] mt-0.5 truncate" style={{ color: "var(--text-disabled)" }}>
@@ -251,10 +251,10 @@ export function ExportMenu() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>
-                          {item.label}
+                          {item.labelKey}
                         </p>
                         <p className="text-[10px]" style={{ color: "var(--text-disabled)" }}>
-                          {item.sub}
+                          {t(item.subKey as any)}
                         </p>
                       </div>
                     </button>
@@ -267,8 +267,4 @@ export function ExportMenu() {
       </AnimatePresence>
     </div>
   );
-}
-
-function sanitize(name: string) {
-  return name.replace(/[^a-zA-ZğüşıöçĞÜŞİÖÇ0-9_\- ]/g, "_").trim() || "export";
 }
