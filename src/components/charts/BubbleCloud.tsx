@@ -136,9 +136,9 @@ export function BubbleCloud({ items, zoom = 1.0 }: BubbleCloudProps) {
             const isHov = hovered === code.id;
             const opacity = 0.50 + (count / maxCount) * 0.50;
             const radius = circle.r * zoom;
-            const fontSize = Math.max(9, Math.min(14 * zoom, radius * 0.42));
-            const label = code.name.length > Math.floor(radius / 5.5)
-              ? code.name.slice(0, Math.floor(radius / 5.5)) + "…"
+            const fontSize = Math.max(8, Math.min(12 * zoom, radius * 0.40));
+            const label = code.name.length > Math.floor(radius / 5.0)
+              ? code.name.slice(0, Math.floor(radius / 5.0)) + "…"
               : code.name;
 
             return (

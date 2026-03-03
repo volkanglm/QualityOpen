@@ -35,12 +35,17 @@ interface AppStore extends AppState {
   // AI / Command palette
   setActiveSelection: (s: ActiveSelection | null) => void;
   setCommandPaletteOpen: (open: boolean) => void;
-  // Retrieval / search / chat
-  setActiveCodeFilter: (id: ID | null) => void;
+  // Retrieval / search / filters
+  toggleCodeFilter: (id: ID) => void;
+  clearCodeFilters: () => void;
+  setFilterLogic: (logic: "AND" | "OR") => void;
   setChatOpen: (open: boolean) => void;
   setSearchQuery: (q: string) => void;
   // Line numbers
   toggleLineNumbers: () => void;
+  // Split view
+  setSplitView: (split: boolean) => void;
+  toggleSplitView: () => void;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -57,10 +62,12 @@ export const useAppStore = create<AppStore>()(
       rightCollapsed: false,
       activeSelection: null,
       commandPaletteOpen: false,
-      activeCodeFilter: null,
+      activeCodeFilters: [],
+      filterLogic: "OR",
       chatOpen: false,
       searchQuery: "",
       showLineNumbers: false,
+      splitView: false,
 
       // ── navigation ──
       setActiveProject: (id) => set({ activeProjectId: id, activeDocumentId: null }),
@@ -92,10 +99,20 @@ export const useAppStore = create<AppStore>()(
 
       setActiveSelection: (s) => set({ activeSelection: s }),
       setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
-      setActiveCodeFilter: (id) => set({ activeCodeFilter: id }),
+      toggleCodeFilter: (id) => set((s) => {
+        const next = [...s.activeCodeFilters];
+        const idx = next.indexOf(id);
+        if (idx > -1) next.splice(idx, 1);
+        else next.push(id);
+        return { activeCodeFilters: next };
+      }),
+      clearCodeFilters: () => set({ activeCodeFilters: [] }),
+      setFilterLogic: (logic) => set({ filterLogic: logic }),
       setChatOpen: (open) => set({ chatOpen: open }),
       setSearchQuery: (q) => set({ searchQuery: q }),
       toggleLineNumbers: () => set((s) => ({ showLineNumbers: !s.showLineNumbers })),
+      setSplitView: (split) => set({ splitView: split }),
+      toggleSplitView: () => set((s) => ({ splitView: !s.splitView })),
     }),
     {
       name: "qo-app-state",

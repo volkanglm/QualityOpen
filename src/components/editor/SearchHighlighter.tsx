@@ -118,10 +118,13 @@ export function SearchHighlighter({
               paddingLeft: "1px",
               paddingRight: "1px",
               color: "inherit",
+              mixBlendMode: "plus-lighter", // subtle boost
               cursor: "default",
             }}
           >
-            {content.slice(start, end)}
+            <span style={{ mixBlendMode: "difference", color: "white" }}>
+              {content.slice(start, end)}
+            </span>
           </motion.mark>
         );
       } else {
@@ -150,5 +153,9 @@ export function SearchHighlighter({
     return result;
   }, [content, segments, codes, searchQuery, useRegex]);
 
-  return <>{parts}</>;
+  return (
+    <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+      {parts}
+    </div>
+  );
 }

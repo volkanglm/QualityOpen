@@ -15,17 +15,18 @@ import {
   X,
   Search,
   MessageSquare,
-  ChevronDown,
-  StickyNote,
-  ArrowLeft,
   List,
+  Columns,
+  StickyNote,
+  ChevronDown,
+  ArrowLeft,
 } from "lucide-react";
+import { useT } from "@/hooks/useT";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
 import { Button } from "@/components/ui/Button";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { AnalysisPage } from "@/pages/AnalysisPage";
-import { Badge } from "@/components/ui/Badge";
 import { SearchHighlighter } from "@/components/editor/SearchHighlighter";
 import { FloatingMenu, type FloatingMenuPos } from "@/components/editor/FloatingMenu";
 import { ContextCodeMenu } from "@/components/editor/ContextCodeMenu";
@@ -38,7 +39,7 @@ import { VideoPlayer } from "@/components/media/VideoPlayer";
 import { ImageViewer } from "@/components/media/ImageViewer";
 import { DatabaseView } from "@/components/panels/DatabaseView";
 import { importFile, getFileCategory, ACCEPTED_EXTENSIONS } from "@/lib/fileImport";
-import { countWords, formatVideoTime } from "@/lib/utils";
+import { countWords, formatVideoTime, cn } from "@/lib/utils";
 
 const HIGHLIGHT_COLOR = "#fcd34d";
 
@@ -64,16 +65,21 @@ export function CenterPanel() {
     activeDocumentId,
     activeProjectId,
     activeView,
-    activeCodeFilter,
+    activeCodeFilters,
+    filterLogic,
     searchQuery,
     chatOpen,
     showLineNumbers,
     setActiveSelection,
     setActiveDocument,
-    setActiveCodeFilter,
+    toggleCodeFilter,
+    clearCodeFilters,
+    setFilterLogic,
     setChatOpen,
     setSearchQuery,
     toggleLineNumbers,
+    splitView,
+    toggleSplitView,
   } = useAppStore();
 
   const {
@@ -84,7 +90,6 @@ export function CenterPanel() {
     createDocument,
     addSegment,
     addSegments,
-    deleteSegment,
     updateDocument,
   } = useProjectStore();
 
@@ -429,18 +434,30 @@ export function CenterPanel() {
   // ─────────────────────────────────────────────────────────────────────────
   // CODE FILTER / RETRIEVAL VIEW
   // ─────────────────────────────────────────────────────────────────────────
-  if (activeCodeFilter) {
+  if (activeCodeFilters.length > 0) {
+    const filteredSegments = segments.filter((s) => {
+      if (s.projectId !== activeProjectId) return false;
+      if (filterLogic === "AND") {
+        return activeCodeFilters.every((fid) => s.codeIds.includes(fid));
+      } else {
+        return activeCodeFilters.some((fid) => s.codeIds.includes(fid));
+      }
+    });
+
     return (
       <RetrievalView
-        codeId={activeCodeFilter}
+        codeIds={activeCodeFilters}
+        filterLogic={filterLogic}
         codes={projectCodes}
-        segments={segments.filter((s) => s.projectId === activeProjectId && s.codeIds.includes(activeCodeFilter))}
+        segments={filteredSegments}
         documents={documents}
-        onClose={() => setActiveCodeFilter(null)}
+        onClose={() => clearCodeFilters()}
         onSelectDoc={(docId) => {
-          setActiveCodeFilter(null);
+          clearCodeFilters();
           setActiveDocument(docId);
         }}
+        onToggleFilter={toggleCodeFilter}
+        onSetLogic={setFilterLogic}
       />
     );
   }
@@ -527,6 +544,8 @@ export function CenterPanel() {
         chatOpen={chatOpen}
         summarizing={summarizing}
         showLineNumbers={showLineNumbers}
+        splitView={splitView}
+        onToggleSplitView={toggleSplitView}
         onToggleEdit={() => {
           if (editMode) {
             updateDocument(doc.id, { content: editContent, wordCount: countWords(editContent), format: "text" });
@@ -752,132 +771,146 @@ export function CenterPanel() {
       )}
 
       {/* ── Content area ── */}
-
-      {/* VIDEO */}
-      {format === "video" && (
-        <div className="flex-1 overflow-hidden">
-          <VideoPlayer
-            src={doc.content}
-            segments={docSegments}
-            codes={projectCodes}
-            onAddTimestamp={handleVideoTimestamp}
-            onDurationChange={(secs) =>
-              updateDocument(doc.id, { mediaDuration: secs })
-            }
-          />
-        </div>
-      )}
-
-      {/* IMAGE */}
-      {format === "image" && (
-        <div className="flex-1 overflow-hidden">
-          <ImageViewer src={doc.content} />
-        </div>
-      )}
-
-      {/* TEXT / HTML / PDF */}
-      {format !== "video" && format !== "image" && (
-        <div
-          className="flex-1 overflow-y-auto doc-reader"
-          ref={readerRef}
-          onMouseUp={handleMouseUp}
-          onContextMenu={handleContextMenu}
-        >
-          {editMode ? (
-            <textarea
-              autoFocus
-              value={editContent}
-              onChange={(e) => {
-                setEditContent(e.target.value);
-                saveContent(e.target.value);
-              }}
-              placeholder="Paste or type your research data here…"
-              className={PROSE_CLASS}
-              style={{
-                ...PROSE_STYLE,
-                display: "block",
-                resize: "none",
-                width: "100%",
-                height: "100%",
-                minHeight: "100%",
-                background: "transparent",
-                border: "none",
-                outline: "none",
-                caretColor: "var(--accent)",
-                fontFamily: '"Inter", system-ui, sans-serif',
-                fontSize: "14px",
-                lineHeight: "1.75",
-              }}
-              spellCheck={false}
-            />
-          ) : (
-            <div className="flex w-full min-h-full">
-              {/* Left margin: Line Numbers (Text only) */}
-              {showLineNumbers && format === "text" && (
-                <LineNumbers content={doc.content} every={5} />
-              )}
-
-              {/* Left margin: Coding Stripes */}
-              <CodingStripes
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* LEFT PANE (Main Content) */}
+        <div className="flex-1 flex flex-col overflow-hidden relative border-r border-[var(--border-subtle)]">
+          {format === "video" ? (
+            <div className="flex-1 overflow-hidden">
+              <VideoPlayer
+                src={doc.content}
                 segments={docSegments}
-                codes={codes}
-                contentLength={format === "pdf" ? pdfTextLength : doc.content.length}
-                containerHeight={readerHeight}
+                codes={projectCodes}
+                onAddTimestamp={handleVideoTimestamp}
+                onDurationChange={(secs) =>
+                  updateDocument(doc.id, { mediaDuration: secs })
+                }
               />
+            </div>
+          ) : format === "image" ? (
+            <div className="flex-1 overflow-hidden relative" style={{ background: "var(--bg-secondary)" }}>
+              <ImageViewer src={doc.content} />
+            </div>
+          ) : (
+            /* TEXT / HTML / PDF */
+            <div
+              className="flex-1 overflow-y-auto doc-reader relative"
+              ref={readerRef}
+              onMouseUp={handleMouseUp}
+              onContextMenu={handleContextMenu}
+            >
+              {editMode ? (
+                <textarea
+                  autoFocus
+                  value={editContent}
+                  onChange={(e) => {
+                    setEditContent(e.target.value);
+                    saveContent(e.target.value);
+                  }}
+                  placeholder="Paste or type your research data here…"
+                  className={PROSE_CLASS}
+                  style={{
+                    ...PROSE_STYLE,
+                    display: "block",
+                    resize: "none",
+                    width: "100%",
+                    height: "100%",
+                    minHeight: "100%",
+                    background: "transparent",
+                    border: "none",
+                    outline: "none",
+                    caretColor: "var(--accent)",
+                    fontFamily: '"Inter", system-ui, sans-serif',
+                    fontSize: "14px",
+                    lineHeight: "1.75",
+                  }}
+                  spellCheck={false}
+                />
+              ) : (
+                <div className="flex w-full min-h-full">
+                  {showLineNumbers && format === "text" && (
+                    <LineNumbers content={doc.content} every={5} />
+                  )}
 
-              {/* Center: Main Content Workspace */}
-              <div
-                className="flex-1 min-w-0"
-                ref={(el) => {
-                  if (el && el.scrollHeight !== readerHeight) {
-                    setReaderHeight(el.scrollHeight);
-                  }
-                }}
-              >
-                {format === "pdf" ? (
-                  <PdfRenderer
-                    base64={doc.content}
-                    onOcrComplete={handleOcrComplete}
-                    onLoadComplete={setPdfTextLength}
+                  <CodingStripes
+                    segments={docSegments}
+                    codes={codes}
+                    contentLength={format === "pdf" ? pdfTextLength : doc.content.length}
+                    containerHeight={readerHeight}
                   />
-                ) : format === "html" ? (
+
                   <div
-                    className={PROSE_CLASS}
-                    style={PROSE_STYLE}
-                    dangerouslySetInnerHTML={{ __html: doc.content }}
-                  />
-                ) : (
-                  <div className={PROSE_CLASS} style={PROSE_STYLE}>
-                    {doc.content ? (
+                    className="flex-1 min-w-0"
+                    ref={(el) => {
+                      if (el && el.scrollHeight !== readerHeight) {
+                        setReaderHeight(el.scrollHeight);
+                      }
+                    }}
+                  >
+                    {format === "pdf" ? (
+                      <div className="p-4">
+                        <PdfRenderer
+                          base64={doc.content}
+                          onLoadComplete={(len: number) => setPdfTextLength(len)}
+                          onOcrComplete={handleOcrComplete}
+                        />
+                      </div>
+                    ) : (
                       <SearchHighlighter
                         content={doc.content}
                         segments={docSegments}
-                        codes={codes}
+                        codes={projectCodes}
                         searchQuery={searchOpen ? searchQuery : ""}
                         useRegex={useRegex}
                         matchCase={matchCase}
                         wholeWord={wholeWord}
                       />
-                    ) : (
-                      <span style={{ color: "var(--text-disabled)" }}>
-                        Empty document — click the pencil icon to start writing, or import a file.
-                      </span>
                     )}
                   </div>
-                )}
-              </div>
 
-              {/* Right margin: Margin Memos */}
-              <MarginMemos
-                segments={docSegments}
-                codes={codes}
-                contentLength={format === "pdf" ? pdfTextLength : doc.content.length}
-                containerHeight={readerHeight}
-              />
+                  {!splitView && (
+                    <MarginMemos
+                      segments={docSegments}
+                      codes={codes}
+                      contentLength={format === "pdf" ? pdfTextLength : doc.content.length}
+                      containerHeight={readerHeight}
+                    />
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
-      )}
+
+        {/* RIGHT PANE (Split View) */}
+        {splitView && (
+          <div className="flex-1 flex flex-col overflow-hidden relative bg-[var(--bg-secondary)]">
+            <div className="sticky top-0 z-10 p-2 border-b border-[var(--border-subtle)] bg-[var(--surface)] text-[11px] font-bold text-[var(--text-muted)] tracking-widest uppercase flex items-center justify-center">
+              Kıyaslama Paneli
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar relative">
+              {format === "text" && !editMode && (
+                <div className={PROSE_CLASS} style={{ ...PROSE_STYLE, paddingBottom: "30vh" }}>
+                  <SearchHighlighter
+                    content={doc.content}
+                    segments={docSegments}
+                    codes={projectCodes}
+                    searchQuery={searchOpen ? searchQuery : ""}
+                    useRegex={useRegex}
+                    matchCase={matchCase}
+                    wholeWord={wholeWord}
+                  />
+                </div>
+              )}
+              {format !== "text" && (
+                <div className="h-full flex items-center justify-center text-[11px] text-[var(--text-muted)] uppercase tracking-widest p-8 text-center leading-relaxed">
+                  Bu dosya türü için kıyaslama<br />şu an desteklenmiyor
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* ── Floating selection menu ── */}
       <FloatingMenu
@@ -905,77 +938,16 @@ export function CenterPanel() {
         )}
       </AnimatePresence>
 
-      {/* ── Segments footer strip ── */}
-      <AnimatePresence>
-        {docSegments.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 4 }}
-            className="flex-shrink-0 border-t px-5 py-2 flex items-center gap-2 overflow-x-auto"
-            style={{
-              borderColor: "var(--border-subtle)",
-              background: "var(--bg-secondary)",
-            }}
-          >
-            <span
-              className="text-[10px] font-semibold uppercase tracking-wider flex-shrink-0"
-              style={{ color: "var(--text-muted)" }}
-            >
-              Segments
-            </span>
-            {docSegments.map((seg) => {
-              const segCodes = codes.filter((c) => seg.codeIds.includes(c.id));
-              const color = seg.isHighlight
-                ? seg.highlightColor ?? HIGHLIGHT_COLOR
-                : segCodes[0]?.color ?? "var(--accent)";
 
-              return (
-                <motion.div
-                  key={seg.id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.85 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="group flex items-center gap-1.5 rounded-[var(--radius-sm)] px-2 py-1 flex-shrink-0 border cursor-default"
-                  style={{ background: `${color}10`, borderColor: `${color}40` }}
-                  title={seg.memo ?? undefined}
-                >
-                  <span
-                    className="text-[11px] max-w-[90px] truncate"
-                    style={{ color: "var(--text-muted)" }}
-                    title={seg.text}
-                  >
-                    "{seg.text}"
-                  </span>
-                  {seg.isHighlight ? (
-                    <Badge color={HIGHLIGHT_COLOR}>{seg.memo ? "Note" : "Highlight"}</Badge>
-                  ) : (
-                    segCodes.map((c) => (
-                      <Badge key={c.id} color={c.color}>{c.name}</Badge>
-                    ))
-                  )}
-                  <button
-                    className="opacity-0 group-hover:opacity-100 transition-opacity ml-0.5"
-                    style={{ color: "var(--danger)" }}
-                    onClick={() => deleteSegment(seg.id)}
-                  >
-                    <X className="h-2.5 w-2.5" />
-                  </button>
-                </motion.div>
-              );
-            })}
-          </motion.div>
-        )}
-      </AnimatePresence>
 
-      {/* Importing overlay */}
+      {/* Overlays */}
       <AnimatePresence>
         {importing && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 flex items-center justify-center z-10"
+            className="absolute inset-0 flex items-center justify-center z-50"
             style={{ background: "rgba(0,0,0,0.4)" }}
           >
             <div
@@ -996,14 +968,13 @@ export function CenterPanel() {
         )}
       </AnimatePresence>
 
-      {/* Summarizing overlay */}
       <AnimatePresence>
         {summarizing && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
-            className="absolute bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-[var(--radius-md)] border px-4 py-2.5"
+            className="absolute bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-[var(--radius-md)] border px-4 py-2.5 z-50"
             style={{ background: "var(--bg-secondary)", borderColor: "var(--border)", boxShadow: "var(--float-shadow)" }}
           >
             <motion.div
@@ -1042,21 +1013,28 @@ const feedCardVariants = {
 };
 
 function RetrievalView({
-  codeId,
+  codeIds,
+  filterLogic,
   codes,
   segments,
   documents,
   onClose,
   onSelectDoc,
+  onToggleFilter,
+  onSetLogic,
 }: {
-  codeId: string;
+  codeIds: string[];
+  filterLogic: "AND" | "OR";
   codes: import("@/types").Code[];
   segments: import("@/types").Segment[];
   documents: import("@/types").Document[];
   onClose: () => void;
   onSelectDoc: (docId: string) => void;
+  onToggleFilter: (id: string) => void;
+  onSetLogic: (logic: "AND" | "OR") => void;
 }) {
-  const code = codes.find((c) => c.id === codeId);
+  const t = useT();
+  const filteredCodes = codes.filter((c) => codeIds.includes(c.id));
 
   const formatDate = (ts: number) => {
     const d = new Date(ts);
@@ -1081,14 +1059,42 @@ function RetrievalView({
 
         <div className="h-4 w-px mx-1" style={{ background: "var(--border)" }} />
 
-        {code && (
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <span className="h-3 w-3 rounded-full flex-shrink-0" style={{ background: code.color }} />
-            <span className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>
-              {code.name}
-            </span>
-          </div>
-        )}
+        <div className="flex-1 flex items-center gap-2 overflow-x-auto no-scrollbar">
+          {filteredCodes.map((c) => (
+            <div
+              key={c.id}
+              className="group flex items-center gap-1.5 px-2 py-1 rounded-full border flex-shrink-0 transition-colors hover:bg-[var(--surface-hover)] cursor-pointer"
+              style={{ background: `${c.color}15`, borderColor: `${c.color}30` }}
+              onClick={() => onToggleFilter(c.id)}
+            >
+              <span className="h-2 w-2 rounded-full" style={{ background: c.color }} />
+              <span className="text-[11px] font-medium" style={{ color: "var(--text-primary)" }}>{c.name}</span>
+              <X className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--text-muted)" }} />
+            </div>
+          ))}
+          {filteredCodes.length > 1 && (
+            <div className="flex items-center rounded-lg border p-0.5 ml-2 flex-shrink-0" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+              <button
+                onClick={() => onSetLogic("AND")}
+                className={cn(
+                  "px-2 py-0.5 text-[10px] font-bold rounded-[var(--radius-sm)] transition-all",
+                  filterLogic === "AND" ? "bg-[var(--accent)] text-white shadow-sm" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                )}
+              >
+                VE
+              </button>
+              <button
+                onClick={() => onSetLogic("OR")}
+                className={cn(
+                  "px-2 py-0.5 text-[10px] font-bold rounded-[var(--radius-sm)] transition-all",
+                  filterLogic === "OR" ? "bg-[var(--accent)] text-white shadow-sm" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                )}
+              >
+                VEYA
+              </button>
+            </div>
+          )}
+        </div>
 
         <span
           className="text-[11px] tabular-nums rounded-full px-2.5 py-0.5 flex-shrink-0"
@@ -1098,7 +1104,7 @@ function RetrievalView({
             border: "1px solid var(--border)",
           }}
         >
-          {segments.length} alıntı
+          {segments.length} {t("analysis.segments")}
         </span>
       </div>
 
@@ -1113,7 +1119,7 @@ function RetrievalView({
               <FileText className="h-5 w-5" style={{ color: "var(--text-muted)" }} />
             </div>
             <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-              Bu koda atanmış segment yok.
+              {t("retrieval.noSegs")}
             </p>
           </div>
         ) : (
@@ -1146,7 +1152,7 @@ function RetrievalView({
                   <div className="flex items-center gap-2 mb-3">
                     <FileText className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "var(--text-muted)" }} />
                     <span className="text-[12px] font-medium truncate" style={{ color: "var(--text-muted)" }}>
-                      {doc?.name ?? "Bilinmeyen belge"}
+                      {doc?.name ?? t("retrieval.unknown")}
                     </span>
                     <span className="text-[10px]" style={{ color: "var(--text-disabled)" }}>·</span>
                     <span className="text-[10px] flex-shrink-0" style={{ color: "var(--text-disabled)" }}>
@@ -1157,7 +1163,7 @@ function RetrievalView({
                   {/* Card Body — Quoted text */}
                   <div
                     className="pl-4 mb-3"
-                    style={{ borderLeft: `3px solid ${code?.color ?? "var(--border)"}60` }}
+                    style={{ borderLeft: `3px solid ${filteredCodes[0]?.color ?? "var(--border)"}60` }}
                   >
                     <p
                       className="text-[13px] leading-relaxed"
@@ -1171,14 +1177,16 @@ function RetrievalView({
                   </div>
 
                   {/* Memo */}
-                  {seg.memo && (
-                    <p
-                      className="text-[11px] italic mb-3 pl-4"
-                      style={{ color: "var(--text-muted)" }}
-                    >
-                      💬 {seg.memo}
-                    </p>
-                  )}
+                  {
+                    seg.memo && (
+                      <p
+                        className="text-[11px] italic mb-3 pl-4"
+                        style={{ color: "var(--text-muted)" }}
+                      >
+                        💬 {seg.memo}
+                      </p>
+                    )
+                  }
 
                   {/* Card Footer — Code badges */}
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -1206,7 +1214,7 @@ function RetrievalView({
           </motion.div>
         )}
       </div>
-    </div>
+    </div >
   );
 }
 
@@ -1222,11 +1230,13 @@ function DocHeader({
   chatOpen,
   summarizing,
   showLineNumbers,
+  splitView,
   onToggleEdit,
   onImport,
   onToggleSearch,
   onToggleChat,
   onToggleLineNumbers,
+  onToggleSplitView,
 }: {
   doc: import("@/types").Document;
   wordCount: number;
@@ -1237,36 +1247,38 @@ function DocHeader({
   chatOpen: boolean;
   summarizing: boolean;
   showLineNumbers: boolean;
+  splitView: boolean;
   onToggleEdit: () => void;
   onImport: () => void;
   onToggleSearch: () => void;
   onToggleChat: () => void;
   onToggleLineNumbers: () => void;
+  onToggleSplitView: () => void;
 }) {
+  const t = useT();
   return (
     <div
-      className="flex-shrink-0 flex items-center justify-between px-6 p-4 border-b overflow-x-auto custom-scrollbar gap-8"
+      className="flex items-center justify-between px-4 py-2 border-b flex-shrink-0 z-10"
       style={{
         borderColor: "var(--border-subtle)",
-        background: "var(--bg-secondary)",
+        background: "var(--bg-primary)",
       }}
     >
-      <div className="flex items-center gap-4 min-w-max">
-        <FileText className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "var(--text-muted)" }} />
-        <span
-          className="flex-1 text-sm font-medium truncate"
+      <div className="flex items-center gap-3 min-w-0">
+        <h2
+          className="text-[13px] font-semibold tracking-wide truncate"
           style={{ color: "var(--text-primary)" }}
         >
           {doc.name}
-        </span>
+        </h2>
 
         {/* Stats */}
         <div className="flex items-center gap-2 text-[11px]" style={{ color: "var(--text-muted)" }}>
-          {wordCount > 0 && <span>{wordCount.toLocaleString()} words</span>}
+          {wordCount > 0 && <span>{wordCount.toLocaleString()} {t("center.words")}</span>}
           {segmentCount > 0 && (
             <>
               <span style={{ color: "var(--border)" }}>·</span>
-              <span>{segmentCount} coded</span>
+              <span>{segmentCount} {t("center.coded")}</span>
             </>
           )}
           {doc.format && doc.format !== "text" && (
@@ -1325,7 +1337,7 @@ function DocHeader({
           loading={importing}
         >
           <Upload className="h-3 w-3" />
-          Import
+          {t("center.import")}
         </Button>
 
         {/* Line numbers toggle */}
@@ -1340,6 +1352,17 @@ function DocHeader({
             <List className="h-3 w-3" />
           </Button>
         )}
+
+        {/* Split view toggle */}
+        <Button
+          size="sm"
+          variant={splitView ? "primary" : "ghost"}
+          className="h-6 gap-1 text-[11px]"
+          onClick={onToggleSplitView}
+          title="Bölünmüş Görünüm"
+        >
+          <Columns className="h-3 w-3" />
+        </Button>
 
         {doc.format !== "pdf" && doc.format !== "video" && doc.format !== "image" && (
           <Button
@@ -1376,6 +1399,7 @@ function EmptyState({
   isDragOver: boolean;
   hasProject: boolean;
 }) {
+  const t = useT();
   return (
     <div
       className="flex h-full flex-col items-center justify-center gap-5 text-center p-8 transition-colors"
@@ -1400,7 +1424,7 @@ function EmptyState({
       </div>
       <div>
         <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-          {isDragOver ? "Dosyayı bırakın" : "No document open"}
+          {isDragOver ? t("center.dropHint") : t("center.noDoc")}
         </p>
         <p className="text-xs mt-1.5 leading-relaxed max-w-xs" style={{ color: "var(--text-muted)" }}>
           {isDragOver
@@ -1415,7 +1439,7 @@ function EmptyState({
           style={{ borderColor: "var(--border)", color: "var(--text-disabled)" }}
         >
           <Upload className="h-3.5 w-3.5" />
-          Drop file to import
+          {t("center.import")}
         </div>
       )}
     </div>
