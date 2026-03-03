@@ -1,423 +1,451 @@
-import { useMemo, useRef, useEffect, useState } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
+import {
+  ReactFlow,
+  Background,
+  Controls,
+  Panel,
+  useNodesState,
+  useEdgesState,
+  type Node,
+  type Edge,
+  type NodeProps,
+  type NodeTypes,
+  Handle,
+  Position,
+  useReactFlow,
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  Sparkles,
+  RotateCcw,
+  SlidersHorizontal,
+  Sun,
+  Users,
+  Settings2,
+  X,
+  ChevronDown,
+  Info
+} from "lucide-react";
+import { useT } from "@/hooks/useT";
+import { computeGraphData, assignClusters } from "@/lib/graph.utils";
+import { useProjectStore } from "@/store/project.store";
+import { SegmentDrawer } from "@/components/analysis/SegmentDrawer";
 import type { Code, Segment } from "@/types";
+import { cn } from "@/lib/utils";
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type CodeNodeData = {
+  label: string;
+  color: string;
+  count: number;
+  cluster?: string;
+  isHovered?: boolean;
+  isAnchor?: boolean;
+};
+
+type CodeNode = Node<CodeNodeData, "codeNode">;
+type TheoryTemplate = "standard" | "solar" | "case";
+
+// ─── Custom Node Component ───────────────────────────────────────────────────
+
+function CodeNodeComponent({ data }: NodeProps<CodeNode>) {
+  return (
+    <div className="relative group">
+      <Handle type="target" position={Position.Top} className="opacity-0" />
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{
+          scale: data.isAnchor ? 1.2 : 1,
+          opacity: 1,
+          boxShadow: data.isHovered ? `0 0 25px ${data.color}50` : data.isAnchor ? `0 0 40px ${data.color}30` : "none"
+        }}
+        whileHover={{ scale: 1.1 }}
+        className={cn(
+          "flex items-center justify-center rounded-full border-2 transition-all shadow-lg",
+          data.isHovered ? "border-[var(--text-primary)]" : data.isAnchor ? "border-dashed border-4" : "border-opacity-60"
+        )}
+        style={{
+          width: Math.max(40, 40 + data.count * 2) + "px",
+          height: Math.max(40, 40 + data.count * 2) + "px",
+          backgroundColor: data.color + (data.isAnchor ? "40" : "20"),
+          borderColor: data.color,
+        }}
+      >
+        <span
+          className="text-[10px] font-bold pointer-events-none"
+          style={{ color: data.color }}
+        >
+          {data.count}
+        </span>
+
+        {data.isAnchor && (
+          <div className="absolute -top-1 -right-1 p-1 bg-[var(--surface)] border border-[var(--border)] rounded-full">
+            <Sun className="h-2 w-2 text-yellow-500" />
+          </div>
+        )}
+      </motion.div>
+
+      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap z-50">
+        <span
+          className={cn(
+            "text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[var(--bg-secondary)] border shadow-sm",
+            data.isAnchor ? "border-yellow-500/30" : "border-[var(--border)]"
+          )}
+          style={{ color: data.isHovered || data.isAnchor ? "var(--text-primary)" : "var(--text-secondary)" }}
+        >
+          {data.label}
+        </span>
+      </div>
+      <Handle type="source" position={Position.Bottom} className="opacity-0" />
+    </div>
+  );
+}
+
+const nodeTypes: NodeTypes = {
+  codeNode: CodeNodeComponent,
+};
+
+// ─── Main Component ──────────────────────────────────────────────────────────
 
 interface CoOccurrenceGraphProps {
   codes: Code[];
   segments: Segment[];
-  zoom?: number;
 }
 
-interface LayoutNode {
-  id: string;
-  code: Code;
-  x: number;
-  y: number;
-  r: number;
-  count: number;
-}
+export function CoOccurrenceGraph({ codes, segments }: CoOccurrenceGraphProps) {
+  const t = useT();
+  const { documents } = useProjectStore();
+  const { fitView } = useReactFlow();
 
-interface LayoutEdge {
-  id: string;
-  ai: number;
-  bi: number;
-  weight: number;
-}
+  const [sensitivity, setSensitivity] = useState(1);
+  const [useClustering, setUseClustering] = useState(true);
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
-// ─── Force layout ─────────────────────────────────────────────────────────────
+  // Theory States
+  const [activeTemplate, setActiveTemplate] = useState<TheoryTemplate>("standard");
+  const [anchorId, setAnchorId] = useState<string | null>(null);
+  const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
+  const [isDocSelectorOpen, setIsDocSelectorOpen] = useState(false);
 
-function computeForceLayout(
-  codes: Code[],
-  edges: LayoutEdge[],
-  freq: Map<string, number>,
-  width: number,
-  height: number,
-  zoom: number = 1.0,
-): LayoutNode[] {
-  if (codes.length === 0) return [];
+  // Drawer for Segment Traceability
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerCode, setDrawerCode] = useState<Code | null>(null);
 
-  const maxFreq = Math.max(...Array.from(freq.values()), 1);
-  const maxEdgeW = Math.max(...edges.map((e) => e.weight), 1);
-  const cx = width / 2;
-  const cy = height / 2;
-
-  type Node = LayoutNode & { vx: number; vy: number };
-
-  const nodes: Node[] = codes.map((c, i) => {
-    const angle = (i / codes.length) * Math.PI * 2;
-    const spread = Math.min(width, height) * 0.30;
-    return {
-      id: c.id,
-      code: c,
-      x: cx + Math.cos(angle) * spread * zoom,
-      y: cy + Math.sin(angle) * spread * zoom,
-      r: (13 + ((freq.get(c.id) ?? 0) / maxFreq) * 18) * zoom,
-      count: freq.get(c.id) ?? 0,
-      vx: 0,
-      vy: 0,
-    };
-  });
-
-  const REPULSION = 3200;
-  const ATTRACTION = 0.012;
-  const DAMPING = 0.82;
-
-  for (let iter = 0; iter < 280; iter++) {
-    nodes.forEach((n) => { n.vx = 0; n.vy = 0; });
-
-    // Gravity to center
-    nodes.forEach((n) => {
-      n.vx += (cx - n.x) * 0.012;
-      n.vy += (cy - n.y) * 0.012;
-    });
-
-    // Repulsion between all nodes
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        const a = nodes[i], b = nodes[j];
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
-        const d2 = dx * dx + dy * dy || 1;
-        const f = REPULSION / d2;
-        const d = Math.sqrt(d2);
-        a.vx -= (dx / d) * f;
-        a.vy -= (dy / d) * f;
-        b.vx += (dx / d) * f;
-        b.vy += (dy / d) * f;
-      }
+  // 1. Filter Segments based on Case Network template
+  const filteredSegments = useMemo(() => {
+    if (activeTemplate === "case" && selectedDocIds.length > 0) {
+      return segments.filter(s => selectedDocIds.includes(s.documentId));
     }
+    return segments;
+  }, [segments, activeTemplate, selectedDocIds]);
 
-    // Spring attraction along edges
-    edges.forEach(({ ai, bi, weight }) => {
-      const a = nodes[ai], b = nodes[bi];
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
-      const len = Math.sqrt(dx * dx + dy * dy) || 1;
-      const target = (80 + (1 - weight / maxEdgeW) * 120) * zoom;
-      const delta = len - target;
-      const str = ATTRACTION * delta;
-      a.vx += (dx / len) * str;
-      a.vy += (dy / len) * str;
-      b.vx -= (dx / len) * str;
-      b.vy -= (dy / len) * str;
-    });
+  // 2. Data Computation
+  const { initialNodes, initialEdges } = useMemo(() => {
+    // Only use codes that appear in the filtered segments
+    const activeCodeIds = new Set(filteredSegments.flatMap(s => s.codeIds));
+    const activeCodes = codes.filter(c => activeCodeIds.has(c.id));
 
-    nodes.forEach((n) => {
-      n.x += n.vx * DAMPING;
-      n.y += n.vy * DAMPING;
-      n.x = Math.max(n.r + 12, Math.min(width - n.r - 12, n.x));
-      n.y = Math.max(n.r + 12, Math.min(height - n.r - 12, n.y));
-    });
-  }
+    if (activeCodes.length === 0) return { initialNodes: [], initialEdges: [] };
 
-  return nodes.map(({ vx: _vx, vy: _vy, ...rest }) => rest);
-}
-
-// ─── Component ────────────────────────────────────────────────────────────────
-
-export function CoOccurrenceGraph({ codes, segments, zoom = 1.0 }: CoOccurrenceGraphProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState({ width: 600, height: 420 });
-  const [hovered, setHov] = useState<string | null>(null);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const obs = new ResizeObserver((entries) => {
-      const { width, height } = entries[0].contentRect;
-      setSize({ width: Math.max(200, width), height: Math.max(160, height) });
-    });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-
-  // Compute co-occurrence
-  const { edges, freq } = useMemo(() => {
-    const freq = new Map<string, number>();
-    const coMap = new Map<string, number>();
-
-    segments.forEach((seg) => {
-      seg.codeIds.forEach((cid) => {
-        freq.set(cid, (freq.get(cid) ?? 0) + 1);
-      });
-      const ids = [...seg.codeIds].sort();
-      for (let i = 0; i < ids.length; i++) {
-        for (let j = i + 1; j < ids.length; j++) {
-          const key = `${ids[i]}:${ids[j]}`;
-          coMap.set(key, (coMap.get(key) ?? 0) + 1);
-        }
-      }
-    });
-
-    const edges: LayoutEdge[] = [];
-    coMap.forEach((weight, key) => {
-      const [aId, bId] = key.split(":");
-      const ai = codes.findIndex((c) => c.id === aId);
-      const bi = codes.findIndex((c) => c.id === bId);
-      if (ai !== -1 && bi !== -1) {
-        edges.push({ id: key, ai, bi, weight });
-      }
-    });
-
-    return { edges, freq };
-  }, [codes, segments]);
-
-  const nodes = useMemo(
-    () => computeForceLayout(codes, edges, freq, size.width, size.height, zoom),
-    [codes, edges, freq, size.width, size.height, zoom],
-  );
-
-  const maxEdgeW = Math.max(...edges.map((e) => e.weight), 1);
-
-  if (codes.length === 0) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-          Ağ için birden fazla kod gerekli.
-        </p>
-      </div>
+    const { nodes: rawNodes, edges: rawEdges } = computeGraphData(
+      activeCodes,
+      filteredSegments,
+      800,
+      600,
+      { anchorId: activeTemplate === "solar" ? anchorId : null }
     );
-  }
 
-  if (edges.length === 0) {
+    const clusteredNodes = useClustering ? assignClusters(rawNodes, rawEdges) : rawNodes;
+
+    const rfNodes: CodeNode[] = clusteredNodes.map((n) => ({
+      id: n.id,
+      type: "codeNode",
+      position: { x: n.x, y: n.y },
+      data: {
+        label: n.code.name,
+        color: n.code.color,
+        count: n.count,
+        cluster: n.cluster,
+        isHovered: false,
+        isAnchor: n.id === anchorId && activeTemplate === "solar"
+      },
+      draggable: true,
+    }));
+
+    const rfEdges: Edge[] = rawEdges
+      .filter((e) => e.weight >= sensitivity)
+      .map((e) => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        animated: e.weight > 3,
+        style: {
+          stroke: "var(--border-strong)",
+          strokeWidth: 1 + e.weight * 0.5,
+          opacity: 0.4
+        },
+      }));
+
+    return { initialNodes: rfNodes, initialEdges: rfEdges };
+  }, [codes, filteredSegments, sensitivity, useClustering, activeTemplate, anchorId]);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState<CodeNode>(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  // Sync state with memoized data
+  useEffect(() => {
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+  }, [initialNodes, initialEdges, setNodes, setEdges]);
+
+  // Sync hovered state
+  useEffect(() => {
+    setNodes((nds) =>
+      nds.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          isHovered: node.id === hoveredNodeId,
+        },
+      }))
+    );
+
+    setEdges((eds) =>
+      eds.map((edge) => ({
+        ...edge,
+        animated: edge.source === hoveredNodeId || edge.target === hoveredNodeId ? true : (edge.animated ?? false),
+        style: {
+          ...edge.style,
+          stroke: edge.source === hoveredNodeId || edge.target === hoveredNodeId ? "var(--text-secondary)" : "var(--border-strong)",
+          opacity: edge.source === hoveredNodeId || edge.target === hoveredNodeId ? 0.8 : 0.2,
+        },
+      }))
+    );
+  }, [hoveredNodeId, setNodes, setEdges]);
+
+  const onNodeMouseEnter = useCallback((_: any, node: Node) => setHoveredNodeId(node.id), []);
+  const onNodeMouseLeave = useCallback(() => setHoveredNodeId(null), []);
+
+  const onNodeClick = useCallback((_: any, node: Node) => {
+    if (activeTemplate === "solar") {
+      setAnchorId(node.id);
+    }
+  }, [activeTemplate]);
+
+  const onNodeDoubleClick = useCallback((_: any, node: Node) => {
+    const code = codes.find(c => c.id === node.id);
+    if (code) {
+      setDrawerCode(code);
+      setDrawerOpen(true);
+    }
+  }, [codes]);
+
+  const resetAll = () => {
+    fitView();
+    setSensitivity(1);
+  };
+
+  if (codes.length < 2) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3">
-        <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-          Henüz birlikte kullanılan kod çifti yok.
-        </p>
-        <p className="text-xs" style={{ color: "var(--text-disabled)" }}>
-          Aynı segmente birden fazla kod ata.
-        </p>
+      <div className="flex flex-col items-center justify-center h-full gap-4 text-[var(--text-muted)] italic">
+        <Sparkles className="h-8 w-8 opacity-20" />
+        <p className="text-sm">{t("analysis.interactive")} için daha fazla kod gerekli.</p>
       </div>
     );
   }
 
   return (
-    <div ref={containerRef} className="w-full h-full relative">
-      <svg width={size.width} height={size.height} style={{ display: "block" }}>
-        <defs>
-          {nodes.map((n) => (
-            <radialGradient key={`grad-${n.id}`} id={`grad-${n.id}`}>
-              <stop offset="0%" stopColor={n.code.color} stopOpacity={0.35} />
-              <stop offset="100%" stopColor={n.code.color} stopOpacity={0.08} />
-            </radialGradient>
-          ))}
-        </defs>
+    <div className="w-full h-full relative group/graph bg-[var(--bg-secondary)]/20 rounded-2xl border border-[var(--border)] overflow-hidden">
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onNodeMouseEnter={onNodeMouseEnter}
+        onNodeMouseLeave={onNodeMouseLeave}
+        onNodeClick={onNodeClick}
+        onNodeDoubleClick={onNodeDoubleClick}
+        nodeTypes={nodeTypes}
+        fitView
+        minZoom={0.2}
+        maxZoom={4}
+      >
+        <Background color="var(--border)" gap={20} size={1} />
+        <Controls showInteractive={false} className="!bg-[var(--surface)] !border-[var(--border)] !fill-[var(--text-primary)]" />
 
-        {/* Edges */}
-        {edges.map((edge) => {
-          const a = nodes[edge.ai];
-          const b = nodes[edge.bi];
-          if (!a || !b) return null;
+        {/* Top Control Panel */}
+        <Panel position="top-right" className="flex flex-col gap-2">
+          <div className="bg-[var(--surface)]/80 backdrop-blur-md p-3 rounded-xl border border-[var(--border)] shadow-xl flex flex-col gap-3 min-w-[200px]">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-1.5">
+                <SlidersHorizontal className="h-3 w-3" />
+                {t("analysis.sensitivity")}
+              </span>
+              <span className="text-[10px] font-mono bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded border border-[var(--border)]">
+                {sensitivity}
+              </span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="10"
+              step="1"
+              value={sensitivity}
+              onChange={(e) => setSensitivity(parseInt(e.target.value))}
+              className="accent-[var(--text-primary)] h-1 w-full bg-[var(--border)] rounded-full appearance-none cursor-pointer"
+            />
 
-          const isRelated = hovered
-            ? a.id === hovered || b.id === hovered
-            : true;
-
-          const opacity = isRelated
-            ? 0.18 + (edge.weight / maxEdgeW) * 0.65
-            : 0.04;
-
-          const strokeW = 1 + (edge.weight / maxEdgeW) * 3.5;
-
-          // Color: blend between the two node colors via midpoint
-          const aColor = a.code.color;
-          const bColor = b.code.color;
-
-          const mx = (a.x + b.x) / 2;
-          const my = (a.y + b.y) / 2;
-          // Perpendicular offset for curve
-          const dx = b.x - a.x;
-          const dy = b.y - a.y;
-          const len = Math.sqrt(dx * dx + dy * dy) || 1;
-          const offset = 18 * zoom;
-          const qx = mx - (dy / len) * offset;
-          const qy = my + (dx / len) * offset;
-
-          return (
-            <g key={edge.id}>
-              <defs>
-                <linearGradient id={`edge-${edge.id}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor={aColor} />
-                  <stop offset="100%" stopColor={bColor} />
-                </linearGradient>
-              </defs>
-              <motion.path
-                initial={{ opacity: 0 }}
-                animate={{ opacity }}
-                transition={{ delay: 0.25, duration: 0.4 }}
-                d={`M ${a.x} ${a.y} Q ${qx} ${qy} ${b.x} ${b.y}`}
-                fill="none"
-                stroke={`url(#edge-${edge.id})`}
-                strokeWidth={strokeW}
-                strokeLinecap="round"
-                style={{ opacity: isRelated ? 1 : 0.2 }}
+            <label className="flex items-center justify-between cursor-pointer group/label">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] group-hover/label:text-[var(--text-secondary)]">
+                {t("analysis.clustering")}
+              </span>
+              <input
+                type="checkbox"
+                checked={useClustering}
+                onChange={(e) => setUseClustering(e.target.checked)}
+                className="w-3.5 h-3.5 rounded border-[var(--border)] bg-[var(--bg-tertiary)] checked:bg-[var(--text-primary)] appearance-none cursor-pointer transition-colors border-2"
               />
-            </g>
-          );
-        })}
+            </label>
+          </div>
 
-        {/* Edge weight labels on thick edges */}
-        {edges.map((edge) => {
-          const a = nodes[edge.ai];
-          const b = nodes[edge.bi];
-          if (!a || !b) return null;
-          if (edge.weight < 2) return null;
-          return (
-            <motion.text
-              key={`lbl-${edge.id}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: hovered && a.id !== hovered && b.id !== hovered ? 0.1 : 0.55 }}
-              transition={{ delay: 0.3, duration: 0.4 }}
-              x={(a.x + b.x) / 2}
-              y={(a.y + b.y) / 2}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fontSize={9}
-              fontFamily="'SF Mono','Fira Code',monospace"
-              fill="var(--text-muted)"
-              style={{ pointerEvents: "none", userSelect: "none" }}
-            >
-              {edge.weight}
-            </motion.text>
-          );
-        })}
+          <button
+            onClick={resetAll}
+            className="self-end p-2 bg-[var(--surface)]/80 backdrop-blur-md rounded-full border border-[var(--border)] shadow-lg hover:bg-[var(--surface-hover)] transition-colors text-[var(--text-secondary)]"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </button>
+        </Panel>
 
-        {/* Nodes */}
-        {nodes.map((node, i) => {
-          const isHov = hovered === node.id;
-          const isDim = hovered && !isHov;
-
-          return (
-            <motion.g
-              key={node.id}
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{
-                opacity: isDim ? 0.38 : 1,
-                scale: 1,
-              }}
-              transition={{
-                delay: i * 0.05,
-                type: "spring",
-                stiffness: 260,
-                damping: 22,
-              }}
-              style={{ transformOrigin: `${node.x}px ${node.y}px`, cursor: "default" }}
-              onHoverStart={() => setHov(node.id)}
-              onHoverEnd={() => setHov(null)}
-            >
-              {/* Glow */}
-              <AnimatePresence>
-                {isHov && (
-                  <motion.circle
-                    key="glow"
-                    cx={node.x}
-                    cy={node.y}
-                    initial={{ r: node.r, opacity: 0 }}
-                    animate={{ r: node.r + 12, opacity: 0.20 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    fill={node.code.color}
-                  />
+        {/* Theory Template Center */}
+        <Panel position="top-center" className="mt-4">
+          <div className="bg-[var(--bg-primary)]/90 backdrop-blur-xl border border-[var(--border)] rounded-full p-1 shadow-2xl flex items-center gap-1">
+            {[
+              { id: "standard", label: t("theory.standard"), icon: Settings2 },
+              { id: "solar", label: t("theory.solar"), icon: Sun },
+              { id: "case", label: t("theory.case"), icon: Users },
+            ].map((tmpl) => (
+              <button
+                key={tmpl.id}
+                onClick={() => setActiveTemplate(tmpl.id as TheoryTemplate)}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-bold transition-all",
+                  activeTemplate === tmpl.id
+                    ? "bg-[var(--accent)] text-[var(--accent-fg)]"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)]"
                 )}
-              </AnimatePresence>
-
-              {/* Fill circle */}
-              <circle
-                cx={node.x}
-                cy={node.y}
-                r={node.r}
-                fill={`url(#grad-${node.id})`}
-              />
-              {/* Stroke */}
-              <motion.circle
-                cx={node.x}
-                cy={node.y}
-                r={node.r}
-                fill="none"
-                stroke={node.code.color}
-                strokeWidth={isHov ? 2.5 : 1.5}
-                strokeOpacity={isHov ? 0.95 : 0.60}
-                animate={{ r: isHov ? node.r + 2 : node.r }}
-                transition={{ type: "spring", stiffness: 400, damping: 26 }}
-              />
-
-              {/* Label */}
-              <text
-                x={node.x}
-                y={node.y + node.r + 13}
-                textAnchor="middle"
-                fill={node.code.color}
-                fontSize={10}
-                fontWeight="500"
-                fontFamily="Inter, system-ui, sans-serif"
-                opacity={isHov ? 1 : 0.80}
-                style={{ pointerEvents: "none", userSelect: "none" }}
               >
-                {node.code.name.length > 12
-                  ? node.code.name.slice(0, 11) + "…"
-                  : node.code.name}
-              </text>
+                <tmpl.icon className="h-3.5 w-3.5" />
+                {tmpl.label}
+              </button>
+            ))}
+          </div>
+        </Panel>
 
-              {/* Count inside node */}
-              {node.r > 16 && (
-                <text
-                  x={node.x}
-                  y={node.y}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  fill={node.code.color}
-                  fontSize={Math.max(8, node.r * 0.52)}
-                  fontWeight="700"
-                  fontFamily="'SF Mono','Fira Code',monospace"
-                  opacity={0.80}
-                  style={{ pointerEvents: "none", userSelect: "none" }}
-                >
-                  {node.count}
-                </text>
-              )}
+        {/* Template Specific Options */}
+        <AnimatePresence>
+          {activeTemplate !== "standard" && (
+            <Panel position="bottom-center" className="mb-6">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-4 shadow-2xl min-w-[320px] max-w-[450px]"
+              >
+                {activeTemplate === "solar" ? (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2 text-[var(--text-primary)] font-bold text-[11px] uppercase tracking-wider mb-1">
+                      <Sun className="h-4 w-4 text-yellow-500" />
+                      {t("theory.anchor")}
+                    </div>
+                    <p className="text-[10px] text-[var(--text-muted)] leading-relaxed italic">
+                      Haritanın merkezine sabitlemek istediğiniz bir düğüme tıklayın. Bağlantılı kodlar çekim alanına girecektir.
+                    </p>
+                    <div className="mt-2 flex items-center justify-between p-2 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border)]">
+                      <span className="text-[11px] font-mono text-[var(--text-secondary)]">
+                        {anchorId ? codes.find(c => c.id === anchorId)?.name : "Seçim yok..."}
+                      </span>
+                      {anchorId && (
+                        <button onClick={() => setAnchorId(null)} className="p-1 hover:bg-[var(--surface-hover)] rounded-md text-[var(--text-muted)]">
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2 text-[var(--text-primary)] font-bold text-[11px] uppercase tracking-wider">
+                        <Users className="h-4 w-4 text-blue-500" />
+                        {t("theory.cases")}
+                      </div>
+                      <span className="text-[10px] font-mono bg-[var(--accent-subtle)] text-[var(--accent)] px-1.5 py-0.5 rounded">
+                        {selectedDocIds.length} / {documents.length}
+                      </span>
+                    </div>
 
-              {/* Hover tooltip */}
-              <AnimatePresence>
-                {isHov && (
-                  <motion.g
-                    key="tip"
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.14 }}
-                  >
-                    <rect
-                      x={node.x - 60}
-                      y={node.y - node.r - 38}
-                      width={120}
-                      height={26}
-                      rx={7}
-                      fill="var(--bg-secondary)"
-                      stroke="var(--border)"
-                      strokeWidth={1}
-                      filter="drop-shadow(0 4px 12px rgba(0,0,0,0.3))"
-                    />
-                    <text
-                      x={node.x}
-                      y={node.y - node.r - 22}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fill="var(--text-primary)"
-                      fontSize={11}
-                      fontWeight="500"
-                      fontFamily="Inter, system-ui, sans-serif"
-                      style={{ pointerEvents: "none", userSelect: "none" }}
-                    >
-                      {node.code.name} · {node.count} seg
-                    </text>
-                  </motion.g>
+                    <div className="relative group/doc-sel">
+                      <button
+                        onClick={() => setIsDocSelectorOpen(!isDocSelectorOpen)}
+                        className="w-full flex items-center justify-between p-2 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border)] text-[11px] text-[var(--text-secondary)] hover:border-[var(--border-strong)] transition-all"
+                      >
+                        <span className="truncate">
+                          {selectedDocIds.length === 0 ? "Tüm belgeler..." : `${selectedDocIds.length} belge seçildi`}
+                        </span>
+                        <ChevronDown className={cn("h-4 w-4 transition-transform", isDocSelectorOpen && "rotate-180")} />
+                      </button>
+
+                      {isDocSelectorOpen && (
+                        <div className="absolute bottom-full left-0 w-full mb-2 max-h-[200px] overflow-y-auto bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-2xl p-1 z-[100] custom-scrollbar">
+                          {documents.map(doc => (
+                            <button
+                              key={doc.id}
+                              onClick={() => {
+                                setSelectedDocIds(prev => prev.includes(doc.id) ? prev.filter(id => id !== doc.id) : [...prev, doc.id]);
+                              }}
+                              className={cn(
+                                "w-full text-left px-3 py-1.5 rounded-md text-[11px] transition-colors flex items-center justify-between",
+                                selectedDocIds.includes(doc.id) ? "bg-[var(--accent-subtle)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
+                              )}
+                            >
+                              <span className="truncate">{doc.name}</span>
+                              {selectedDocIds.includes(doc.id) && <div className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 )}
-              </AnimatePresence>
-            </motion.g>
-          );
-        })}
-      </svg>
+              </motion.div>
+            </Panel>
+          )}
+        </AnimatePresence>
+
+        <Panel position="bottom-left" className="mb-4 ml-2 pointer-events-none">
+          <div className="flex flex-col gap-1">
+            <h4 className="text-[11px] font-bold uppercase tracking-tighter text-[var(--text-primary)] flex items-center gap-2">
+              <Sparkles className="h-3 w-3 text-yellow-500/50" />
+              Theory Engine
+            </h4>
+            <p className="text-[9px] text-[var(--text-muted)] font-medium leading-tight flex items-center gap-1.5">
+              <Info className="h-3 w-3" />
+              Düğümlere çift tıklayarak alıntıları görün.
+            </p>
+          </div>
+        </Panel>
+      </ReactFlow>
+
+      {/* Deep Dive Drawer */}
+      {drawerCode && (
+        <SegmentDrawer
+          isOpen={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          code={drawerCode}
+          filterDocIds={activeTemplate === "case" && selectedDocIds.length > 0 ? selectedDocIds : undefined}
+        />
+      )}
     </div>
   );
 }

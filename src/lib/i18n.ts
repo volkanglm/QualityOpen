@@ -81,6 +81,17 @@ const translations = {
   "analysis.exportSoon": { tr: "Dışa aktar (yakında)", en: "Export (coming soon)" },
   "analysis.sortedBy": { tr: "segment sayısına göre sıralı", en: "sorted by segment count" },
 
+  // ── Synthesis ────────────────────────────────────────────────────────────────
+  "synthesis.title": { tr: "AI Sentez Motoru", en: "AI Synthesis Engine" },
+  "synthesis.description": { tr: "Kodlar ve değişkenler özelinde yapay zeka tarafından sentezlenmiş özetler.", en: "AI-generated summaries tailored to specific codes and variables." },
+  "synthesis.generate": { tr: "Özet Oluştur", en: "Generate Summary" },
+  "synthesis.generating": { tr: "Sentezleniyor...", en: "Synthesizing..." },
+  "synthesis.empty": { tr: "Henüz bir sentez oluşturulmamış. Başlamak için yukarıdaki butona tıklayın.", en: "No synthesis generated yet. Click the button above to start." },
+  "synthesis.variables": { tr: "Değişkenler", en: "Variables" },
+  "synthesis.crossTab": { tr: "Çapraz Sentez Panosu", en: "Cross-Synthesis Pano" },
+  "synthesis.allDocs": { tr: "Tüm Belgeler", en: "All Documents" },
+  "synthesis.segmentsInHCELL": { tr: "Hücredeki Segmentler", en: "Segments in Cell" },
+
   // ── Settings ─────────────────────────────────────────────────────────────────
   "settings.title": { tr: "Ayarlar", en: "Settings" },
   "settings.subtitle": { tr: "Uygulama tercihleri ve API entegrasyonları", en: "App preferences and API integrations" },
@@ -113,14 +124,28 @@ const translations = {
   // ── Retrieval view ──────────────────────────────────────────────────────────
   "retrieval.back": { tr: "Geri", en: "Back" },
   "retrieval.noSegs": { tr: "Bu koda atanmış segment yok.", en: "No segments assigned to this code." },
+  "retrieval.none": { tr: "Yok", en: "None" },
   "retrieval.unknown": { tr: "Bilinmeyen belge", en: "Unknown document" },
 
-  // ── AI Chat ─────────────────────────────────────────────────────────────────
+  // ── Smart Mapping (Phase 5) ────────────────────────────────────────────────
+  "analysis.clustering": { tr: "Otomatik Kümeleme", en: "Auto Clustering" },
+  "analysis.sensitivity": { tr: "Ağ Hassasiyeti", en: "Graph Sensitivity" },
+  "analysis.nodes": { tr: "Düğümler", en: "Nodes" },
+  "analysis.edges": { tr: "Bağlantılar", en: "Edges" },
+  "analysis.interactive": { tr: "İnteraktif Görünüm", en: "Interactive View" },
+  "analysis.resetZoom": { tr: "Yakınlaştırmayı Sıfırla", en: "Reset Zoom" },
+  "theory.title": { tr: "Teori & Şablonlar", en: "Theory & Templates" },
+  "theory.standard": { tr: "Standart Ağ", en: "Standard Network" },
+  "theory.solar": { tr: "Solar Sistem", en: "Solar System" },
+  "theory.case": { tr: "Vaka Ağı", en: "Case Network" },
+  "theory.anchor": { tr: "Çapa Kod", en: "Anchor Code" },
+  "theory.cases": { tr: "Vaka Seçimi", en: "Select Cases" },
+  "theory.attraction": { tr: "Tematik Çekim", en: "Thematic Attraction" },
   "chat.title": { tr: "Belgelerle Sohbet", en: "Chat with Documents" },
   "chat.clear": { tr: "Temizle", en: "Clear" },
   "chat.clearTitle": { tr: "Sohbeti temizle", en: "Clear chat" },
   "chat.placeholder": { tr: "Belge hakkında soru sor…", en: "Ask a question…" },
-  "chat.welcome": { tr: "Aktif belgeyi bağlam olarak kullanarak\nsoru sorabilirsiniz.", en: "You can ask questions using the\nactive document as context." },
+  "chat.welcome": { tr: "Aktif belgeyi bağlam olarak kullanarak\nSoru sorabilirsiniz.", en: "You can ask questions using the\nactive document as context." },
   "chat.errorKey": { tr: "Ayarlar > API Anahtarları'ndan bir AI anahtarı ekleyin.", en: "Add an AI key in Settings > API Keys." },
   "chat.systemPrompt": {
     tr: "Sen nitel araştırma verisi analizi konusunda uzman bir yardımcısın.\nAşağıda araştırmacının çalıştığı belge ve kodlanmış segmentler verilmiştir.\nBu bağlamı kullanarak araştırmacının sorularını Türkçe olarak yanıtla.\nKısa, analitik ve akademik bir dil kullan.",

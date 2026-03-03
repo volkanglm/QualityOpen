@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist, subscribeWithSelector } from "zustand/middleware";
-import type { Project, Document, Code, Segment, Memo, ID } from "@/types";
+import type { Project, Document, Code, Segment, Memo, Synthesis, ID } from "@/types";
 import { CODE_COLORS } from "@/lib/constants";
 import { writeSnapshotToDb } from "@/lib/db";
 
@@ -14,6 +14,7 @@ interface ProjectStore {
   codes: Code[];
   segments: Segment[];
   memos: Memo[];
+  syntheses: Synthesis[];
 
   // Projects
   createProject: (name: string, description?: string) => Project;
@@ -46,8 +47,11 @@ interface ProjectStore {
   updateMemo: (id: ID, patch: Partial<Memo>) => void;
   deleteMemo: (id: ID) => void;
 
+  // Synthesis
+  upsertSynthesis: (synth: Omit<Synthesis, "id" | "updatedAt">) => Synthesis;
+
   // Backup
-  importBackup: (payload: { projects: Project[]; documents: Document[]; codes: Code[]; segments: Segment[]; memos: Memo[] }) => void;
+  importBackup: (payload: { projects: Project[]; documents: Document[]; codes: Code[]; segments: Segment[]; memos: Memo[]; syntheses?: Synthesis[] }) => void;
 }
 
 export const useProjectStore = create<ProjectStore>()(
@@ -59,6 +63,7 @@ export const useProjectStore = create<ProjectStore>()(
         codes: [],
         segments: [],
         memos: [],
+        syntheses: [],
 
         createProject: (name, description) => {
           const project: Project = {
@@ -85,6 +90,7 @@ export const useProjectStore = create<ProjectStore>()(
             codes: s.codes.filter((c) => c.projectId !== id),
             segments: s.segments.filter((sg) => sg.projectId !== id),
             memos: s.memos.filter((m) => m.projectId !== id),
+            syntheses: s.syntheses.filter((sy) => sy.projectId !== id),
           })),
 
         createDocument: (projectId, name, type = "document") => {
@@ -253,6 +259,29 @@ export const useProjectStore = create<ProjectStore>()(
           })),
         deleteMemo: (id) => set((s) => ({ memos: s.memos.filter((m) => m.id !== id) })),
 
+        upsertSynthesis: (synth) => {
+          const syntheses = get().syntheses;
+          const existing = syntheses.find(
+            (s) =>
+              s.projectId === synth.projectId &&
+              s.codeId === synth.codeId &&
+              s.propertyKey === synth.propertyKey &&
+              s.propertyValue === synth.propertyValue
+          );
+
+          if (existing) {
+            const updated = { ...existing, content: synth.content, updatedAt: Date.now() };
+            set((s) => ({
+              syntheses: s.syntheses.map((sy) => (sy.id === existing.id ? updated : sy)),
+            }));
+            return updated;
+          } else {
+            const newItem: Synthesis = { ...synth, id: uuid(), updatedAt: Date.now() };
+            set((s) => ({ syntheses: [...s.syntheses, newItem] }));
+            return newItem;
+          }
+        },
+
         importBackup: (payload) => {
           set({
             projects: payload.projects,
@@ -260,6 +289,7 @@ export const useProjectStore = create<ProjectStore>()(
             codes: payload.codes,
             segments: payload.segments,
             memos: payload.memos,
+            syntheses: payload.syntheses ?? [],
           });
         },
       }),

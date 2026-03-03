@@ -73,6 +73,17 @@ export interface Memo {
   updatedAt: number;
 }
 
+export interface Synthesis {
+  id: ID;
+  projectId: ID;
+  codeId: ID;
+  /** Optional filter for cross-synthesis (e.g. Variable: Age, Value: 18-24) */
+  propertyKey?: string;
+  propertyValue?: string;
+  content: string;
+  updatedAt: number;
+}
+
 // ─── UI State Types ───────────────────────────────────────────────────────────
 
 export type ViewMode = "documents" | "coding" | "analysis" | "memos" | "settings" | "dashboard";

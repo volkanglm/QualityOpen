@@ -18,11 +18,12 @@ import {
   ZoomOut,
   RotateCcw,
   BarChart2,
+  Sparkles,
 } from "lucide-react";
 import React from "react";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
-import { useT } from "@/lib/i18n";
+import { useT } from "@/hooks/useT";
 
 // -- Components --
 import { CodeHeatmap } from "@/components/charts/CodeHeatmap";
@@ -35,6 +36,7 @@ import { HeatmapMatrix } from "@/components/charts/HeatmapMatrix";
 import { CoOccurrenceGraph } from "@/components/charts/CoOccurrenceGraph";
 import { DemographicDistribution } from "@/components/charts/DemographicDistribution";
 import { SubCodeDistribution } from "@/components/charts/SubCodeDistribution";
+import { SynthesisGrid } from "@/components/analysis/SynthesisGrid";
 import { flattenCodes } from "@/lib/tree";
 
 const pageVariants: Variants = {
@@ -42,7 +44,7 @@ const pageVariants: Variants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.18, ease: [0.2, 0, 0, 1] } },
 };
 
-type TabId = "dashboard" | "overview" | "cloud" | "matrix" | "network";
+type TabId = "dashboard" | "overview" | "cloud" | "matrix" | "network" | "synthesis";
 
 export function AnalysisPage() {
   const t = useT();
@@ -95,6 +97,7 @@ export function AnalysisPage() {
     { id: "cloud", label: t("analysis.cloud"), icon: <Box className="h-3.5 w-3.5" /> },
     { id: "matrix", label: t("analysis.matrix"), icon: <TrendingUp className="h-3.5 w-3.5" /> },
     { id: "network", label: t("analysis.network"), icon: <Share2 className="h-3.5 w-3.5" /> },
+    { id: "synthesis", label: t("synthesis.title"), icon: <Sparkles className="h-3.5 w-3.5" /> },
   ];
 
   return (
@@ -361,10 +364,13 @@ export function AnalysisPage() {
 
           {activeTab === "network" && (
             <motion.div key="network" variants={pageVariants} initial="hidden" animate="show" className="h-full bg-[var(--bg-secondary)]/40 rounded-2xl border border-[var(--border)] relative overflow-hidden">
-              <CoOccurrenceGraph codes={projectCodes} segments={projectSegments} zoom={tabZoom} />
-              <div className="absolute bottom-6 right-6">
-                <ZoomControls zoom={tabZoom} onZoomChange={setTabZoom} />
-              </div>
+              <CoOccurrenceGraph codes={projectCodes} segments={projectSegments} />
+            </motion.div>
+          )}
+
+          {activeTab === "synthesis" && (
+            <motion.div key="synthesis" variants={pageVariants} initial="hidden" animate="show" className="h-full bg-[var(--bg-secondary)]/40 rounded-2xl border border-[var(--border)] p-8 relative overflow-hidden">
+              <SynthesisGrid codes={projectCodes} />
             </motion.div>
           )}
         </AnimatePresence>
