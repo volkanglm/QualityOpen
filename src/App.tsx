@@ -18,6 +18,7 @@ import { AiChatPanel } from "@/components/chat/AiChatPanel";
 import { ShortcutEngine } from "@/components/keyboard/ShortcutEngine";
 import { importFile, getFileCategory } from "@/lib/fileImport";
 import { WelcomeScreen } from "@/components/onboarding/WelcomeScreen";
+import { AutoUpdater } from "@/components/AutoUpdater";
 import { useT } from "@/lib/i18n";
 import "./index.css";
 
@@ -328,6 +329,9 @@ export default function App() {
 
         {/* AI Chat Panel */}
         <AiChatPanel />
+
+        {/* Auto Updater (Silent) */}
+        <AutoUpdater />
 
         {/* Toast notifications */}
         <ToastContainer />
