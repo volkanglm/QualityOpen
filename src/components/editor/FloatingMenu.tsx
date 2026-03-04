@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tag, Sparkles, Highlighter, AlignLeft } from "lucide-react";
 import { useT } from "@/hooks/useT";
+import { useLicenseStore } from "@/store/license.store";
 
 export interface FloatingMenuPos {
   /** viewport-relative X center of the selection */
@@ -14,23 +15,23 @@ export interface FloatingMenuPos {
 }
 
 interface FloatingMenuProps {
-  pos:          FloatingMenuPos | null;
+  pos: FloatingMenuPos | null;
   onAssignCode: (pos: FloatingMenuPos) => void;
-  onAskAI:      (pos: FloatingMenuPos) => void;
-  onHighlight:  (pos: FloatingMenuPos) => void;
-  onSummarize:  (pos: FloatingMenuPos) => void;
-  onDismiss:    () => void;
+  onAskAI: (pos: FloatingMenuPos) => void;
+  onHighlight: (pos: FloatingMenuPos) => void;
+  onSummarize: (pos: FloatingMenuPos) => void;
+  onDismiss: () => void;
 }
 
 const MENU_HEIGHT = 44;
-const MENU_WIDTH  = 270;
-const GAP         = 10;
+const MENU_WIDTH = 270;
+const GAP = 10;
 
 const ACTION_IDS = [
-  { id: "code",      icon: Tag,        color: "var(--accent)" },
+  { id: "code", icon: Tag, color: "var(--accent)" },
   { id: "highlight", icon: Highlighter, color: "var(--code-5)" },
-  { id: "summarize", icon: AlignLeft,  color: "var(--code-8)" },
-  { id: "ai",        icon: Sparkles,   color: "var(--code-3)" },
+  { id: "summarize", icon: AlignLeft, color: "var(--code-8)" },
+  { id: "ai", icon: Sparkles, color: "var(--code-3)" },
 ] as const;
 
 export function FloatingMenu({
@@ -45,10 +46,10 @@ export function FloatingMenu({
   const t = useT();
 
   const ACTIONS = [
-    { ...ACTION_IDS[0], label: t("float.assign")    },
+    { ...ACTION_IDS[0], label: t("float.assign") },
     { ...ACTION_IDS[1], label: t("float.highlight") },
     { ...ACTION_IDS[2], label: t("float.summarize") },
-    { ...ACTION_IDS[3], label: t("float.askAi")     },
+    { ...ACTION_IDS[3], label: t("float.askAi") },
   ];
 
   /* Close on outside click */
@@ -68,25 +69,36 @@ export function FloatingMenu({
 
   const getStyle = (): React.CSSProperties => {
     if (!pos) return {};
-    const vw  = window.innerWidth;
-    let left  = pos.centerX - MENU_WIDTH / 2;
-    left      = Math.max(8, Math.min(left, vw - MENU_WIDTH - 8));
+    const vw = window.innerWidth;
+    let left = pos.centerX - MENU_WIDTH / 2;
+    left = Math.max(8, Math.min(left, vw - MENU_WIDTH - 8));
     const top = pos.topY - MENU_HEIGHT - GAP;
     return {
       position: "fixed",
-      top:      Math.max(8, top),
+      top: Math.max(8, top),
       left,
-      zIndex:   200,
-      width:    MENU_WIDTH,
+      zIndex: 200,
+      width: MENU_WIDTH,
     };
   };
 
   const handle = (action: typeof ACTION_IDS[number]["id"]) => {
     if (!pos) return;
+
+    // Pro check for AI features
+    if (action === "ai" || action === "summarize") {
+      const { isPro, openModal } = useLicenseStore.getState();
+      if (!isPro) {
+        onDismiss();
+        openModal();
+        return;
+      }
+    }
+
     onDismiss();
     setTimeout(() => {
-      if (action === "code")      onAssignCode(pos);
-      else if (action === "ai")   onAskAI(pos);
+      if (action === "code") onAssignCode(pos);
+      else if (action === "ai") onAskAI(pos);
       else if (action === "highlight") onHighlight(pos);
       else if (action === "summarize") onSummarize(pos);
     }, 0);
@@ -108,11 +120,11 @@ export function FloatingMenu({
           <div
             className="absolute left-1/2 -translate-x-1/2 -bottom-[5px]"
             style={{
-              width:       0,
-              height:      0,
-              borderLeft:  "5px solid transparent",
+              width: 0,
+              height: 0,
+              borderLeft: "5px solid transparent",
               borderRight: "5px solid transparent",
-              borderTop:   "5px solid var(--bg-secondary)",
+              borderTop: "5px solid var(--bg-secondary)",
             }}
           />
 
@@ -120,9 +132,9 @@ export function FloatingMenu({
           <div
             className="flex items-center rounded-[var(--radius-md)] border overflow-hidden"
             style={{
-              background:  "var(--bg-secondary)",
+              background: "var(--bg-secondary)",
               borderColor: "var(--border)",
-              boxShadow:   "var(--float-shadow)",
+              boxShadow: "var(--float-shadow)",
             }}
           >
             {ACTIONS.map((action, idx) => {
@@ -149,6 +161,9 @@ export function FloatingMenu({
                   >
                     {action.label}
                   </span>
+                  {(action.id === "ai" || action.id === "summarize") && (
+                    <span className="absolute top-1 right-1 text-[8px] bg-[#eab308] text-white px-1 rounded-[2px] font-bold">PRO</span>
+                  )}
                 </motion.button>
               );
             })}

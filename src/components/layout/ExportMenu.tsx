@@ -12,6 +12,7 @@ import {
 import { useT } from "@/hooks/useT";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
+import { useLicenseStore } from "@/store/license.store";
 import { useToastStore } from "@/store/toast.store";
 import {
   exportCSV,
@@ -91,6 +92,12 @@ export function ExportMenu() {
   }, [open]);
 
   const handleExport = async (format: ExportFormat) => {
+    const { isPro, openModal } = useLicenseStore.getState();
+    if (!isPro) {
+      openModal();
+      return;
+    }
+
     if (!project) {
       push(t("analysis.export.selectProject"), "error");
       return;

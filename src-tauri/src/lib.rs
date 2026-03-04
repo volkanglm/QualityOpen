@@ -205,8 +205,7 @@ fn read_file_base64(path: String) -> Result<String, String> {
     // This prevents reading sensitive files such as /etc/passwd or SSH keys
     // even if a carefully crafted drag-and-drop path is supplied.
     const ALLOWED_EXTS: &[&str] = &[
-        "pdf", "docx", "doc", "txt", "csv",
-        "jpg", "jpeg", "png", "gif", "webp", "svg", "bmp",
+        "pdf", "docx", "doc", "txt", "csv", "jpg", "jpeg", "png", "gif", "webp", "svg", "bmp",
         "mp4", "mov", "webm", "avi", "mkv",
     ];
     let path_lower = path.to_lowercase();
@@ -253,6 +252,7 @@ fn encode_base64(bytes: &[u8]) -> String {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_http::init())

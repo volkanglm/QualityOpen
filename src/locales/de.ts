@@ -204,7 +204,7 @@ export const de = {
     "login.google": "Mit Google fortfahren",
     "login.notConfigured": "Firebase nicht konfiguriert.",
     "login.footer": "Offline-first · Deine Daten gehören dir",
-    "login.emergencyResetConfirm": "Bist du sicher, dass du die App-Daten zurücksetzen möchtest? Dies meldet dich ab und löscht den lokalen Cache.",
+
 
     // ── Analysis Page & Charts ──────────────────────────────────────────────────
     "analysis.counts": "{codes} CODES · {segments} SEGMENTE · {docs} DOKUMENTE",

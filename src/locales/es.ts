@@ -203,7 +203,7 @@ export const es = {
     "login.google": "Continuar con Google",
     "login.notConfigured": "Firebase no configurado.",
     "login.footer": "Primero local · Sus datos siguen siendo suyos",
-    "login.emergencyResetConfirm": "¿Está seguro de que desea restablecer los datos de la aplicación? Esto cerrará su sesión y limpiará el caché local.",
+
 
     // ── Analysis Page & Charts ──────────────────────────────────────────────────
     "analysis.counts": "{codes} CÓDIGOS · {segments} SEGMENTOS · {docs} DOCUMENTOS",

@@ -204,7 +204,7 @@ export const nl = {
     "login.google": "Doorgaan met Google",
     "login.notConfigured": "Firebase niet geconfigureerd.",
     "login.footer": "Offline-first · Je gegevens blijven van jou",
-    "login.emergencyResetConfirm": "Weet je zeker dat je de app-gegevens wilt herstellen? Hiermee word je uitgelogd en wordt de lokale cache gewist.",
+
 
     // ── Analysis Page & Charts ──────────────────────────────────────────────────
     "analysis.counts": "{codes} CODES · {segments} SEGMENTEN · {docs} DOCUMENTEN",
