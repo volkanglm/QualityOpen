@@ -30,12 +30,6 @@ interface CodingStripesProps {
 /**
  * Renders thin vertical coding stripes in the left margin.
  * Each stripe is colored by its code and expands on hover to reveal the code name.
- *
- * Position calculation:
- *   - When `containerRef` is present, uses `getBoundingClientRect()` on the
- *     wrapper element plus the character ratio to compute an absolute top offset
- *     that is immune to line-height / <p>-margin drift.
- *   - Falls back to percentage-of-containerHeight when no ref is given.
  */
 export function CodingStripes({
     segments,
@@ -46,13 +40,17 @@ export function CodingStripes({
 }: CodingStripesProps) {
     const [hoveredId, setHoveredId] = useState<string | null>(null);
     const selfRef = useRef<HTMLDivElement>(null);
+
     /** Resolved container top relative to the stripe wrapper (px) */
     const [resolvedTop, setResolvedTop] = useState(0);
-    /** Resolved total container height for pixel mapping */
+    /** Resolved total container height for pixel mapping (fallback) */
     const [resolvedHeight, setResolvedHeight] = useState(containerHeight);
+    /** Pixel-precise positions mapping segment id to its bounding box */
+    const [domPositions, setDomPositions] = useState<Record<string, { top: number; height: number }>>({});
 
-    /** Recalculate whenever the container scrolls / resizes */
+    /** Recalculate whenever the container scrolls / resizes or segments update */
     useLayoutEffect(() => {
+        let rAF: number;
         function update() {
             if (!containerRef?.current || !selfRef.current) {
                 setResolvedTop(0);
@@ -63,13 +61,35 @@ export function CodingStripes({
             const containerRect = containerRef.current.getBoundingClientRect();
             setResolvedTop(containerRect.top - parentRect.top);
             setResolvedHeight(containerRef.current.scrollHeight);
+
+            // Read exact positions of rendered data-segment-id elements inside the container
+            const newPos: Record<string, { top: number; height: number }> = {};
+            const marks = containerRef.current.querySelectorAll("[data-segment-id]");
+            marks.forEach((el) => {
+                const segId = el.getAttribute("data-segment-id");
+                if (segId) {
+                    const rect = el.getBoundingClientRect();
+                    // rect.top is relative to viewport. Offset it by parentRect.top to be relative to this stripes component
+                    newPos[segId] = {
+                        top: rect.top - parentRect.top,
+                        height: Math.max(4, rect.height)
+                    };
+                }
+            });
+            setDomPositions(newPos);
         }
-        update();
+
+        // Wait a tick for SearchHighlighter DOM to finish attaching elements
+        rAF = requestAnimationFrame(update);
         const obs = new ResizeObserver(update);
         if (containerRef?.current) obs.observe(containerRef.current);
         if (selfRef.current) obs.observe(selfRef.current);
-        return () => obs.disconnect();
-    }, [containerRef, containerHeight]);
+
+        return () => {
+            cancelAnimationFrame(rAF);
+            obs.disconnect();
+        };
+    }, [containerRef, containerHeight, segments]);
 
     const stripes: StripeItem[] = useMemo(() => {
         if (!contentLength) return [];
@@ -97,9 +117,11 @@ export function CodingStripes({
             style={{ minHeight: containerHeight }}
         >
             {stripes.map((stripe) => {
-                /** Map character ratio → absolute pixel position inside this div */
-                const topPx = resolvedTop + stripe.startRatio * resolvedHeight;
-                const heightPx = Math.max(4, (stripe.endRatio - stripe.startRatio) * resolvedHeight);
+                // Map character ratio → absolute pixel position inside this div (fallback)
+                // If we found the exact DOM mark, use that precise metric instead to prevent wrapping drift!
+                const domMark = domPositions[stripe.id];
+                const topPx = domMark ? domMark.top : (resolvedTop + stripe.startRatio * resolvedHeight);
+                const heightPx = domMark ? domMark.height : Math.max(4, (stripe.endRatio - stripe.startRatio) * resolvedHeight);
 
                 return (
                     <motion.div

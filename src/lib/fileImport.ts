@@ -1,5 +1,6 @@
 import DOMPurify from "dompurify";
 import type { DocumentFormat } from "@/types";
+import { useLicenseStore } from "@/store/license.store";
 
 export interface ImportedFile {
   name: string;
@@ -51,7 +52,7 @@ async function importDocx(file: File): Promise<ImportedFile> {
   if (div) {
     const safeHtml = DOMPurify.sanitize(html.replace(/<\/p>/g, "</p>\n\n"), {
       ALLOWED_TAGS: ["p", "br", "b", "i", "em", "strong", "span", "div",
-                     "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li"],
+        "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li"],
       ALLOWED_ATTR: [],
     });
     div.innerHTML = safeHtml;
@@ -193,32 +194,37 @@ function importImage(file: File): Promise<ImportedFile> {
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-export function getFileCategory(file: File): "text" | "video" | "image" | "other" {
+export function getFileCategory(file: File): "text" | "video" | "image" | "audio" | "other" {
   if (file.type.startsWith("video/")) return "video";
   if (file.type.startsWith("image/")) return "image";
+  if (file.type.startsWith("audio/")) return "audio";
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
   if (["mp4", "webm", "mov", "avi", "mkv"].includes(ext)) return "video";
+  if (["mp3", "wav", "m4a", "ogg", "aac", "flac"].includes(ext)) return "audio";
   if (["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp"].includes(ext)) return "image";
   return "text";
 }
 
 export async function importFile(file: File): Promise<ImportedFile> {
-  // Demo Mode: Size limit for guests
-  let isGuest = false;
-  try {
-    const authState = (window as any).__AUTH_STATE__ || {};
-    isGuest = !authState.user;
-  } catch (e) {
-    isGuest = !localStorage.getItem("qo_auth_cache");
-  }
+  const { isPro } = useLicenseStore.getState();
 
-  const SIZE_LIMIT = 5 * 1024 * 1024; // 5MB limit for guests
-  if (isGuest && file.size > SIZE_LIMIT) {
-    throw new Error("Demo sürümünde dosya boyutu 5MB ile sınırlıdır. Lütfen daha küçük bir dosya seçin veya tam sürüm için giriş yapın.");
+  // Demo Mode: Size limit for guests (non-pro)
+  const SIZE_LIMIT = 5 * 1024 * 1024; // 5MB limit
+  if (!isPro && file.size > SIZE_LIMIT) {
+    throw new Error("Demo sürümünde dosya boyutu 5MB ile sınırlıdır. Lütfen daha küçük bir dosya seçin veya tam sürüm için QualityOpen Pro'ya yükseltin.");
   }
 
   const cat = getFileCategory(file);
   if (cat === "video") return importVideo(file);
+  if (cat === "audio") {
+    const url = URL.createObjectURL(file);
+    return {
+      name: file.name.replace(/\.[^.]+$/, ""),
+      content: url,
+      format: "video", // We still use video format but mediaType will differ
+      wordCount: 0,
+    };
+  }
   if (cat === "image") return importImage(file);
 
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "";

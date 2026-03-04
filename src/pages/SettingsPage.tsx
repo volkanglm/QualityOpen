@@ -202,6 +202,52 @@ function SegmentedControl<T extends string>({
   );
 }
 
+// ─── Check Update Button ──────────────────────────────────────────────────────
+
+function CheckUpdateButton() {
+  const [checking, setChecking] = useState(false);
+  const t = useT();
+
+  const handleCheck = async () => {
+    if (checking) return;
+    setChecking(true);
+    try {
+      const { check } = await import("@tauri-apps/plugin-updater");
+      const { useToastStore } = await import("@/store/toast.store");
+      const update = await check();
+      if (update?.available) {
+        useToastStore.getState().push(t("update.ready"), "success");
+      } else {
+        useToastStore.getState().push(t("update.upToDate"), "success");
+      }
+    } catch {
+      // Silently fail — updater may not be configured in dev
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleCheck}
+      disabled={checking}
+      className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md border transition-all disabled:opacity-50"
+      style={{
+        color: "var(--accent)",
+        borderColor: "var(--border-subtle)",
+        background: "var(--bg-tertiary)",
+      }}
+    >
+      {checking ? (
+        <RefreshCw className="h-2.5 w-2.5 animate-spin" />
+      ) : (
+        <RefreshCw className="h-2.5 w-2.5" />
+      )}
+      {checking ? t("settings.checkingUpdate") : t("settings.checkUpdate")}
+    </button>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function SettingsPage() {
@@ -253,9 +299,17 @@ export function SettingsPage() {
   const handleActivateLicense = async () => {
     if (!draftLicense.trim()) return;
     setLicenseLoading(true);
-    await activateLicense(draftLicense.trim());
+    const result = await activateLicense(draftLicense.trim());
     setLicenseLoading(false);
-    setDraftLicense("");
+
+    if (result.success) {
+      setDraftLicense("");
+      const { useToastStore } = await import("@/store/toast.store");
+      useToastStore.getState().push(t("license.successToast"), "success");
+    } else {
+      const { useToastStore } = await import("@/store/toast.store");
+      useToastStore.getState().push(result.error || t("license.invalidKey"), "error");
+    }
   };
 
   const handleExport = () => {
@@ -722,33 +776,11 @@ export function SettingsPage() {
               <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
                 {APP_NAME}
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 mt-1">
                 <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
                   v{APP_VERSION} · Qualitative Data Analysis
                 </p>
-                <button
-                  onClick={async () => {
-                    const { check } = await import("@tauri-apps/plugin-updater");
-                    try {
-                      const update = await check();
-                      if (update?.available) {
-                        // The AutoUpdater component in App.tsx will pick it up if we force a re-render or similar
-                        // But for simplicity, we just notify the user it's checking
-                        const { useToastStore } = await import("@/store/toast.store");
-                        useToastStore.getState().push(t("update.ready"), "success");
-                      } else {
-                        const { useToastStore } = await import("@/store/toast.store");
-                        useToastStore.getState().push(t("update.upToDate"), "success");
-                      }
-                    } catch (e) {
-                      console.error(e);
-                    }
-                  }}
-                  className="text-[10px] underline opacity-60 hover:opacity-100 transition-opacity"
-                  style={{ color: "var(--accent)" }}
-                >
-                  {t("settings.checkUpdate")}
-                </button>
+                <CheckUpdateButton />
               </div>
             </div>
           </div>

@@ -35,6 +35,8 @@ export const tr = {
     "left.type.memo": "Not",
     "left.type.video": "Video",
     "left.type.image": "Görsel",
+    "left.exportDoc": "Belgeyi Dışa Aktar",
+    "left.assignColor": "Renk Ata",
 
     // ── Right panel (code system) ────────────────────────────────────────────────
     "right.codeSystem": "Kod Sistemi",
@@ -308,7 +310,16 @@ export const tr = {
     "app.renderError": "QualityOpen — Render Hatası",
     "app.newProjectDefault": "Araştırma",
     "settings.checkUpdate": "Güncellemeleri denetle",
-    "update.upToDate": "Uygulama güncel",
+    "settings.checkingUpdate": "Kontrol ediliyor...",
+    "update.upToDate": "Uygulama güncel ✓",
+    "update.checking": "Güncellemeler aranıyor…",
+    "ai.error.openai": "OpenAI API Hatası: Lütfen anahtarınızı veya bağlantınızı kontrol edin.",
+    "ai.error.gemini": "Gemini API Hatası: Lütfen anahtarınızı veya bağlantınızı kontrol edin.",
+    "ai.error.anthropic": "Anthropic API Error: Lütfen anahtarınızı veya bağlantınızı kontrol edin.",
+    "ai.error.quotaExceeded": "API Kota Sınırı: Aylık ücretsiz kotanızı doldurmuş olabilirsiniz. Lütfen farklı bir hesap/anahtar deneyin.",
+    "ai.error.generic": "AI Hatası: Lütfen anahtarınızı veya bağlantınızı kontrol edin.",
+    "ai.error.exportFailed": "Görselleştirme dışa aktarılamadı. Lütfen tekrar deneyin.",
+    "analysis.exportGlobal": "Görünümü Dışa Aktar",
 
     "login.subtitle": "Araştırmacılar için nitel veri analizi",
     "login.title": "Devam etmek için giriş yapın",
@@ -363,6 +374,10 @@ export const tr = {
     "analysis.conceptCloud": "Kavramsal Bulut",
     "analysis.typologyTab": "Tipoloji",
     "analysis.segCountTooltip": "{count} Segment",
+    "analysis.codesVsDocs": "Kodlar \\ Belgeler",
+    "analysis.matrixTooltipCode": "kodu,",
+    "analysis.matrixTooltipDoc": "belgesinde",
+    "analysis.matrixTooltipUsed": "kez kullanıldı.",
 
     // ── Right panel info & modals ──────────────────────────────────────────────
     "right.info": "Genel Bilgiler",
@@ -442,4 +457,12 @@ export const tr = {
     "analysis.zoomOut": "Uzaklaştır",
     "analysis.resetZoom": "Yakınlaştırmayı Sıfırla",
     "analysis.maximize": "Tam Ekran",
+    "palette.header": "Renk Paleti",
+    "palette.original": "Orijinal Renkler",
+    "palette.modern": "Modern (Canlı)",
+    "palette.pastel": "Pastel",
+    "palette.monochrome": "Siyah - Beyaz",
+    "palette.grayscale": "Gri Tonları",
+    "palette.midnight": "Gece Yarısı",
+    "palette.highContrast": "Yüksek Kontrast",
 };

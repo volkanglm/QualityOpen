@@ -12,6 +12,8 @@ import { ToastContainer } from "@/components/ui/Toast";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
 import { useAuthStore, initAuthListener, initNetworkWatcher } from "@/store/auth.store";
+import { useLicenseStore } from "@/store/license.store";
+import { LicenseModal } from "@/components/modals/LicenseModal";
 import { AppLogo } from "@/components/ui/AppLogo";
 import { useSyncStore } from "@/store/sync.store";
 import { AiChatPanel } from "@/components/chat/AiChatPanel";
@@ -106,6 +108,7 @@ export default function App() {
     let unsubAuth: () => void = () => { };
     let unsubNetwork: () => void = () => { };
     try {
+      useLicenseStore.getState().checkLicense();
       unsubAuth = initAuthListener();
       unsubNetwork = initNetworkWatcher();
     } catch (e) {
@@ -333,6 +336,9 @@ export default function App() {
 
         {/* Auto Updater (Silent) */}
         <AutoUpdater />
+
+        {/* License Modal */}
+        <LicenseModal />
 
         {/* Toast notifications */}
         <ToastContainer />

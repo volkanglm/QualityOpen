@@ -34,6 +34,12 @@ export interface Document {
   color?: string;
   /** Custom metadata properties (e.g. Age, Gender, Education) */
   properties?: Record<string, string>;
+  /** Type of imported media content */
+  mediaType?: "text" | "image" | "video" | "audio";
+  /** Visual bounding box selections for image analysis */
+  regions?: { id: string; x: number; y: number; w: number; h: number }[];
+  /** Timestamped transcripts for audio/video media */
+  transcript?: { id: string; start: number; end: number; text: string }[];
 }
 
 export interface Code {
@@ -60,6 +66,8 @@ export interface Segment {
   /** If true, this is a pure visual highlight (no code assigned) */
   isHighlight?: boolean;
   highlightColor?: string;
+  /** Used to link this segment to an image bounding-box region */
+  regionId?: string;
 }
 
 export interface Memo {

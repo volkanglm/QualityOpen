@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import {
   LayoutGrid,
@@ -19,11 +19,17 @@ import {
   RotateCcw,
   BarChart2,
   Sparkles,
+  Download,
 } from "lucide-react";
 import React from "react";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
 import { useT } from "@/lib/i18n";
+import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
+
+import { PaletteSwitcher } from "@/components/analysis/PaletteSwitcher";
+import { useVisualThemeStore } from "@/store/visualTheme.store";
 
 // -- Components --
 import { CodeHeatmap } from "@/components/charts/CodeHeatmap";
@@ -94,6 +100,7 @@ export function AnalysisPage() {
     );
   }
 
+
   const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
     { id: "dashboard", label: t("nav.analysis"), icon: <LayoutGrid className="h-3.5 w-3.5" /> },
     { id: "overview", label: t("analysis.overview"), icon: <Activity className="h-3.5 w-3.5" /> },
@@ -107,146 +114,152 @@ export function AnalysisPage() {
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)] relative">
       {/* ── Header ── */}
-      <div className="flex-shrink-0 flex items-center justify-between px-8 pt-5 pb-4 border-b border-[var(--border)] bg-[var(--bg-secondary)]/50 overflow-x-auto custom-scrollbar gap-8">
-        <div className="flex items-center gap-6 min-w-max">
-          <div>
-            <h1 className="text-lg font-bold tracking-tight text-[var(--text-primary)] flex items-center gap-2 whitespace-nowrap">
-              <LayoutGrid className="h-5 w-5 text-[var(--text-secondary)] flex-shrink-0" />
-              {t("analysis.title")}
-            </h1>
-            <p className="text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-widest mt-1 whitespace-nowrap">
-              {t("analysis.counts")
-                .replace("{codes}", projectCodes.length.toString())
-                .replace("{segments}", projectSegments.length.toString())
-                .replace("{docs}", projectDocs.length.toString())}
-            </p>
-          </div>
-
-          {/* Tab Switcher */}
-          <div className="flex items-center bg-[var(--bg-tertiary)]/50 p-1 rounded-lg border border-[var(--border)] ml-4 flex-shrink-0">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  setTabZoom(1.0); // Reset zoom on tab change
-                }}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-md text-[12px] font-medium transition-all whitespace-nowrap",
-                  activeTab === tab.id
-                    ? "bg-[var(--surface)] text-[var(--text-primary)] shadow-sm"
-                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                )}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4 min-w-max flex-shrink-0">
-          {/* Scope Toggle */}
-          <div className="flex items-center gap-2 mr-2">
-            <span className={cn("text-[11px] uppercase tracking-wider font-bold", isProjectScope ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]")}>
-              {t("analysis.scopeDoc")}
-            </span>
-            <button
-              onClick={() => setIsProjectScope(!isProjectScope)}
-              className="w-8 h-4 bg-[var(--surface)] rounded-full relative p-0.5 transition-colors"
-            >
-              <motion.div
-                animate={{ x: isProjectScope ? 16 : 0 }}
-                className="w-3 h-3 bg-[var(--text-secondary)] rounded-full"
-              />
-            </button>
-            <span className={cn("text-[11px] uppercase tracking-wider font-bold", !isProjectScope ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]")}>
-              {t("analysis.scopeProject")}
-            </span>
-          </div>
-
-          {/* Scope-aware Selector Dropdown (Document or Project) */}
-          <div className="relative">
-            <button
-              onClick={() => setSelectorOpen(!selectorOpen)}
-              className="flex items-center gap-2 h-9 px-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border)] text-[12px] font-medium hover:bg-[var(--surface-hover)] transition-colors min-w-[200px] justify-between"
-            >
-              <div className="flex items-center gap-2 truncate">
-                {isProjectScope ? (
-                  <Box className="h-3.5 w-3.5 text-blue-500" />
-                ) : (
-                  <FileText className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
-                )}
-                <span className="truncate text-[var(--text-primary)]">
-                  {isProjectScope
-                    ? (projects.find(p => p.id === activeProjectId)?.name || t("analysis.selectProject"))
-                    : (activeDoc?.name || t("analysis.selectDoc"))
-                  }
-                </span>
+      <div className="flex-shrink-0 border-b border-[var(--border)] bg-[var(--bg-secondary)]/50 no-export">
+        {/* Row 1: Title, Selector & Global Controls */}
+        <div className="flex items-center justify-between px-8 py-4 gap-4">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4">
+              <div className="p-2 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border)] shadow-sm">
+                <LayoutGrid className="h-5 w-5 text-[var(--accent)]" />
               </div>
-              <ChevronDown className={cn("h-3 w-3 text-[var(--text-muted)] transition-transform", selectorOpen && "rotate-180")} />
-            </button>
-            <AnimatePresence>
-              {selectorOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setSelectorOpen(false)} />
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 8 }}
-                    className="absolute top-full right-0 mt-2 w-72 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-xl shadow-2xl z-50 py-2 overflow-hidden"
-                  >
-                    <div className="px-3 py-1.5 border-b border-[var(--border-subtle)] mb-1">
-                      <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest px-1">
-                        {isProjectScope ? t("analysis.changeProject") : t("analysis.selectDoc")}
-                      </span>
-                    </div>
-                    <div className="max-h-80 overflow-y-auto custom-scrollbar">
-                      {isProjectScope ? (
-                        projects.map(p => (
-                          <button
-                            key={p.id}
-                            onClick={() => {
-                              setActiveProject(p.id);
-                              setSelectorOpen(false);
-                            }}
-                            className={cn(
-                              "w-full px-4 py-2.5 text-left text-[12px] hover:bg-[var(--surface-hover)] transition-colors flex items-center justify-between",
-                              p.id === activeProjectId ? "text-[var(--text-primary)] bg-[var(--surface)]" : "text-[var(--text-secondary)]"
-                            )}
-                          >
-                            <span className="truncate">{p.name}</span>
-                            {p.id === activeProjectId && <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
-                          </button>
-                        ))
-                      ) : (
-                        projectDocs.map(d => (
-                          <button
-                            key={d.id}
-                            onClick={() => {
-                              setActiveDocument(d.id);
-                              setSelectorOpen(false);
-                            }}
-                            className={cn(
-                              "w-full px-4 py-2.5 text-left text-[12px] hover:bg-[var(--surface-hover)] transition-colors flex items-center justify-between",
-                              d.id === activeDoc?.id ? "text-[var(--text-primary)] bg-[var(--surface)]" : "text-[var(--text-secondary)]"
-                            )}
-                          >
-                            <span className="truncate">{d.name}</span>
-                            {d.id === activeDoc?.id && <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
+              <div className="hidden sm:block">
+                <h1 className="text-base font-bold tracking-tight text-[var(--text-primary)]">
+                  {t("analysis.title")}
+                </h1>
+                <p className="text-[10px] text-[var(--text-muted)] font-medium uppercase tracking-[0.15em] mt-0.5 whitespace-nowrap opacity-80">
+                  {t("analysis.counts")
+                    .replace("{codes}", projectCodes.length.toString())
+                    .replace("{segments}", projectSegments.length.toString())
+                    .replace("{docs}", projectDocs.length.toString())}
+                </p>
+              </div>
+            </div>
+
+            <div className="w-px h-8 bg-[var(--border)] mx-2 hidden lg:block" />
+
+            {/* Scope-aware Selector Dropdown */}
+            <div className="relative group/selector">
+              <button
+                onClick={() => setSelectorOpen(!selectorOpen)}
+                className="flex items-center gap-2 h-9 px-4 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border)] text-[11px] font-bold hover:bg-[var(--surface-hover)] transition-all min-w-[220px] justify-between shadow-sm uppercase tracking-wider"
+              >
+                <div className="flex items-center gap-2 truncate">
+                  {isProjectScope ? (
+                    <Box className="h-3.5 w-3.5 text-blue-500" />
+                  ) : (
+                    <FileText className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
+                  )}
+                  <span className="truncate text-[var(--text-primary)]">
+                    {isProjectScope
+                      ? (projects.find(p => p.id === activeProjectId)?.name || t("analysis.selectProject"))
+                      : (activeDoc?.name || t("analysis.selectDoc"))
+                    }
+                  </span>
+                </div>
+                <ChevronDown className={cn("h-3 w-3 text-[var(--text-muted)] transition-transform", selectorOpen && "rotate-180")} />
+              </button>
+
+              <AnimatePresence>
+                {selectorOpen && (
+                  <>
+                    <div className="fixed inset-0 z-[190]" onClick={() => setSelectorOpen(false)} />
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                      className="absolute top-full left-0 mt-2 w-80 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[200] py-2 overflow-hidden backdrop-blur-xl"
+                    >
+                      <div className="px-4 py-2 border-b border-[var(--border-subtle)] mb-1 flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">
+                          {isProjectScope ? "Proje Seçin" : "Belge Seçin"}
+                        </span>
+                        <div className="flex items-center gap-1.5 bg-[var(--bg-tertiary)] rounded-full p-0.5 border border-[var(--border)]">
+                          <button onClick={() => setIsProjectScope(false)} className={cn("px-2 py-0.5 rounded-full text-[9px] font-bold uppercase transition-colors", !isProjectScope ? "bg-zinc-700 text-white" : "text-zinc-500 hover:text-zinc-300")}>Doc</button>
+                          <button onClick={() => setIsProjectScope(true)} className={cn("px-2 py-0.5 rounded-full text-[9px] font-bold uppercase transition-colors", isProjectScope ? "bg-zinc-700 text-white" : "text-zinc-500 hover:text-zinc-300")}>Proj</button>
+                        </div>
+                      </div>
+                      <div className="max-h-80 overflow-y-auto custom-scrollbar px-1">
+                        {isProjectScope ? (
+                          projects.map(p => (
+                            <button
+                              key={p.id}
+                              onClick={() => {
+                                setActiveProject(p.id);
+                                setSelectorOpen(false);
+                              }}
+                              className={cn(
+                                "w-full px-3 py-2.5 rounded-xl text-left text-[12px] font-medium hover:bg-[var(--surface-hover)] transition-all flex items-center justify-between group",
+                                p.id === activeProjectId ? "text-[var(--accent)] bg-[var(--accent-subtle)]/10" : "text-[var(--text-secondary)]"
+                              )}
+                            >
+                              <span className="truncate">{p.name}</span>
+                              {p.id === activeProjectId && <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />}
+                            </button>
+                          ))
+                        ) : (
+                          projectDocs.map(d => (
+                            <button
+                              key={d.id}
+                              onClick={() => {
+                                setActiveDocument(d.id);
+                                setSelectorOpen(false);
+                              }}
+                              className={cn(
+                                "w-full px-3 py-2.5 rounded-xl text-left text-[12px] font-medium hover:bg-[var(--surface-hover)] transition-all flex items-center justify-between group",
+                                d.id === activeDocumentId ? "text-[var(--accent)] bg-[var(--accent-subtle)]/10" : "text-[var(--text-secondary)]"
+                              )}
+                            >
+                              <div className="flex items-center gap-2 truncate">
+                                <FileText className="h-3.5 w-3.5 opacity-50" />
+                                <span className="truncate">{d.name}</span>
+                              </div>
+                              {d.id === activeDocumentId && <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
+
+          {/* Palette Switcher */}
+          <PaletteSwitcher />
         </div>
       </div>
 
-      {/* ── Content ── */}
+      {/* Row 2: Tabs */}
+      <div className="px-8 pb-3 -mt-1 overflow-x-auto custom-scrollbar-hide">
+        <div className="flex items-center gap-1 min-w-max">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setTabZoom(1.0);
+              }}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-semibold transition-all relative",
+                activeTab === tab.id
+                  ? "text-[var(--accent)]"
+                  : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
+              )}
+            >
+              {tab.icon}
+              {tab.label}
+              {activeTab === tab.id && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute bottom-0 left-2 right-2 h-0.5 bg-[var(--accent)] rounded-full"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
         <AnimatePresence mode="wait">
           {activeTab === "dashboard" && (
@@ -354,7 +367,7 @@ export function AnalysisPage() {
           {activeTab === "cloud" && (
             <motion.div key="cloud" variants={pageVariants} initial="hidden" animate="show" className="h-full bg-[var(--bg-secondary)]/40 rounded-2xl border border-[var(--border)] p-8 relative overflow-hidden">
               <BubbleCloud items={codeFrequency.map((f: any) => ({ code: f.code, count: f.count }))} zoom={tabZoom} />
-              <div className="absolute bottom-6 right-6">
+              <div className="absolute bottom-6 right-6 no-export">
                 <ZoomControls zoom={tabZoom} onZoomChange={setTabZoom} />
               </div>
             </motion.div>
@@ -363,7 +376,7 @@ export function AnalysisPage() {
           {activeTab === "matrix" && (
             <motion.div key="matrix" variants={pageVariants} initial="hidden" animate="show" className="h-full bg-[var(--bg-secondary)]/40 rounded-2xl border border-[var(--border)] relative overflow-hidden">
               <HeatmapMatrix codes={projectCodes} docs={projectDocs} segments={projectSegments} zoom={tabZoom} />
-              <div className="absolute bottom-6 right-6">
+              <div className="absolute bottom-6 left-6 no-export">
                 <ZoomControls zoom={tabZoom} onZoomChange={setTabZoom} />
               </div>
             </motion.div>
@@ -387,70 +400,72 @@ export function AnalysisPage() {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </div >
 
       {/* Maximize Modal */}
       <AnimatePresence>
-        {maximizedCard && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-12">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/80 backdrop-blur-md"
-              onClick={() => setMaximizedCard(null)}
-            />
-            <motion.div
-              layoutId={maximizedCard.title}
-              className="relative w-full h-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-3xl shadow-2xl flex flex-col overflow-hidden"
-            >
-              <div className="flex-shrink-0 px-8 py-6 border-b border-[var(--border)] flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">{maximizedCard.title}</h2>
-                  <span className="px-2 py-0.5 rounded bg-[var(--bg-tertiary)] text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-widest">{t("analysis.expandedView")}</span>
-                  <div className="flex items-center gap-1 ml-4 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-1 shadow-sm">
-                    <button
-                      onClick={() => setMaximizedCard(prev => prev ? { ...prev, zoom: Math.max(prev.zoom - 0.2, 0.5) } : null)}
-                      className="p-1.5 rounded-lg hover:bg-[var(--surface-hover)] transition-colors text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                    >
-                      <ZoomOut className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => setMaximizedCard(prev => prev ? { ...prev, zoom: 1.0 } : null)}
-                      className="px-2 py-1 text-[10px] font-mono font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] rounded-md transition-colors"
-                    >
-                      {Math.round(maximizedCard.zoom * 100)}%
-                    </button>
-                    <button
-                      onClick={() => setMaximizedCard(prev => prev ? { ...prev, zoom: Math.min(prev.zoom + 0.2, 3.0) } : null)}
-                      className="p-1.5 rounded-lg hover:bg-[var(--surface-hover)] transition-colors text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                    >
-                      <ZoomIn className="h-4 w-4" />
-                    </button>
+        {
+          maximizedCard && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-12">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/80 backdrop-blur-md"
+                onClick={() => setMaximizedCard(null)}
+              />
+              <motion.div
+                layoutId={maximizedCard.title}
+                className="relative w-full h-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-3xl shadow-2xl flex flex-col overflow-hidden"
+              >
+                <div className="flex-shrink-0 px-8 py-6 border-b border-[var(--border)] flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">{maximizedCard.title}</h2>
+                    <span className="px-2 py-0.5 rounded bg-[var(--bg-tertiary)] text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-widest">{t("analysis.expandedView")}</span>
+                    <div className="flex items-center gap-1 ml-4 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-1 shadow-sm no-export">
+                      <button
+                        onClick={() => setMaximizedCard(prev => prev ? { ...prev, zoom: Math.max(prev.zoom - 0.2, 0.5) } : null)}
+                        className="p-1.5 rounded-lg hover:bg-[var(--surface-hover)] transition-colors text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                      >
+                        <ZoomOut className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => setMaximizedCard(prev => prev ? { ...prev, zoom: 1.0 } : null)}
+                        className="px-2 py-1 text-[10px] font-mono font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] rounded-md transition-colors"
+                      >
+                        {Math.round(maximizedCard.zoom * 100)}%
+                      </button>
+                      <button
+                        onClick={() => setMaximizedCard(prev => prev ? { ...prev, zoom: Math.min(prev.zoom + 0.2, 3.0) } : null)}
+                        className="p-1.5 rounded-lg hover:bg-[var(--surface-hover)] transition-colors text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                      >
+                        <ZoomIn className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setMaximizedCard(null)}
+                    className="p-2 rounded-full hover:bg-[var(--surface-hover)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)] no-export"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
+                </div>
+                <div className="flex-1 p-8 text-[var(--text-primary)] overflow-auto custom-scrollbar">
+                  <div className="h-full w-full relative">
+                    {React.Children.map(maximizedCard.component, child => {
+                      if (React.isValidElement(child)) {
+                        return React.cloneElement(child, { zoom: maximizedCard.zoom } as any);
+                      }
+                      return child;
+                    })}
                   </div>
                 </div>
-                <button
-                  onClick={() => setMaximizedCard(null)}
-                  className="p-2 rounded-full hover:bg-[var(--surface-hover)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-              <div className="flex-1 p-8 text-[var(--text-primary)] overflow-auto custom-scrollbar">
-                <div className="h-full w-full relative">
-                  {React.Children.map(maximizedCard.component, child => {
-                    if (React.isValidElement(child)) {
-                      return React.cloneElement(child, { zoom: maximizedCard.zoom } as any);
-                    }
-                    return child;
-                  })}
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-    </div>
+              </motion.div>
+            </div>
+          )
+        }
+      </AnimatePresence >
+    </div >
   );
 }
 
@@ -488,6 +503,7 @@ function ZoomControls({ zoom, onZoomChange }: { zoom: number; onZoomChange: (z: 
 function DashboardCard({ title, icon, children, className, onMaximize }: { title: string; icon: React.ReactNode; children: React.ReactNode; className?: string; onMaximize?: (zoom: number) => void }) {
   const t = useT();
   const [zoom, setZoom] = useState(1.0);
+  const cardRef = React.useRef<HTMLDivElement>(null);
 
   const handleZoomIn = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -504,9 +520,19 @@ function DashboardCard({ title, icon, children, className, onMaximize }: { title
     setZoom(1.0);
   };
 
+  const [exportOpen, setExportOpen] = useState(false);
+
+  const handleExport = async (format: "png" | "jpeg", e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExportOpen(false);
+    if (!cardRef.current) return;
+    const { exportElementAsImage } = await import("@/lib/exportChart");
+    await exportElementAsImage(cardRef.current, title || "chart", format);
+  };
+
   return (
-    <div className={cn(
-      "flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)]/40 hover:bg-[var(--bg-secondary)]/60 transition-all overflow-hidden group",
+    <div ref={cardRef} className={cn(
+      "flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)]/40 hover:bg-[var(--bg-secondary)]/60 transition-all overflow-hidden group relative",
       className
     )}>
       <div className="flex-shrink-0 px-6 py-4 flex items-center justify-between border-b border-[var(--border)]/50">
@@ -516,7 +542,43 @@ function DashboardCard({ title, icon, children, className, onMaximize }: { title
             {title}
           </h2>
         </div>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity no-export">
+          <div className="relative">
+            <button
+              onClick={(e) => { e.stopPropagation(); setExportOpen(!exportOpen); }}
+              className="p-1.5 rounded-lg hover:bg-[var(--surface-hover)] transition-all text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              title={t("common.export") || "Export"}
+            >
+              <Download className="h-3.5 w-3.5" />
+            </button>
+            <AnimatePresence>
+              {exportOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setExportOpen(false)} />
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="absolute top-10 right-0 z-50 w-28 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg shadow-xl overflow-hidden py-1"
+                  >
+                    <button
+                      onClick={(e) => handleExport("png", e)}
+                      className="w-full text-left px-3 py-1.5 text-[11px] font-medium hover:bg-[var(--surface-hover)] transition-colors text-[var(--text-primary)]"
+                    >
+                      Export PNG
+                    </button>
+                    <button
+                      onClick={(e) => handleExport("jpeg", e)}
+                      className="w-full text-left px-3 py-1.5 text-[11px] font-medium hover:bg-[var(--surface-hover)] transition-colors text-[var(--text-primary)]"
+                    >
+                      Export JPEG
+                    </button>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+          <div className="w-px h-3 bg-[var(--border)] mx-1" />
           <button
             onClick={handleZoomOut}
             className="p-1.5 rounded-lg hover:bg-[var(--surface-hover)] transition-all text-[var(--text-muted)] hover:text-[var(--text-primary)]"
@@ -562,16 +624,16 @@ function DashboardCard({ title, icon, children, className, onMaximize }: { title
 
 function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: any[]; codes: any[]; segments: any[]; codeFrequency: any[] }) {
   const t = useT();
-  const stats = [
+  const { getCodeColor } = useVisualThemeStore();
+  const stats = useMemo(() => [
     { label: t("nav.documents"), value: docs.length, color: "var(--text-muted)", icon: FileText },
     { label: t("analysis.codes"), value: codes.length, color: "var(--text-muted)", icon: Tag },
     { label: t("analysis.segments"), value: segments.length, color: "var(--text-muted)", icon: Hash },
     { label: t("analysis.segPerDoc"), value: docs.length ? (segments.length / docs.length) : 0, icon: TrendingUp, isDecimal: true },
-  ];
+  ], [docs.length, codes.length, segments.length, t]);
 
   return (
     <div className="space-y-8 pb-12">
-      {/* Stats row */}
       <div className="grid grid-cols-4 gap-6">
         {stats.map((s, i) => (
           <div key={i} className="bg-[var(--bg-secondary)]/40 border border-[var(--border)] p-6 rounded-2xl flex items-center gap-4">
@@ -589,7 +651,6 @@ function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: any[]; co
       </div>
 
       <div className="grid grid-cols-12 gap-8">
-        {/* Frequency Column */}
         <div className="col-span-8 bg-[var(--bg-secondary)]/40 border border-[var(--border)] p-8 rounded-2xl h-[500px] flex flex-col">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-2">
@@ -609,7 +670,7 @@ function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: any[]; co
                     initial={{ width: 0 }}
                     animate={{ width: `${(f.count / (codeFrequency[0]?.count || 1)) * 100}%` }}
                     className="h-full rounded-full"
-                    style={{ backgroundColor: f.code.color }}
+                    style={{ backgroundColor: getCodeColor(codeFrequency.indexOf(f), f.code.color) }}
                   />
                 </div>
               </div>
@@ -617,7 +678,6 @@ function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: any[]; co
           </div>
         </div>
 
-        {/* Donut Column */}
         <div className="col-span-4 bg-[var(--bg-secondary)]/40 border border-[var(--border)] p-8 rounded-2xl flex flex-col items-center justify-center relative">
           <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-2 absolute top-8 left-8">
             <PieChart className="h-4 w-4 text-[var(--text-muted)]" />
@@ -629,11 +689,11 @@ function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: any[]; co
                 <RechartsPieChart>
                   <Pie
                     data={React.useMemo(() => {
-                      const top = codeFrequency.slice(0, 5).map(f => ({ name: f.code.name, value: f.count, color: f.code.color }));
+                      const top = codeFrequency.slice(0, 5).map((f, idx) => ({ name: f.code.name, value: f.count, color: getCodeColor(idx, f.code.color) }));
                       const others = codeFrequency.slice(5).reduce((acc, curr) => acc + curr.count, 0);
                       if (others > 0) top.push({ name: t("analysis.other"), value: others, color: "#52525b" });
                       return top;
-                    }, [codeFrequency, t])}
+                    }, [codeFrequency, t, getCodeColor])}
                     cx="50%"
                     cy="50%"
                     innerRadius={70}
@@ -643,11 +703,11 @@ function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: any[]; co
                     stroke="none"
                   >
                     {React.useMemo(() => {
-                      const top = codeFrequency.slice(0, 5).map(f => ({ name: f.code.name, value: f.count, color: f.code.color }));
+                      const top = codeFrequency.slice(0, 5).map((f, idx) => ({ name: f.code.name, value: f.count, color: getCodeColor(idx, f.code.color) }));
                       const others = codeFrequency.slice(5).reduce((acc, curr) => acc + curr.count, 0);
                       if (others > 0) top.push({ name: t("analysis.other"), value: others, color: "#52525b" });
                       return top;
-                    }, [codeFrequency, t]).map((entry, index) => (
+                    }, [codeFrequency, t, getCodeColor]).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -674,23 +734,25 @@ function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: any[]; co
 
 function TypologyTab({ docs, codes, segments }: { docs: any[]; codes: any[]; segments: any[] }) {
   const t = useT();
+  const { getCodeColor } = useVisualThemeStore();
+
   const clusters = useMemo(() => {
-    // We only need the nodes to be clustered, the layout parameters are arbitrary
     const { nodes, edges } = computeGraphData(codes, segments, 800, 600);
     const clusteredNodes = assignClusters(nodes, edges);
 
-    // Group codes by their assigned cluster
     const clusterMap = new Map<string, { clusterId: string, codes: any[] }>();
-    clusteredNodes.forEach(node => {
+    clusteredNodes.forEach((node, idx) => {
       if (node.cluster) {
         if (!clusterMap.has(node.cluster)) {
           clusterMap.set(node.cluster, { clusterId: node.cluster, codes: [] });
         }
-        clusterMap.get(node.cluster)!.codes.push(node.code);
+        clusterMap.get(node.cluster)!.codes.push({
+          ...node.code,
+          color: getCodeColor(idx, node.code.color)
+        });
       }
     });
 
-    // Score documents against clusters based on segment codes
     const docClusterScores = new Map<string, Map<string, number>>();
     segments.forEach(seg => {
       const docId = seg.documentId;
@@ -705,7 +767,6 @@ function TypologyTab({ docs, codes, segments }: { docs: any[]; codes: any[]; seg
       });
     });
 
-    // Map each document to the cluster scoring the highest
     const docToCluster = new Map<string, string>();
     docs.forEach(doc => {
       const scores = docClusterScores.get(doc.id);
@@ -722,13 +783,11 @@ function TypologyTab({ docs, codes, segments }: { docs: any[]; codes: any[]; seg
       }
     });
 
-    const results = Array.from(clusterMap.values()).map(c => {
+    return Array.from(clusterMap.values()).map(c => {
       const dDocs = docs.filter(d => docToCluster.get(d.id) === c.clusterId);
       return { ...c, docs: dDocs };
     }).filter(c => c.docs.length > 0);
-
-    return results;
-  }, [codes, segments, docs]);
+  }, [codes, segments, docs, getCodeColor]);
 
   if (clusters.length === 0) {
     return (
@@ -798,5 +857,3 @@ function TypologyTab({ docs, codes, segments }: { docs: any[]; codes: any[]; seg
     </div>
   );
 }
-
-const cn = (...args: (string | undefined | boolean)[]) => args.filter(Boolean).join(" ");

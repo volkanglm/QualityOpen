@@ -105,7 +105,11 @@ ${ctx.docContext ? `${t("chat.contextLabel")}\n${ctx.docContext}` : t("chat.noCo
         { id: uuid(), role: "assistant", content: reply },
       ]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("chat.errorGeneric"));
+      const msg = err instanceof Error ? err.message : t("chat.errorGeneric");
+      setError(msg);
+      // Also show a toast for immediate visibility
+      const { useToastStore } = await import("@/store/toast.store");
+      useToastStore.getState().push(msg, "error");
     } finally {
       setLoading(false);
     }

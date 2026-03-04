@@ -40,13 +40,13 @@ function autoWidth(ws: XLSX.WorkSheet, data: Record<string, unknown>[]) {
 // ─── CSV export ───────────────────────────────────────────────────────────────
 
 export function exportCSV(payload: ExportPayload): void {
-  const rows = buildSegmentRows(payload);
+  const rows = buildCodeRows(payload);
   const ws = XLSX.utils.json_to_sheet(rows);
   autoWidth(ws, rows);
   const csv = XLSX.utils.sheet_to_csv(ws);
   triggerDownload(
     new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" }),
-    `${sanitize(payload.project.name)}_segmentler.csv`,
+    `${sanitize(payload.project.name)}_kodlar.csv`,
   );
 }
 
@@ -55,28 +55,19 @@ export function exportCSV(payload: ExportPayload): void {
 export function exportExcel(payload: ExportPayload): void {
   const wb = XLSX.utils.book_new();
 
-  // ── Sheet 1: Segments ──
-  const segRows = buildSegmentRows(payload);
-  const ws1 = XLSX.utils.json_to_sheet(segRows);
-  autoWidth(ws1, segRows);
-  styleHeaderRow(ws1, segRows.length > 0 ? Object.keys(segRows[0]) : []);
-  XLSX.utils.book_append_sheet(wb, ws1, "Segmentler");
+  // ── Sheet 1: Codes & Quotes (code-centric) ──
+  const codeRows = buildCodeRows(payload);
+  const ws1 = XLSX.utils.json_to_sheet(codeRows.length ? codeRows : [{ Bilgi: "Segment bulunamadı" }]);
+  autoWidth(ws1, codeRows);
+  styleHeaderRow(ws1, codeRows.length ? Object.keys(codeRows[0]) : []);
+  XLSX.utils.book_append_sheet(wb, ws1, "Kodlar ve Alıntılar");
 
-  // ── Sheet 2: Codes ──
-  const codeRows = payload.codes.map((code) => {
-    const parent = payload.codes.find((c) => c.id === code.parentId);
-    return {
-      "Kod Adı": code.name,
-      "Üst Kod": parent?.name ?? "",
-      "Renk (HEX)": code.color,
-      "Kullanım Sayısı": payload.segments.filter((s) => s.codeIds.includes(code.id)).length,
-      "Açıklama": code.description ?? "",
-    };
-  });
-  const ws2 = XLSX.utils.json_to_sheet(codeRows.length ? codeRows : [{ Bilgi: "Kod bulunamadı" }]);
-  autoWidth(ws2, codeRows);
-  styleHeaderRow(ws2, codeRows.length ? Object.keys(codeRows[0]) : []);
-  XLSX.utils.book_append_sheet(wb, ws2, "Kodlar");
+  // ── Sheet 2: Code Tree ──
+  const hierarchyRows = buildHierarchyRows(payload);
+  const ws2 = XLSX.utils.json_to_sheet(hierarchyRows.length ? hierarchyRows : [{ Bilgi: "Hiyerarşi yok" }]);
+  autoWidth(ws2, hierarchyRows);
+  styleHeaderRow(ws2, hierarchyRows.length ? Object.keys(hierarchyRows[0]) : []);
+  XLSX.utils.book_append_sheet(wb, ws2, "Kod Ağacı");
 
   // ── Sheet 3: Documents ──
   const docRows = payload.documents.map((d) => ({
@@ -91,13 +82,7 @@ export function exportExcel(payload: ExportPayload): void {
   styleHeaderRow(ws3, docRows.length ? Object.keys(docRows[0]) : []);
   XLSX.utils.book_append_sheet(wb, ws3, "Belgeler");
 
-  // ── Sheet 4: Kod Hiyerarşisi ──
-  const hierarchyRows = buildHierarchyRows(payload);
-  const ws4 = XLSX.utils.json_to_sheet(hierarchyRows.length ? hierarchyRows : [{ Bilgi: "Hiyerarşi yok" }]);
-  autoWidth(ws4, hierarchyRows);
-  XLSX.utils.book_append_sheet(wb, ws4, "Kod Hiyerarşisi");
-
-  // ── Sheet 5: AI Sentezleri ──
+  // ── Sheet 4: AI Syntheses ──
   if (payload.syntheses && payload.syntheses.length > 0) {
     const synthRows = payload.syntheses.map((s) => {
       const code = payload.codes.find(c => c.id === s.codeId);
@@ -108,10 +93,10 @@ export function exportExcel(payload: ExportPayload): void {
         "Güncellenme": new Date(s.updatedAt).toLocaleDateString("tr-TR"),
       };
     });
-    const ws5 = XLSX.utils.json_to_sheet(synthRows);
-    autoWidth(ws5, synthRows);
-    styleHeaderRow(ws5, Object.keys(synthRows[0]));
-    XLSX.utils.book_append_sheet(wb, ws5, "AI Sentezleri");
+    const ws4 = XLSX.utils.json_to_sheet(synthRows);
+    autoWidth(ws4, synthRows);
+    styleHeaderRow(ws4, Object.keys(synthRows[0]));
+    XLSX.utils.book_append_sheet(wb, ws4, "AI Sentezleri");
   }
 
   XLSX.writeFile(wb, `${sanitize(payload.project.name)}_export.xlsx`);
@@ -519,6 +504,35 @@ export async function exportChartImage(
 }
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
+
+// ─── Code-centric export: one row per code, ALL quotes + doc names ────────────
+
+function buildCodeRows(payload: ExportPayload) {
+  return payload.codes.map((code) => {
+    const parent = payload.codes.find((c) => c.id === code.parentId);
+    const codeSegs = payload.segments.filter((s) => s.codeIds.includes(code.id));
+
+    // Produce "quote text (Document Name)" entries joined with " | "
+    const quotes = codeSegs
+      .map((seg) => {
+        const doc = payload.documents.find((d) => d.id === seg.documentId);
+        const docName = doc?.name ?? "";
+        const text = seg.text.replace(/\n/g, " ").trim();
+        return docName ? `${text} (${docName})` : text;
+      })
+      .join(" | ");
+
+    return {
+      "Kod Adı": code.name,
+      "Üst Kod": parent?.name ?? "",
+      "Kullanım Sayısı": codeSegs.length,
+      "Alıntılar (Belge Adıyla)": quotes,
+      "Açıklama": code.description ?? "",
+    };
+  });
+}
+
+// ─── Segment-level rows (kept for Word export internals) ──────────────────────
 
 function buildSegmentRows(payload: ExportPayload) {
   return payload.segments.map((seg) => {

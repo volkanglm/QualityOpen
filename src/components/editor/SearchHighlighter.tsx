@@ -117,12 +117,11 @@ export function SearchHighlighter({
               paddingBottom: "1px",
               paddingLeft: "1px",
               paddingRight: "1px",
-              color: "inherit",
-              mixBlendMode: "plus-lighter", // subtle boost
+              color: "var(--text-primary)", // Explicitly use theme text color
               cursor: "default",
             }}
           >
-            <span style={{ mixBlendMode: "difference", color: "white" }}>
+            <span>
               {content.slice(start, end)}
             </span>
           </motion.mark>

@@ -34,11 +34,11 @@ import { CodingStripes } from "@/components/editor/CodingStripes";
 import { MarginMemos } from "@/components/editor/MarginMemos";
 import { LineNumbers } from "@/components/editor/LineNumbers";
 import { PdfRenderer } from "@/components/editor/PdfRenderer";
-import { VideoPlayer } from "@/components/media/VideoPlayer";
-import { ImageViewer } from "@/components/media/ImageViewer";
 import { DatabaseView } from "@/components/panels/DatabaseView";
+import { MediaWorkspace } from "@/components/workspace/MediaWorkspace";
+import { ImageWorkspace } from "@/components/workspace/ImageWorkspace";
 import { importFile, getFileCategory, ACCEPTED_EXTENSIONS } from "@/lib/fileImport";
-import { countWords, formatVideoTime, cn } from "@/lib/utils";
+import { countWords, cn } from "@/lib/utils";
 
 const HIGHLIGHT_COLOR = "#fcd34d";
 
@@ -92,11 +92,13 @@ export function CenterPanel() {
     addSegments,
     updateDocument,
   } = useProjectStore();
+  // Using full store is okay here because CenterPanel is a major container, 
+  // but let's ensure child components are optimized.
 
   const doc = documents.find((d) => d.id === activeDocumentId);
   const format = doc?.format ?? "text";
-  const projectCodes = codes.filter((c) => c.projectId === activeProjectId);
-  const docSegments = segments.filter((s) => s.documentId === activeDocumentId);
+  const projectCodes = useMemo(() => codes.filter((c) => c.projectId === activeProjectId), [codes, activeProjectId]);
+  const docSegments = useMemo(() => segments.filter((s) => s.documentId === activeDocumentId), [segments, activeDocumentId]);
 
   // ── UI state ──
   const [editMode, setEditMode] = useState(false);
@@ -179,19 +181,6 @@ export function CenterPanel() {
     },
     [doc, updateDocument]
   );
-
-  // ── Video timestamp ───────────────────────────────────────────────────────
-  const handleVideoTimestamp = useCallback((seconds: number) => {
-    if (!doc || !activeProjectId) return;
-    const label = formatVideoTime(seconds);
-    setCodePanelSel({
-      centerX: 0,
-      topY: 0,
-      text: `[${label}]`,
-      start: seconds,
-      end: seconds,
-    });
-  }, [doc, activeProjectId]);
 
   const handleOcrComplete = useCallback((text: string) => {
     if (doc) {
@@ -779,91 +768,117 @@ export function CenterPanel() {
 
       {/* ── Content area ── */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* LEFT PANE (Main Content) */}
-        <div className="flex-1 flex flex-col overflow-hidden relative border-r border-[var(--border-subtle)]">
-          {format === "video" ? (
-            <div className="flex-1 overflow-hidden">
-              <VideoPlayer
-                src={doc.content}
-                segments={docSegments}
-                codes={projectCodes}
-                onAddTimestamp={handleVideoTimestamp}
-                onDurationChange={(secs) =>
-                  updateDocument(doc.id, { mediaDuration: secs })
-                }
-              />
-            </div>
-          ) : format === "image" ? (
-            <div className="flex-1 overflow-hidden relative" style={{ background: "var(--bg-secondary)" }}>
-              <ImageViewer src={doc.content} />
-            </div>
-          ) : (
-            /* TEXT / HTML / PDF */
-            <div
-              className="flex-1 overflow-y-auto doc-reader relative"
-              ref={readerRef}
-              onMouseUp={handleMouseUp}
-              onContextMenu={handleContextMenu}
-            >
-              {editMode ? (
-                <textarea
-                  autoFocus
-                  value={editContent}
-                  onChange={(e) => {
-                    setEditContent(e.target.value);
-                    saveContent(e.target.value);
-                  }}
-                  placeholder={t('welcome.startReading')}
-                  className={PROSE_CLASS}
-                  style={{
-                    ...PROSE_STYLE,
-                    display: "block",
-                    resize: "none",
-                    width: "100%",
-                    height: "100%",
-                    minHeight: "100%",
-                    background: "transparent",
-                    border: "none",
-                    outline: "none",
-                    caretColor: "var(--accent)",
-                    fontFamily: '"Inter", system-ui, sans-serif',
-                    fontSize: "14px",
-                    lineHeight: "1.75",
-                  }}
-                  spellCheck={false}
-                />
-              ) : (
-                <div className="flex w-full min-h-full">
-                  {showLineNumbers && format === "text" && (
-                    <LineNumbers content={doc.content} every={5} />
-                  )}
-
-                  <CodingStripes
-                    segments={docSegments}
-                    codes={codes}
-                    contentLength={format === "pdf" ? pdfTextLength : doc.content.length}
-                    containerHeight={readerHeight}
-                    containerRef={readerContainerRef}
-                  />
-
-                  <div
-                    className="flex-1 min-w-0"
-                    ref={(el) => {
-                      (readerContainerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
-                      if (el && el.scrollHeight !== readerHeight) {
-                        setReaderHeight(el.scrollHeight);
-                      }
+        {doc.type === "video" || doc.type === "audio" || format === "video" || doc.mediaType === "audio" || doc.mediaType === "video" ? (
+          <MediaWorkspace doc={doc} />
+        ) : doc.type === "image" || format === "image" || doc.mediaType === "image" ? (
+          <ImageWorkspace doc={doc} />
+        ) : (
+          <>
+            {/* LEFT PANE (Main Content) */}
+            <div className="flex-1 flex flex-col overflow-hidden relative border-r border-[var(--border-subtle)]">
+              {/* TEXT / HTML / PDF */}
+              <div
+                className="flex-1 overflow-y-auto doc-reader relative"
+                ref={readerRef}
+                onMouseUp={handleMouseUp}
+                onContextMenu={handleContextMenu}
+              >
+                {editMode ? (
+                  <textarea
+                    autoFocus
+                    value={editContent}
+                    onChange={(e) => {
+                      setEditContent(e.target.value);
+                      saveContent(e.target.value);
                     }}
-                  >
-                    {format === "pdf" ? (
-                      <div className="p-4">
-                        <PdfRenderer
-                          base64={doc.content}
-                          onLoadComplete={handlePdfLoadComplete}
-                          onOcrComplete={handleOcrComplete}
+                    placeholder={t('welcome.startReading')}
+                    className={PROSE_CLASS}
+                    style={{
+                      ...PROSE_STYLE,
+                      display: "block",
+                      resize: "none",
+                      width: "100%",
+                      height: "100%",
+                      minHeight: "100%",
+                      background: "transparent",
+                      border: "none",
+                      outline: "none",
+                      caretColor: "var(--accent)",
+                      fontFamily: '"Inter", system-ui, sans-serif',
+                      fontSize: "14px",
+                      lineHeight: "1.75",
+                    }}
+                    spellCheck={false}
+                  />
+                ) : (
+                  <div className="flex w-full min-h-full">
+                    {showLineNumbers && format === "text" && (
+                      <LineNumbers content={doc.content} every={5} />
+                    )}
+
+                    <CodingStripes
+                      segments={docSegments}
+                      codes={codes}
+                      contentLength={format === "pdf" ? pdfTextLength : doc.content.length}
+                      containerHeight={readerHeight}
+                      containerRef={readerContainerRef}
+                    />
+
+                    <div
+                      className="flex-1 min-w-0"
+                      ref={(el) => {
+                        (readerContainerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+                        // Avoid loop: only update if genuinely different and significant
+                        if (el && Math.abs(el.scrollHeight - readerHeight) > 5) {
+                          // Defer state update to next tick to avoid setting state during commit of the same component
+                          requestAnimationFrame(() => setReaderHeight(el.scrollHeight));
+                        }
+                      }}
+                    >
+                      {format === "pdf" ? (
+                        <div className="p-4">
+                          <PdfRenderer
+                            base64={doc.content}
+                            onLoadComplete={handlePdfLoadComplete}
+                            onOcrComplete={handleOcrComplete}
+                          />
+                        </div>
+                      ) : (
+                        <SearchHighlighter
+                          content={doc.content}
+                          segments={docSegments}
+                          codes={projectCodes}
+                          searchQuery={searchOpen ? searchQuery : ""}
+                          useRegex={useRegex}
+                          matchCase={matchCase}
+                          wholeWord={wholeWord}
                         />
-                      </div>
-                    ) : (
+                      )}
+                    </div>
+
+                    {!splitView && (
+                      <MarginMemos
+                        segments={docSegments}
+                        codes={codes}
+                        contentLength={format === "pdf" ? pdfTextLength : doc.content.length}
+                        containerHeight={readerHeight}
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* RIGHT PANE (Split View) */}
+            {splitView && (
+              <div className="flex-1 flex flex-col overflow-hidden relative bg-[var(--bg-secondary)]">
+                <div className="sticky top-0 z-10 p-2 border-b border-[var(--border-subtle)] bg-[var(--surface)] text-[11px] font-bold text-[var(--text-muted)] tracking-widest uppercase flex items-center justify-center">
+                  {t('center.comparisonPanel')}
+                </div>
+
+                <div className="flex-1 overflow-y-auto custom-scrollbar relative">
+                  {format === "text" && !editMode && (
+                    <div className={PROSE_CLASS} style={{ ...PROSE_STYLE, paddingBottom: "30vh" }}>
                       <SearchHighlighter
                         content={doc.content}
                         segments={docSegments}
@@ -873,51 +888,17 @@ export function CenterPanel() {
                         matchCase={matchCase}
                         wholeWord={wholeWord}
                       />
-                    )}
-                  </div>
-
-                  {!splitView && (
-                    <MarginMemos
-                      segments={docSegments}
-                      codes={codes}
-                      contentLength={format === "pdf" ? pdfTextLength : doc.content.length}
-                      containerHeight={readerHeight}
-                    />
+                    </div>
+                  )}
+                  {format !== "text" && (
+                    <div className="h-full flex items-center justify-center text-[11px] text-[var(--text-muted)] uppercase tracking-widest p-8 text-center leading-relaxed">
+                      {t('center.comparisonNotSupported')}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* RIGHT PANE (Split View) */}
-        {splitView && (
-          <div className="flex-1 flex flex-col overflow-hidden relative bg-[var(--bg-secondary)]">
-            <div className="sticky top-0 z-10 p-2 border-b border-[var(--border-subtle)] bg-[var(--surface)] text-[11px] font-bold text-[var(--text-muted)] tracking-widest uppercase flex items-center justify-center">
-              {t('center.comparisonPanel')}
-            </div>
-
-            <div className="flex-1 overflow-y-auto custom-scrollbar relative">
-              {format === "text" && !editMode && (
-                <div className={PROSE_CLASS} style={{ ...PROSE_STYLE, paddingBottom: "30vh" }}>
-                  <SearchHighlighter
-                    content={doc.content}
-                    segments={docSegments}
-                    codes={projectCodes}
-                    searchQuery={searchOpen ? searchQuery : ""}
-                    useRegex={useRegex}
-                    matchCase={matchCase}
-                    wholeWord={wholeWord}
-                  />
-                </div>
-              )}
-              {format !== "text" && (
-                <div className="h-full flex items-center justify-center text-[11px] text-[var(--text-muted)] uppercase tracking-widest p-8 text-center leading-relaxed">
-                  {t('center.comparisonNotSupported')}
-                </div>
-              )}
-            </div>
-          </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 

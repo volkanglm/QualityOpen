@@ -32,7 +32,9 @@ import {
   Palette,
   Info,
   FileText,
+  Download,
 } from "lucide-react";
+import { codesToCSV, codesToText, downloadFile } from "@/lib/exportUtils";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
 import { Button } from "@/components/ui/Button";
@@ -667,12 +669,39 @@ export function RightPanel() {
           {t("right.tabs.info")}
         </button>
         {activeTab === "codes" && (
-          <Tooltip content="Yeni kod" side="left">
-            <Button size="icon" variant="ghost" className="h-6 w-6 mr-2"
-              disabled={!activeProjectId} onClick={() => setNewCodeModal(true)}>
-              <Plus className="h-3.5 w-3.5" />
-            </Button>
-          </Tooltip>
+          <div className="flex items-center gap-1 mr-2 no-export">
+            <div className="relative group/code-export">
+              <Button size="icon" variant="ghost" className="h-6 w-6">
+                <Download className="h-3.5 w-3.5" />
+              </Button>
+              <div className="absolute top-full right-0 mt-1 w-28 bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg shadow-xl overflow-hidden py-1 z-50 opacity-0 invisible group-hover/code-export:opacity-100 group-hover/code-export:visible transition-all">
+                <button
+                  onClick={() => {
+                    const csv = codesToCSV(projectCodes);
+                    downloadFile(csv, "codes.csv", "text/csv");
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-[11px] font-medium hover:bg-[var(--surface-hover)] transition-colors text-[var(--text-primary)]"
+                >
+                  Export CSV
+                </button>
+                <button
+                  onClick={() => {
+                    const txt = codesToText(projectCodes);
+                    downloadFile(txt, "codes.txt", "text/plain");
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-[11px] font-medium hover:bg-[var(--surface-hover)] transition-colors text-[var(--text-primary)]"
+                >
+                  Export TXT
+                </button>
+              </div>
+            </div>
+            <Tooltip content="Yeni kod" side="left">
+              <Button size="icon" variant="ghost" className="h-6 w-6"
+                disabled={!activeProjectId} onClick={() => setNewCodeModal(true)}>
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
+            </Tooltip>
+          </div>
         )}
       </div>
 
@@ -773,7 +802,7 @@ export function RightPanel() {
             </div>
 
             {/* Stats footer */}
-            <div className="flex-shrink-0 border-t px-3 py-2 flex items-center gap-3" style={{ borderColor: "var(--border-subtle)" }}>
+            <div className="flex-shrink-0 border-t px-3 py-2 flex items-center gap-3 pr-20" style={{ borderColor: "var(--border-subtle)" }}>
               <StatChip icon={<FileText className="h-3 w-3" />} value={documents.filter((d) => d.projectId === activeProjectId).length} label={t("analysis.docs")} />
               <StatChip icon={<Hash className="h-3 w-3" />} value={projectCodes.length} label={t("analysis.codes")} />
               <StatChip icon={<Tag className="h-3 w-3" />}

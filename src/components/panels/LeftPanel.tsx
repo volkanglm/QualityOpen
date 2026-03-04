@@ -460,7 +460,7 @@ export function LeftPanel() {
                                       />
                                       <ContextItem
                                         icon={<Download className="h-3 w-3" />}
-                                        label="Dışa Aktar"
+                                        label={t('left.exportDoc')}
                                         onClick={() => {
                                           const blob = new Blob([doc.content], { type: "text/plain" });
                                           const a = document.createElement("a");
@@ -475,7 +475,7 @@ export function LeftPanel() {
                                       <div className="h-px my-1" style={{ background: "#333" }} />
                                       <ContextItem
                                         icon={<Palette className="h-3 w-3" />}
-                                        label="Belge Rengi Ata"
+                                        label={t('left.assignColor')}
                                         onClick={() => {
                                           setColorPickerDoc(doc.id);
                                           setContextMenu(null);
