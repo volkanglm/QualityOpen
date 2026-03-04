@@ -452,7 +452,7 @@ export function LeftPanel() {
                                         icon={<Pencil className="h-3 w-3" />}
                                         label={t('left.rename')}
                                         onClick={() => {
-                                          setRenameDocId(doc.id);
+                                          setRenameId({ id: doc.id, type: "doc" });
                                           setRenameVal(doc.name);
                                           setContextMenu(null);
                                           setContextMenuPos(null);

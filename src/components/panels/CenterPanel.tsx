@@ -1063,7 +1063,7 @@ function RetrievalView({
           style={{ color: "var(--text-muted)" }}
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          {t('retrieval.back')}
+          {t('common.back')}
         </button>
 
         <div className="h-4 w-px mx-1" style={{ background: "var(--border)" }} />
