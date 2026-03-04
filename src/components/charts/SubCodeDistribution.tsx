@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import type { Code, Segment } from '@/types';
+import { useVisualThemeStore } from "@/store/visualTheme.store";
 
 interface SubCodeDistributionProps {
     codes: Code[];
@@ -8,6 +9,8 @@ interface SubCodeDistributionProps {
 }
 
 export function SubCodeDistribution({ codes, segments }: SubCodeDistributionProps) {
+    const { getCodeColor } = useVisualThemeStore();
+
     const { data, activeChildNames, childColors } = useMemo(() => {
         // 1. Calculate frequencies for all codes
         const codeFreqs = new Map<string, number>();
@@ -31,15 +34,15 @@ export function SubCodeDistribution({ codes, segments }: SubCodeDistributionProp
             let parentHasData = false;
             const dataRow: any = { name: parent.name };
 
-            for (const child of children) {
+            children.forEach((child, idx) => {
                 const freq = codeFreqs.get(child.id) || 0;
                 if (freq > 0) {
                     dataRow[child.name] = freq;
-                    childColors[child.name] = child.color;
+                    childColors[child.name] = getCodeColor(idx, child.color);
                     activeChildNames.add(child.name);
                     parentHasData = true;
                 }
-            }
+            });
 
             if (parentHasData) {
                 chartData.push(dataRow);
@@ -51,7 +54,7 @@ export function SubCodeDistribution({ codes, segments }: SubCodeDistributionProp
             activeChildNames: Array.from(activeChildNames),
             childColors
         };
-    }, [codes, segments]);
+    }, [codes, segments, getCodeColor]);
 
     if (data.length === 0) {
         return (

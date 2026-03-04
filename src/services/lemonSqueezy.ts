@@ -1,3 +1,5 @@
+import { invoke } from "@tauri-apps/api/core";
+
 export interface LemonSqueezyActivationResponse {
     activated: boolean;
     instance: {
@@ -23,19 +25,28 @@ export async function activateLicense(
     hardwareId: string
 ): Promise<LemonSqueezyActivationResponse> {
     try {
-        const res = await fetch("https://api.lemonsqueezy.com/v1/licenses/activate", {
+        const body = new URLSearchParams({
+            license_key: licenseKey,
+            instance_name: hardwareId,
+        }).toString();
+
+        const [, text] = await invoke<[number, string]>("native_http", {
             method: "POST",
-            headers: {
-                Accept: "application/json",
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
-            body: new URLSearchParams({
-                license_key: licenseKey,
-                instance_name: hardwareId,
+            url: "https://api.lemonsqueezy.com/v1/licenses/activate",
+            headersJson: JSON.stringify({
+                "Accept": "application/json",
+                "Content-Type": "application/x-www-form-urlencoded"
             }),
+            body: body
         });
 
-        const data = await res.json();
+        // Parse response body
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch {
+            throw new Error(`Invalid JSON response: ${text.substring(0, 50)}...`);
+        }
 
         if (data.activated) {
             return {

@@ -1,6 +1,8 @@
 import { useMemo, useRef, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Code } from "@/types";
+import { Download } from "lucide-react";
+import { useVisualThemeStore } from "@/store/visualTheme.store";
 
 export interface BubbleItem {
   code: Code;
@@ -102,6 +104,7 @@ export function BubbleCloud({ items, zoom = 1.0 }: BubbleCloudProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 600, height: 420 });
   const [hovered, setHovered] = useState<string | null>(null);
+  const { getCodeColor } = useVisualThemeStore();
 
   useEffect(() => {
     const el = containerRef.current;
@@ -119,10 +122,29 @@ export function BubbleCloud({ items, zoom = 1.0 }: BubbleCloudProps) {
     [items, size.width, size.height],
   );
 
+  const handleExport = async (format: "png" | "jpeg") => {
+    if (!containerRef.current) return;
+    const { exportElementAsImage } = await import("@/lib/exportChart");
+    await exportElementAsImage(containerRef.current, "code-cloud", format);
+  };
+
   const maxCount = Math.max(...items.map((i) => i.count), 1);
 
   return (
-    <div ref={containerRef} className="w-full h-full relative">
+    <div ref={containerRef} className="w-full h-full relative p-4">
+      {/* Local Export Button */}
+      <div className="absolute top-4 right-4 z-10 flex gap-1 no-export">
+        <div className="relative group/export-local">
+          <button className="p-2 rounded-xl bg-[var(--bg-tertiary)]/80 border border-[var(--border)] hover:bg-[var(--surface-hover)] transition-all shadow-lg">
+            <Download className="h-4 w-4" />
+          </button>
+          <div className="absolute top-full right-0 mt-2 w-32 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl shadow-2xl py-1 invisible group-hover/export-local:visible opacity-0 group-hover/export-local:opacity-100 transition-all scale-95 group-hover/export-local:scale-100">
+            <button onClick={() => handleExport("png")} className="w-full text-left px-4 py-1.5 text-[11px] font-semibold hover:bg-[var(--surface-hover)]">PNG</button>
+            <button onClick={() => handleExport("jpeg")} className="w-full text-left px-4 py-1.5 text-[11px] font-semibold hover:bg-[var(--surface-hover)]">JPG</button>
+          </div>
+        </div>
+      </div>
+
       {items.length === 0 ? (
         <div className="flex h-full items-center justify-center">
           <p className="text-sm" style={{ color: "var(--text-muted)" }}>
@@ -133,6 +155,7 @@ export function BubbleCloud({ items, zoom = 1.0 }: BubbleCloudProps) {
         <svg width={size.width} height={size.height} style={{ display: "block" }}>
           {placed.map((circle, i) => {
             const { code, count } = circle.data;
+            const color = getCodeColor(i, code.color);
             const isHov = hovered === code.id;
             const opacity = 0.50 + (count / maxCount) * 0.50;
             const radius = circle.r * zoom;
@@ -167,7 +190,7 @@ export function BubbleCloud({ items, zoom = 1.0 }: BubbleCloudProps) {
                       animate={{ r: radius + 10 * zoom, opacity: 0.18 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.25 }}
-                      fill={code.color}
+                      fill={color}
                     />
                   )}
                 </AnimatePresence>
@@ -177,9 +200,9 @@ export function BubbleCloud({ items, zoom = 1.0 }: BubbleCloudProps) {
                   cx={circle.x}
                   cy={circle.y}
                   r={radius}
-                  fill={code.color}
+                  fill={color}
                   fillOpacity={opacity * 0.20}
-                  stroke={code.color}
+                  stroke={color}
                   strokeOpacity={isHov ? 0.9 : opacity * 0.55}
                   strokeWidth={isHov ? 2 * zoom : 1.5 * zoom}
                   animate={{ r: isHov ? radius + 3 * zoom : radius }}
@@ -193,7 +216,7 @@ export function BubbleCloud({ items, zoom = 1.0 }: BubbleCloudProps) {
                     y={circle.y - (circle.r > 34 ? 7 : 2)}
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    fill={code.color}
+                    fill={color}
                     fontSize={fontSize}
                     fontWeight="600"
                     fontFamily="Inter, system-ui, sans-serif"
@@ -211,7 +234,7 @@ export function BubbleCloud({ items, zoom = 1.0 }: BubbleCloudProps) {
                     y={circle.y + (circle.r > 34 ? 10 : 13)}
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    fill={code.color}
+                    fill={color}
                     fontSize={Math.max(8, fontSize - 3)}
                     fontFamily="'SF Mono','Fira Code',monospace"
                     opacity={isHov ? 0.9 : 0.65}

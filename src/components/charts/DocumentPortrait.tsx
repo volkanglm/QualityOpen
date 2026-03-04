@@ -2,6 +2,7 @@ import { memo, useMemo } from "react";
 import { motion } from "framer-motion";
 import type { Code, Document, Segment } from "@/types";
 import { useT } from "@/lib/i18n";
+import { useVisualThemeStore } from "@/store/visualTheme.store";
 
 interface DocumentPortraitProps {
     codes: Code[];
@@ -14,6 +15,7 @@ interface DocumentPortraitProps {
 
 export const DocumentPortrait = memo(({ codes, doc, segments, isProjectScope, allDocs, zoom = 1.0 }: DocumentPortraitProps) => {
     const t = useT();
+    const { getCodeColor } = useVisualThemeStore();
     const activeSegments = useMemo(() => {
         if (isProjectScope) return [...segments].sort((a, b) => a.start - b.start);
         return segments.filter(s => s.documentId === doc?.id).sort((a, b) => a.start - b.start);
@@ -49,9 +51,10 @@ export const DocumentPortrait = memo(({ codes, doc, segments, isProjectScope, al
 
             if (overlappingSeg && overlappingSeg.codeIds.length > 0) {
                 const firstCode = codes.find(c => c.id === overlappingSeg.codeIds[0]);
+                const codeIdx = codes.findIndex(c => c.id === overlappingSeg.codeIds[0]);
                 blocks.push({
                     id: i,
-                    color: firstCode?.color || "var(--accent)",
+                    color: getCodeColor(codeIdx, firstCode?.color),
                     active: true,
                     text: overlappingSeg.text,
                     codeName: firstCode?.name
@@ -61,7 +64,7 @@ export const DocumentPortrait = memo(({ codes, doc, segments, isProjectScope, al
             }
         }
         return blocks;
-    }, [activeSegments, codes, totalLength, isProjectScope, allDocs]);
+    }, [activeSegments, codes, totalLength, isProjectScope, allDocs, getCodeColor]);
 
     if (!isProjectScope && !doc) {
         return (
@@ -130,9 +133,9 @@ export const DocumentPortrait = memo(({ codes, doc, segments, isProjectScope, al
             </div>
 
             <div className="flex flex-wrap gap-x-4 gap-y-2 mt-2 pt-3 border-t border-[var(--border)]">
-                {codes.filter(c => activeSegments.some(s => s.codeIds.includes(c.id))).map(c => (
+                {codes.filter(c => activeSegments.some(s => s.codeIds.includes(c.id))).map((c, idx) => (
                     <div key={c.id} className="flex items-center gap-1.5 grayscale-[0.5] hover:grayscale-0 transition-all">
-                        <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: c.color }} />
+                        <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: getCodeColor(idx, c.color) }} />
                         <span className="text-[10px] text-[var(--text-muted)]">{c.name}</span>
                     </div>
                 ))}

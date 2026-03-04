@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { BarChart, Bar, ResponsiveContainer, YAxis, Tooltip, Cell, XAxis } from "recharts";
 import { motion, AnimatePresence } from "framer-motion";
 import { useProjectStore } from "@/store/project.store";
@@ -7,19 +7,14 @@ import { ChevronDown, BarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
 
-const CHART_COLORS = [
-    "#3b82f6", // blue-500
-    "#8b5cf6", // violet-500
-    "#ec4899", // pink-500
-    "#f59e0b", // amber-500
-    "#10b981", // emerald-500
-    "#6366f1", // indigo-500
-];
+import { useVisualThemeStore } from "@/store/visualTheme.store";
 
 export function DemographicDistribution() {
     const t = useT();
     const { documents } = useProjectStore();
     const { activeProjectId } = useAppStore();
+    const { getColors } = useVisualThemeStore();
+    const palette = getColors();
 
     const [activeProperty, setActiveProperty] = useState<string | null>(null);
     const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -65,7 +60,7 @@ export function DemographicDistribution() {
     }, [projectDocs, activeProperty]);
 
     // Set default selection
-    useMemo(() => {
+    useEffect(() => {
         if (!activeProperty && properties.length > 0) {
             setActiveProperty(properties[0]);
         }
@@ -181,7 +176,7 @@ export function DemographicDistribution() {
                             {chartData.map((_, index) => (
                                 <Cell
                                     key={`cell-${index}`}
-                                    fill={CHART_COLORS[index % CHART_COLORS.length]}
+                                    fill={palette[index % palette.length]}
                                     className="opacity-80 hover:opacity-100 transition-opacity duration-300"
                                 />
                             ))}

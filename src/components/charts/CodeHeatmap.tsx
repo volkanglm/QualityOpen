@@ -1,6 +1,8 @@
 import React, { memo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Code, Document, Segment } from "@/types";
+import { useT } from "@/lib/i18n";
+import { useVisualThemeStore } from "@/store/visualTheme.store";
 
 interface CodeHeatmapProps {
     codes: Code[];
@@ -10,6 +12,8 @@ interface CodeHeatmapProps {
 }
 
 export const CodeHeatmap = memo(({ codes, docs, segments, zoom = 1.0 }: CodeHeatmapProps) => {
+    const t = useT();
+    const { getCodeColor } = useVisualThemeStore();
     const [hoveredCell, setHoveredCell] = useState<{ codeId: string; docId: string; count: number } | null>(null);
 
     // Filter to avoid empty grid if no codes/docs
@@ -36,7 +40,7 @@ export const CodeHeatmap = memo(({ codes, docs, segments, zoom = 1.0 }: CodeHeat
                         className="bg-[var(--bg-secondary)]/80 p-3 font-bold uppercase tracking-wider text-[var(--text-muted)] sticky top-0 left-0 z-20 flex items-center justify-center border-b border-r border-[var(--border)]"
                         style={{ fontSize: Math.max(7, 9 * zoom) }}
                     >
-                        Kodlar \ Belgeler
+                        {t("analysis.codesVsDocs")}
                     </div>
                     {displayDocs.map((doc) => (
                         <div
@@ -53,7 +57,7 @@ export const CodeHeatmap = memo(({ codes, docs, segments, zoom = 1.0 }: CodeHeat
                     ))}
 
                     {/* Data Rows */}
-                    {displayCodes.map((code) => (
+                    {displayCodes.map((code, codeIndex) => (
                         <React.Fragment key={code.id}>
                             <div
                                 className="bg-[var(--bg-secondary)]/50 px-3 py-1 font-medium text-[var(--text-secondary)] truncate sticky left-0 z-10 border-r border-[var(--border)] flex items-center"
@@ -72,6 +76,7 @@ export const CodeHeatmap = memo(({ codes, docs, segments, zoom = 1.0 }: CodeHeat
 
                                 // Opacity based on usage: 12% to 100%
                                 const opacity = count === 0 ? 0 : Math.max(0.12, count / maxInRow);
+                                const cellColor = getCodeColor(codeIndex, code.color);
 
                                 return (
                                     <motion.div
@@ -85,7 +90,7 @@ export const CodeHeatmap = memo(({ codes, docs, segments, zoom = 1.0 }: CodeHeat
                                             <motion.div
                                                 className="absolute inset-[2px] rounded-[1px]"
                                                 style={{
-                                                    backgroundColor: code.color,
+                                                    backgroundColor: cellColor,
                                                     opacity: opacity
                                                 }}
                                                 initial={{ scale: 0.8, opacity: 0 }}
@@ -116,16 +121,16 @@ export const CodeHeatmap = memo(({ codes, docs, segments, zoom = 1.0 }: CodeHeat
                     >
                         <div className="bg-[var(--surface)]/90 border border-[var(--border)] backdrop-blur-md px-3 py-2 rounded-md shadow-2xl">
                             <p className="text-[11px] text-[var(--text-primary)] leading-relaxed tabular-nums">
-                                <span className="font-bold" style={{ color: codes.find(c => c.id === hoveredCell.codeId)?.color }}>
+                                <span className="font-bold" style={{ color: getCodeColor(displayCodes.findIndex(c => c.id === hoveredCell.codeId), codes.find(c => c.id === hoveredCell.codeId)?.color) }}>
                                     {codes.find(c => c.id === hoveredCell.codeId)?.name}
                                 </span>
-                                {" "}kodu,{" "}
+                                {" "}{t("analysis.matrixTooltipCode")}{" "}
                                 <span className="text-[var(--text-secondary)]">
                                     {docs.find(d => d.id === hoveredCell.docId)?.name}
                                 </span>
-                                {" "}belgesinde{" "}
+                                {" "}{t("analysis.matrixTooltipDoc")}{" "}
                                 <span className="font-bold text-[var(--text-primary)]">{hoveredCell.count}</span>
-                                {" "}kez kullanıldı.
+                                {" "}{t("analysis.matrixTooltipUsed")}
                             </p>
                         </div>
                     </motion.div>

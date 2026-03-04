@@ -35,6 +35,8 @@ export const en = {
     "left.type.memo": "Memo",
     "left.type.video": "Video",
     "left.type.image": "Image",
+    "left.exportDoc": "Export Document",
+    "left.assignColor": "Assign Color",
 
     // ── Right panel (code system) ────────────────────────────────────────────────
     "right.codeSystem": "Code System",
@@ -308,7 +310,16 @@ export const en = {
     "app.renderError": "QualityOpen — Render Error",
     "app.newProjectDefault": "Research",
     "settings.checkUpdate": "Check for updates",
-    "update.upToDate": "App is up to date",
+    "settings.checkingUpdate": "Checking...",
+    "update.upToDate": "App is up to date ✓",
+    "update.checking": "Checking for updates…",
+    "ai.error.openai": "OpenAI API Error: Please check your key or connection.",
+    "ai.error.gemini": "Gemini API Error: Please check your key or connection.",
+    "ai.error.anthropic": "Anthropic API Error: Please check your key or connection.",
+    "ai.error.quotaExceeded": "API Quota Exceeded: You may have run out of your free monthly quota. Please try a different account/key.",
+    "ai.error.generic": "AI Error: Please check your key or connection.",
+    "ai.error.exportFailed": "Failed to export visualization. Please try again.",
+    "analysis.exportGlobal": "Export View",
 
     "login.subtitle": "Qualitative data analysis for researchers",
     "login.title": "Sign in to continue",
@@ -363,6 +374,10 @@ export const en = {
     "analysis.conceptCloud": "Concept Cloud",
     "analysis.typologyTab": "Typology",
     "analysis.segCountTooltip": "{count} Segments",
+    "analysis.codesVsDocs": "Codes \\ Documents",
+    "analysis.matrixTooltipCode": "code,",
+    "analysis.matrixTooltipDoc": "document used",
+    "analysis.matrixTooltipUsed": "time(s).",
 
     // ── Right panel info & modals ──────────────────────────────────────────────
     "right.info": "General Info",
@@ -442,4 +457,12 @@ export const en = {
     "analysis.zoomOut": "Zoom Out",
     "analysis.resetZoom": "Reset Zoom",
     "analysis.maximize": "Maximize",
+    "palette.header": "Color Palette",
+    "palette.original": "Original Colors",
+    "palette.modern": "Modern (Vibrant)",
+    "palette.pastel": "Pastel",
+    "palette.monochrome": "Black & White",
+    "palette.grayscale": "Grayscale",
+    "palette.midnight": "Midnight",
+    "palette.highContrast": "High Contrast",
 };

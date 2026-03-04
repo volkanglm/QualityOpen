@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useEffect } from "react";
+import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import {
   ReactFlow,
   Background,
@@ -26,7 +26,8 @@ import {
   Settings2,
   X,
   ChevronDown,
-  Info
+  Info,
+  Download
 } from "lucide-react";
 import { useT } from "@/hooks/useT";
 import { computeGraphData, assignClusters } from "@/lib/graph.utils";
@@ -34,6 +35,7 @@ import { useProjectStore } from "@/store/project.store";
 import { SegmentDrawer } from "@/components/analysis/SegmentDrawer";
 import type { Code, Segment } from "@/types";
 import { cn } from "@/lib/utils";
+import { useVisualThemeStore } from "@/store/visualTheme.store";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -119,6 +121,8 @@ function CoOccurrenceGraphInner({ codes, segments }: CoOccurrenceGraphProps) {
   const t = useT();
   const { documents, graphSensitivity: sensitivity, setGraphSensitivity: setSensitivity } = useProjectStore();
   const { fitView } = useReactFlow();
+  const { getCodeColor } = useVisualThemeStore();
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const [useClustering, setUseClustering] = useState(true);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
@@ -132,6 +136,12 @@ function CoOccurrenceGraphInner({ codes, segments }: CoOccurrenceGraphProps) {
   // Drawer for Segment Traceability
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerCode, setDrawerCode] = useState<Code | null>(null);
+
+  const handleExport = async (format: "png" | "jpeg") => {
+    if (!containerRef.current) return;
+    const { exportElementAsImage } = await import("@/lib/exportChart");
+    await exportElementAsImage(containerRef.current, "network-graph", format);
+  };
 
   // 1. Filter Segments based on Case Network template
   const filteredSegments = useMemo(() => {
@@ -159,13 +169,13 @@ function CoOccurrenceGraphInner({ codes, segments }: CoOccurrenceGraphProps) {
 
     const clusteredNodes = useClustering ? assignClusters(rawNodes, rawEdges) : rawNodes;
 
-    const rfNodes: CodeNode[] = clusteredNodes.map((n) => ({
+    const rfNodes: CodeNode[] = clusteredNodes.map((n, idx) => ({
       id: n.id,
       type: "codeNode",
       position: { x: n.x, y: n.y },
       data: {
         label: n.code.name,
-        color: n.code.color,
+        color: getCodeColor(idx, n.code.color),
         count: n.count,
         cluster: n.cluster,
         isHovered: false,
@@ -189,7 +199,7 @@ function CoOccurrenceGraphInner({ codes, segments }: CoOccurrenceGraphProps) {
       }));
 
     return { initialNodes: rfNodes, initialEdges: rfEdges };
-  }, [codes, filteredSegments, sensitivity, useClustering, activeTemplate, anchorId]);
+  }, [codes, filteredSegments, sensitivity, useClustering, activeTemplate, anchorId, getCodeColor]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<CodeNode>(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -257,7 +267,19 @@ function CoOccurrenceGraphInner({ codes, segments }: CoOccurrenceGraphProps) {
   }
 
   return (
-    <div className="w-full h-full relative group/graph bg-[var(--bg-secondary)]/20 rounded-2xl border border-[var(--border)] overflow-hidden">
+    <div ref={containerRef} className="w-full h-full relative group/graph bg-[var(--bg-secondary)]/20 rounded-2xl border border-[var(--border)] overflow-hidden">
+      {/* Local Export Button */}
+      <div className="absolute top-4 left-4 z-50 flex gap-1 no-export">
+        <div className="relative group/export-local">
+          <button className="p-2 rounded-xl bg-[var(--bg-tertiary)]/80 border border-[var(--border)] hover:bg-[var(--surface-hover)] transition-all shadow-lg">
+            <Download className="h-4 w-4" />
+          </button>
+          <div className="absolute top-full left-0 mt-2 w-32 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl shadow-2xl py-1 invisible group-hover/export-local:visible opacity-0 group-hover/export-local:opacity-100 transition-all scale-95 group-hover/export-local:scale-100">
+            <button onClick={() => handleExport("png")} className="w-full text-left px-4 py-1.5 text-[11px] font-semibold hover:bg-[var(--surface-hover)]">PNG</button>
+            <button onClick={() => handleExport("jpeg")} className="w-full text-left px-4 py-1.5 text-[11px] font-semibold hover:bg-[var(--surface-hover)]">JPG</button>
+          </div>
+        </div>
+      </div>
       <ReactFlow
         nodes={nodes}
         edges={edges}

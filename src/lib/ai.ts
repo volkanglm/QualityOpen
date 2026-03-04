@@ -1,6 +1,8 @@
 // ─── AI Types ───────────────────────────────────────────────────────────────
 
 import { nativeHttp } from "@/lib/nativeHttp";
+import { t } from "@/lib/i18n";
+import { useAppStore } from "@/store/app.store";
 
 export interface Message {
   role: "user" | "assistant";
@@ -42,67 +44,126 @@ Kısa, analitik ve akademik bir dil kullan.`;
 export async function askAi(
   key: string,
   messages: Message[],
-  systemPrompt: string = CHAT_SYSTEM
+  systemPrompt: string = CHAT_SYSTEM,
+  retryCount: number = 0
 ): Promise<string> {
   const provider = detectProvider(key);
 
-  if (provider === "anthropic") {
-    const res = await nativeHttp("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": key,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-3-5-haiku-latest",
-        max_tokens: 1024,
-        system: systemPrompt,
-        messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      }),
-    });
-    if (res.status < 200 || res.status >= 300) throw new Error(`Anthropic ${res.status}`);
-    const data = JSON.parse(res.body) as { content?: { text: string }[] };
-    return data.content?.[0]?.text ?? "";
-
-  } else if (provider === "gemini") {
-    const res = await nativeHttp(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
-      {
+  try {
+    if (provider === "anthropic") {
+      const res = await nativeHttp("https://api.anthropic.com/v1/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": key,
+          "anthropic-version": "2023-06-01",
+        },
         body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemPrompt }] },
-          contents: messages.map((m) => ({
-            role: m.role === "user" ? "user" : "model",
-            parts: [{ text: m.content }],
-          })),
+          model: "claude-3-5-haiku-latest",
+          max_tokens: 1024,
+          system: systemPrompt,
+          messages: messages.map((m) => ({ role: m.role, content: m.content })),
         }),
-      }
-    );
-    if (res.status < 200 || res.status >= 300) throw new Error(`Gemini ${res.status}`);
-    const data = JSON.parse(res.body) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
-    return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+      });
 
-  } else {
-    const res = await nativeHttp("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${key}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        temperature: 0.5,
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...messages.map((m) => ({ role: m.role, content: m.content })),
-        ],
-      }),
-    });
-    if (res.status < 200 || res.status >= 300) throw new Error(`OpenAI ${res.status}`);
-    const data = JSON.parse(res.body) as { choices: { message: { content: string } }[] };
-    return data.choices[0].message.content;
+      if (res.status === 429 && retryCount < 1) {
+        await new Promise(r => setTimeout(r, 2000));
+        return askAi(key, messages, systemPrompt, retryCount + 1);
+      }
+
+      if (res.status < 200 || res.status >= 300) {
+        const lang = useAppStore.getState().language;
+        throw new Error(`${t("ai.error.anthropic", lang)} (HTTP ${res.status})`);
+      }
+      const data = JSON.parse(res.body) as { content?: { text: string }[] };
+      return data.content?.[0]?.text ?? "";
+
+    } else if (provider === "gemini") {
+      const res = await nativeHttp(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: messages.map((m) => ({
+              role: m.role === "user" ? "user" : "model",
+              parts: [{ text: m.content }],
+            })),
+          }),
+        }
+      );
+
+      if (res.status === 429 && retryCount < 1) {
+        await new Promise(r => setTimeout(r, 2000));
+        return askAi(key, messages, systemPrompt, retryCount + 1);
+      }
+
+      if (res.status < 200 || res.status >= 300) {
+        try {
+          const errData = JSON.parse(res.body);
+          if (res.status === 429) {
+            const lang = useAppStore.getState().language;
+            throw new Error(`${t("ai.error.quotaExceeded", lang)} (${errData.error?.message || ""})`);
+          }
+          const lang = useAppStore.getState().language;
+          throw new Error(`${t("ai.error.gemini", lang)} (HTTP ${res.status}): ${errData.error?.message || ""}`);
+        } catch (e) {
+          const lang = useAppStore.getState().language;
+          throw new Error(`${t("ai.error.gemini", lang)} (HTTP ${res.status})`);
+        }
+      }
+
+      let data;
+      try {
+        data = JSON.parse(res.body);
+      } catch (err) {
+        const lang = useAppStore.getState().language;
+        throw new Error(`${t("ai.error.gemini", lang)}: Invalid JSON.`);
+      }
+
+      const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!candidateText) {
+        throw new Error(`Beklenmeyen Gemini yanıt formatı: ${res.body.substring(0, 100)}...`);
+      }
+
+      return candidateText;
+
+    } else {
+      const res = await nativeHttp("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${key}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          temperature: 0.5,
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...messages.map((m) => ({ role: m.role, content: m.content })),
+          ],
+        }),
+      });
+
+      if (res.status === 429 && retryCount < 1) {
+        await new Promise(r => setTimeout(r, 2000));
+        return askAi(key, messages, systemPrompt, retryCount + 1);
+      }
+
+      if (res.status < 200 || res.status >= 300) {
+        const lang = useAppStore.getState().language;
+        throw new Error(`${t("ai.error.openai", lang)} (HTTP ${res.status})`);
+      }
+      const data = JSON.parse(res.body) as { choices: { message: { content: string } }[] };
+      return data.choices[0].message.content;
+    }
+  } catch (err) {
+    if (retryCount < 1) {
+      await new Promise(r => setTimeout(r, 2000));
+      return askAi(key, messages, systemPrompt, retryCount + 1);
+    }
+    throw err;
   }
 }
 

@@ -349,5 +349,14 @@ useProjectStore.subscribe(
       }
     }, 1500) as unknown as number;
   },
-  { equalityFn: (a, b) => JSON.stringify(a) === JSON.stringify(b) }
+  {
+    equalityFn: (a, b) => {
+      // Shallow check on top-level arrays to avoid deep stringify of 5MB+ strings
+      return a.projects === b.projects &&
+        a.documents === b.documents &&
+        a.codes === b.codes &&
+        a.segments === b.segments &&
+        a.memos === b.memos;
+    }
+  }
 );
