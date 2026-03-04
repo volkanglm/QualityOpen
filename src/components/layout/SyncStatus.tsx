@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Cloud, CloudOff, Check, AlertCircle, LogOut, RefreshCw, LogIn } from "lucide-react";
+import { Cloud, CloudOff, Check, AlertCircle, LogOut, RefreshCw, LogIn, Sparkles } from "lucide-react";
 import { useSyncStore } from "@/store/sync.store";
 import { useAuthStore } from "@/store/auth.store";
+import { useLicenseStore } from "@/store/license.store";
 import { Button } from "@/components/ui/Button";
 import type { BackupSchedule } from "@/types";
 
