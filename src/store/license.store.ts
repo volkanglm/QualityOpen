@@ -1,154 +1,114 @@
 import { create } from "zustand";
-import { persist }  from "zustand/middleware";
-import {
-  doc,
-  getDoc,
-  setDoc,
-  serverTimestamp,
-} from "firebase/firestore";
-import { db }                    from "@/lib/firebase";
-import { validateLicenseKey }    from "@/lib/license";
+import { load } from "@tauri-apps/plugin-store";
+import { activateLicense as apiActivateLicense } from "@/services/lemonSqueezy";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-export type LicenseStatus = "idle" | "checking" | "active" | "trial" | "inactive";
+export type LicenseStatus = "idle" | "checking" | "active" | "inactive";
 
 interface LicenseState {
-  status:      LicenseStatus;
-  licenseKey:  string | null;
-  planName:    string | null;
-  activatedAt: number | null;
-  trialEnd:    number | null;        // null = no trial started
-  modalOpen:   boolean;
-  error:       string | null;
+  status: LicenseStatus;
+  isPro: boolean;
+  licenseKey: string | null;
+  deviceToken: string | null;
+  modalOpen: boolean;
+  error: string | null;
 }
 
 interface LicenseActions {
-  checkLicense:     (uid: string)             => Promise<void>;
-  activateLicense:  (uid: string, key: string) => Promise<{ success: boolean; error?: string }>;
-  startTrial:       (uid: string)             => Promise<void>;
-  openModal:        ()                         => void;
-  closeModal:       ()                         => void;
+  checkLicense: () => Promise<void>;
+  activateLicense: (key: string) => Promise<{ success: boolean; error?: string }>;
+  openModal: () => void;
+  closeModal: () => void;
+  deactivateLicense: () => Promise<void>;
 }
 
-type LicenseStore = LicenseState & LicenseActions;
+type LicenseStoreType = LicenseState & LicenseActions;
 
-// ─── Firestore path helper ────────────────────────────────────────────────────
+// Helper to get hardware/device ID. We'll use a local uuid or fallback string since Tauri 2 device ID varies
+async function getDeviceHardwareId(): Promise<string> {
+  const store = await load("qo_settings.bin", { autoSave: true, defaults: {} });
+  let hwId = await store.get<string>("hardwareId");
+  if (!hwId) {
+    hwId = crypto.randomUUID();
+    await store.set("hardwareId", hwId);
+    await store.save();
+  }
+  return hwId;
+}
 
-const licenseRef = (uid: string) => doc(db, "users", uid, "data", "license");
+export const useLicenseStore = create<LicenseStoreType>()((set) => {
+  const getStore = () => load("qo_license.bin", { autoSave: true, defaults: {} });
 
-// ─── Store ────────────────────────────────────────────────────────────────────
+  return {
+    status: "idle",
+    isPro: false,
+    licenseKey: null,
+    deviceToken: null,
+    modalOpen: false,
+    error: null,
 
-export const useLicenseStore = create<LicenseStore>()(
-  persist(
-    (set, get) => ({
-      // ── State ──
-      status:      "idle",
-      licenseKey:  null,
-      planName:    null,
-      activatedAt: null,
-      trialEnd:    null,
-      modalOpen:   false,
-      error:       null,
+    checkLicense: async () => {
+      set({ status: "checking" });
+      try {
+        const store = await getStore();
+        const key = await store.get<string>("licenseKey");
+        const token = await store.get<string>("deviceToken");
 
-      // ── Check existing license from Firestore ──
-      async checkLicense(uid) {
-        set({ status: "checking" });
-        try {
-          const snap = await getDoc(licenseRef(uid));
-          if (snap.exists()) {
-            const data = snap.data();
-            if (data.status === "active") {
-              set({
-                status:      "active",
-                licenseKey:  data.licenseKey ?? null,
-                planName:    data.planName ?? "QualityOpen Pro",
-                activatedAt: data.activatedAt?.toMillis?.() ?? Date.now(),
-                modalOpen:   false,
-              });
-              return;
-            }
-            if (data.status === "trial") {
-              const trialEnd = data.trialEnd?.toMillis?.() ?? 0;
-              if (trialEnd > Date.now()) {
-                set({ status: "trial", trialEnd, modalOpen: false });
-                return;
-              }
-            }
-          }
-          // No valid license → show modal
-          set({ status: "inactive", modalOpen: true });
-        } catch {
-          // Firestore unreachable (offline) → check local state
-          const local = get();
-          if (local.status === "active" || local.status === "trial") {
-            set({ modalOpen: false });
-          } else {
-            set({ status: "inactive", modalOpen: true });
-          }
+        if (key && token) {
+          set({
+            status: "active",
+            isPro: true,
+            licenseKey: key,
+            deviceToken: token,
+          });
+        } else {
+          set({ status: "inactive", isPro: false });
         }
-      },
-
-      // ── Activate via license key ──
-      async activateLicense(uid, key) {
-        set({ error: null });
-        const result = await validateLicenseKey(key);
-        if (!result.valid) {
-          const errMsg = result.error ?? "Geçersiz lisans anahtarı.";
-          set({ error: errMsg });
-          return { success: false, error: errMsg };
-        }
-
-        const nowMs = Date.now();
-        // Persist to Firestore
-        try {
-          await setDoc(licenseRef(uid), {
-            status:      "active",
-            licenseKey:  key.trim(),
-            planName:    result.planName ?? "QualityOpen Pro",
-            activatedAt: serverTimestamp(),
-          }, { merge: true });
-        } catch {
-          // Firestore write failed (offline) — store locally only
-        }
-
-        set({
-          status:      "active",
-          licenseKey:  key.trim(),
-          planName:    result.planName ?? "QualityOpen Pro",
-          activatedAt: nowMs,
-          modalOpen:   false,
-          error:       null,
-        });
-        return { success: true };
-      },
-
-      // ── 14-day trial ──
-      async startTrial(uid) {
-        const trialEnd = Date.now() + 14 * 24 * 60 * 60 * 1000;
-        try {
-          await setDoc(licenseRef(uid), {
-            status:   "trial",
-            trialEnd: new Date(trialEnd),
-          }, { merge: true });
-        } catch {
-          // offline — local only
-        }
-        set({ status: "trial", trialEnd, modalOpen: false, error: null });
-      },
-
-      openModal:  () => set({ modalOpen: true }),
-      closeModal: () => set({ modalOpen: false }),
-    }),
-    {
-      name:      "qo_license",
-      partialize: (s) => ({
-        status:      s.status,
-        licenseKey:  s.licenseKey,
-        planName:    s.planName,
-        activatedAt: s.activatedAt,
-        trialEnd:    s.trialEnd,
-      }),
+      } catch (e) {
+        console.error("Failed to load license store", e);
+        set({ status: "inactive", isPro: false });
+      }
     },
-  ),
-);
+
+    activateLicense: async (key: string) => {
+      set({ error: null });
+      try {
+        const hwId = await getDeviceHardwareId();
+        const res = await apiActivateLicense(key, hwId);
+
+        if (res.activated && res.instance) {
+          const store = await getStore();
+          await store.set("licenseKey", key);
+          await store.set("deviceToken", res.instance.id);
+          await store.save();
+
+          set({
+            status: "active",
+            isPro: true,
+            licenseKey: key,
+            deviceToken: res.instance.id,
+            error: null,
+            modalOpen: false,
+          });
+          return { success: true };
+        } else {
+          set({ error: res.error || "Geçersiz lisans anahtarı." });
+          return { success: false, error: res.error || "Geçersiz lisans anahtarı." };
+        }
+      } catch (err: any) {
+        set({ error: err.message || "Bilinmeyen bir hata oluştu." });
+        return { success: false, error: err.message || "Bilinmeyen bir hata oluştu." };
+      }
+    },
+
+    deactivateLicense: async () => {
+      const store = await getStore();
+      await store.delete("licenseKey");
+      await store.delete("deviceToken");
+      await store.save();
+      set({ status: "inactive", isPro: false, licenseKey: null, deviceToken: null });
+    },
+
+    openModal: () => set({ modalOpen: true }),
+    closeModal: () => set({ modalOpen: false }),
+  };
+});

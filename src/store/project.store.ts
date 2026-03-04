@@ -3,6 +3,7 @@ import { persist, subscribeWithSelector } from "zustand/middleware";
 import type { Project, Document, Code, Segment, Memo, Synthesis, ID } from "@/types";
 import { CODE_COLORS } from "@/lib/constants";
 import { writeSnapshotToDb } from "@/lib/db";
+import { useLicenseStore } from "@/store/license.store";
 
 function uuid() {
   return crypto.randomUUID();
@@ -102,21 +103,13 @@ export const useProjectStore = create<ProjectStore>()(
           })),
 
         createDocument: (projectId, name, type = "document") => {
-          // Demo Mode: Limit guest users to 2 documents TOTAL per project
-          // Use a safer way to check auth state that doesn't rely on synchronous require during ESM initialization
-          let isGuest = false;
-          try {
-            const authState = (window as any).__AUTH_STATE__ || {};
-            isGuest = !authState.user;
-          } catch (e) {
-            // Fallback: if we can't determine, assume not guest or check localStorage
-            isGuest = !localStorage.getItem("qo_auth_cache");
-          }
+          const { isPro, openModal } = useLicenseStore.getState();
 
-          if (isGuest) {
+          if (!isPro) {
             const count = get().documents.filter((d) => d.projectId === projectId).length;
-            if (count >= 2) {
-              throw new Error("Demo sürümünde proje başına en fazla 2 belge ekleyebilirsiniz. Sınırsız kullanım için lütfen giriş yapın.");
+            if (count >= 3) {
+              openModal();
+              throw new Error("Demo sürümünde proje başına en fazla 3 belge ekleyebilirsiniz. Sınırsız kullanım için QualityOpen Pro'ya yükseltin.");
             }
           }
 

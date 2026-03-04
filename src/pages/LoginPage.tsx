@@ -233,29 +233,7 @@ export function LoginPage() {
             {t("login.footer")}
           </motion.p>
 
-          <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
-            onClick={async () => {
-              if (confirm(t("login.emergencyResetConfirm"))) {
-                localStorage.clear();
-                sessionStorage.clear();
 
-                // Clear all IndexedDB databases
-                const dbs = await window.indexedDB.databases();
-                dbs.forEach(db => {
-                  if (db.name) window.indexedDB.deleteDatabase(db.name);
-                });
-
-                window.location.reload();
-              }
-            }}
-            className="text-[10px] uppercase tracking-widest opacity-30 hover:opacity-100 transition-opacity"
-            style={{ color: "var(--text-muted)" }}
-          >
-            Emergency Reset
-          </motion.button>
         </div>
       </motion.div>
 

@@ -204,7 +204,7 @@ export const tr = {
     "login.google": "Google ile Devam Et",
     "login.notConfigured": "Firebase yapılandırılmamış.",
     "login.footer": "Önce-yerel · Verileriniz size aittir",
-    "login.emergencyResetConfirm": "Uygulama verilerini sıfırlamak istediğinize emin misiniz? Bu işlem çıkış yapmanızı sağlar ve yerel önbelleği temizler.",
+
 
     // ── Analysis Page & Charts ──────────────────────────────────────────────────
     "analysis.counts": "{codes} KOD · {segments} SEGMENT · {docs} BELGE",

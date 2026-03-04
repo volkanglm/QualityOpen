@@ -9,6 +9,7 @@ import { useT } from "@/hooks/useT";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import type { Code, Synthesis } from "@/types";
+import { useLicenseStore } from "@/store/license.store";
 
 export function SynthesisGrid({ codes }: { codes: Code[] }) {
     const t = useT();
@@ -47,6 +48,12 @@ export function SynthesisGrid({ codes }: { codes: Code[] }) {
     }, [documents, selectedProperty]);
 
     const handleGenerateAi = async (code: Code, propertyKey?: string, propertyValue?: string) => {
+        const { isPro, openModal } = useLicenseStore.getState();
+        if (!isPro) {
+            openModal();
+            return;
+        }
+
         const key = getActiveKey();
         if (!key || !activeProjectId) return;
 
@@ -301,7 +308,7 @@ function SynthesisCard({
                     disabled={isGenerating}
                 >
                     {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
-                    AI
+                    AI <span className="ml-1 text-[8px] bg-[var(--accent)] text-white px-1 rounded-sm uppercase">Pro</span>
                 </button>
             </div>
         </div>
