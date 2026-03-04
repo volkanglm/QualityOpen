@@ -9,7 +9,7 @@ import type { BackupSchedule } from "@/types";
 
 export function SyncStatus() {
   const { status, lastSyncAt, lastBackupAt, backupSchedule, errorMessage, driveDisabled,
-          syncNow, backupNow, setSchedule, resetDrive } =
+    syncNow, backupNow, setSchedule, resetDrive } =
     useSyncStore();
   const { accessToken, user, signOut, signIn, loading: authLoading } = useAuthStore();
 
@@ -63,11 +63,26 @@ export function SyncStatus() {
             transition={{ duration: 0.15, ease: [0.2, 0, 0, 1] }}
             className="rounded-[var(--radius-lg)] border p-4 w-60"
             style={{
-              background:   "var(--bg-secondary)",
-              borderColor:  "var(--border)",
-              boxShadow:    "var(--float-shadow)",
+              background: "var(--bg-secondary)",
+              borderColor: "var(--border)",
+              boxShadow: "var(--float-shadow)",
             }}
           >
+            {/* License Status / Upgrade */}
+            {!useLicenseStore.getState().isPro && (
+              <div className="mb-3 pb-3 border-b" style={{ borderColor: "var(--border-subtle)" }}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="w-full justify-center gap-2 text-[12px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border-none text-white shadow-md shadow-blue-900/20"
+                  onClick={() => { setMenuOpen(false); useLicenseStore.getState().openModal(); }}
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  QualityOpen Pro'yu Etkinleştir
+                </Button>
+              </div>
+            )}
+
             {/* User profile — or sign-in prompt */}
             {user ? (
               <div className="flex items-center gap-2.5 mb-3 pb-3 border-b" style={{ borderColor: "var(--border-subtle)" }}>
@@ -114,9 +129,9 @@ export function SyncStatus() {
               <div
                 className="mb-3 rounded-[var(--radius-sm)] px-2.5 py-2 text-[11px] leading-relaxed"
                 style={{
-                  background:  "var(--danger-subtle)",
-                  border:      "1px solid rgba(248,113,113,0.25)",
-                  color:       "var(--danger)",
+                  background: "var(--danger-subtle)",
+                  border: "1px solid rgba(248,113,113,0.25)",
+                  color: "var(--danger)",
                 }}
               >
                 {errorMessage}
@@ -129,8 +144,8 @@ export function SyncStatus() {
                 className="mb-3 rounded-[var(--radius-sm)] px-2.5 py-2 text-[11px] leading-relaxed space-y-1.5"
                 style={{
                   background: "rgba(252,163,17,0.08)",
-                  border:     "1px solid rgba(252,163,17,0.25)",
-                  color:      "#fca319",
+                  border: "1px solid rgba(252,163,17,0.25)",
+                  color: "#fca319",
                 }}
               >
                 <p>Google Drive API etkin değil veya izin eksik. Veriler yalnızca yerel olarak kaydediliyor.</p>
@@ -148,9 +163,9 @@ export function SyncStatus() {
               <div
                 className="mb-3 rounded-[var(--radius-sm)] px-2.5 py-2 text-[11px] leading-relaxed"
                 style={{
-                  background:  "rgba(252, 163, 17, 0.08)",
-                  border:      "1px solid rgba(252, 163, 17, 0.25)",
-                  color:       "#fca319",
+                  background: "rgba(252, 163, 17, 0.08)",
+                  border: "1px solid rgba(252, 163, 17, 0.25)",
+                  color: "#fca319",
                 }}
               >
                 Drive yedeği için yeniden giriş yapın.
@@ -160,7 +175,7 @@ export function SyncStatus() {
             {/* Sync stats */}
             <div className="space-y-1 mb-3">
               <InfoRow label="Son senkronizasyon" value={formatTime(lastSyncAt)} />
-              <InfoRow label="Son yedek"          value={formatTime(lastBackupAt)} />
+              <InfoRow label="Son yedek" value={formatTime(lastBackupAt)} />
             </div>
 
             {/* Schedule selector */}
@@ -176,8 +191,8 @@ export function SyncStatus() {
                     className="rounded-[var(--radius-sm)] py-1.5 px-2 text-[11px] font-medium transition-colors capitalize"
                     style={{
                       background: backupSchedule === s ? "var(--accent-subtle)" : "var(--surface)",
-                      color:      backupSchedule === s ? "var(--accent)"        : "var(--text-secondary)",
-                      border:     `1px solid ${backupSchedule === s ? "var(--accent-border)" : "var(--border)"}`,
+                      color: backupSchedule === s ? "var(--accent)" : "var(--text-secondary)",
+                      border: `1px solid ${backupSchedule === s ? "var(--accent-border)" : "var(--border)"}`,
                     }}
                   >
                     {s === "manual" ? "Manuel" : s === "daily" ? "Günlük" : s === "weekly" ? "Haftalık" : "Aylık"}
@@ -222,9 +237,9 @@ export function SyncStatus() {
           disabled={!accessToken || status === "syncing" || driveDisabled}
           className="relative flex h-7 w-7 items-center justify-center rounded-full border transition-colors"
           style={{
-            background:   "var(--bg-secondary)",
-            borderColor:  status === "error" ? "rgba(248,113,113,0.4)" : driveDisabled ? "rgba(252,163,17,0.4)" : "var(--border)",
-            boxShadow:    "var(--panel-shadow)",
+            background: "var(--bg-secondary)",
+            borderColor: status === "error" ? "rgba(248,113,113,0.4)" : driveDisabled ? "rgba(252,163,17,0.4)" : "var(--border)",
+            boxShadow: "var(--panel-shadow)",
           }}
           whileHover={accessToken && !driveDisabled ? { scale: 1.08 } : {}}
           whileTap={accessToken && !driveDisabled ? { scale: 0.92 } : {}}
@@ -238,9 +253,9 @@ export function SyncStatus() {
           onClick={() => setMenuOpen((o) => !o)}
           className="flex h-7 w-7 items-center justify-center rounded-full border overflow-hidden transition-colors"
           style={{
-            background:  menuOpen ? "var(--accent-subtle)" : "var(--bg-secondary)",
-            borderColor: menuOpen ? "var(--accent-border)"  : "var(--border)",
-            boxShadow:   "var(--panel-shadow)",
+            background: menuOpen ? "var(--accent-subtle)" : "var(--bg-secondary)",
+            borderColor: menuOpen ? "var(--accent-border)" : "var(--border)",
+            boxShadow: "var(--panel-shadow)",
           }}
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.92 }}

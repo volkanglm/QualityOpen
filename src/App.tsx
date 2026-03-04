@@ -248,8 +248,7 @@ export default function App() {
   // initialized + !user → LoginPage
   // initialized + user  → Main app
   //
-  const showLogin = initialized && !booting && !user;
-  const showMain = initialized && !booting && !!user;
+  const showMain = initialized && !booting;
   const showPaywall = false;
   const showLoading = !initialized && !booting;
 
