@@ -14,6 +14,7 @@ import { useProjectStore } from "@/store/project.store";
 import { useSettingsStore } from "@/store/settings.store";
 import { analyzeThematicCodes } from "@/lib/ai";
 import { CODE_COLORS } from "@/lib/constants";
+import { useT } from "@/lib/i18n";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,6 +34,7 @@ interface Command {
 // ─── Skeleton Loader ─────────────────────────────────────────────────────────
 
 function AiSkeletonLoader() {
+  const t = useT();
   return (
     <div className="p-5">
       {/* Header */}
@@ -49,10 +51,10 @@ function AiSkeletonLoader() {
 
         <div>
           <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-            Analiz ediliyor
+            {t("cmd.codingAnalysis")}
           </p>
           <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-            Tematik kodlar çıkarılıyor…
+            {t("cmd.codingExtract")}
           </p>
         </div>
       </div>
@@ -88,6 +90,7 @@ function AiSkeletonLoader() {
 // ─── Success State ────────────────────────────────────────────────────────────
 
 function SuccessState({ codes }: { codes: string[] }) {
+  const t = useT();
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -103,7 +106,7 @@ function SuccessState({ codes }: { codes: string[] }) {
         <CheckCircle2 className="h-8 w-8" />
       </motion.div>
       <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-        {codes.length} kod atandı
+        {t("cmd.codesAssigned").replace("{count}", codes.length.toString())}
       </p>
       <div className="flex flex-wrap gap-1.5 justify-center">
         {codes.map((name, i) => {
@@ -142,6 +145,7 @@ export function CommandPalette() {
 
   const { codes, documents, createCode, addSegment } = useProjectStore();
   const { getActiveKey, getProvider } = useSettingsStore();
+  const t = useT();
 
   const [query, setQuery] = useState("");
   const [paletteState, setPaletteState] = useState<PaletteState>("idle");
@@ -172,8 +176,8 @@ export function CommandPalette() {
       id: `doc-${d.id}`,
       icon: <FileText className="h-3.5 w-3.5" />,
       label: d.name,
-      description: "Belgeye git",
-      category: "Belgeler",
+      description: t("cmd.docGo"),
+      category: t("cmd.docs"),
     }));
 
   const allCommands: Command[] = [
@@ -181,72 +185,72 @@ export function CommandPalette() {
     {
       id: "thematic-code",
       icon: <Sparkles className="h-3.5 w-3.5" />,
-      label: "Tematik Olarak Kodla",
+      label: t("cmd.codeThematic"),
       description: hasSelection
         ? `"${activeSelection.text.slice(0, 48)}${activeSelection.text.length > 48 ? "…" : ""}"`
-        : "Önce bir metin seçin",
+        : t("cmd.codeThematicNoSel"),
       badge: provider ?? "AI",
-      category: "AI",
+      category: t("cmd.catAi"),
       disabled: !hasSelection || !hasApiKey,
       disabledReason: !hasApiKey
-        ? "API anahtarı yok — Ayarlar'dan ekleyin"
+        ? t("cmd.noApiKey")
         : !hasSelection
-          ? "Önce belgeden metin seçin"
+          ? t("cmd.noSelection")
           : undefined,
     },
     {
       id: "open-api-settings",
       icon: <Key className="h-3.5 w-3.5" />,
-      label: "API Ayarları",
+      label: t("cmd.apiSettings"),
       description: hasApiKey
-        ? `${provider === "anthropic" ? "Anthropic" : "OpenAI"} anahtarı aktif`
-        : "OpenAI veya Anthropic anahtarı ekle",
-      category: "Ayarlar",
+        ? `${provider === "anthropic" ? "Anthropic" : "OpenAI"} active`
+        : t("cmd.apiSettingsDesc"),
+      category: t("cmd.catSettings"),
     },
     {
       id: "open-settings",
       icon: <Settings className="h-3.5 w-3.5" />,
-      label: "Ayarlar",
-      description: "Uygulama tercihlerini yönet",
-      category: "Ayarlar",
+      label: t("cmd.settings"),
+      description: t("cmd.settingsDesc"),
+      category: t("cmd.catSettings"),
     },
     {
       id: "toggle-theme",
       icon: <Sun className="h-3.5 w-3.5" />,
-      label: "Temayı Değiştir",
-      description: theme === "dark" ? "Light moda geç" : "Dark moda geç",
-      category: "Görünüm",
+      label: t("cmd.toggleTheme"),
+      description: theme === "dark" ? t("cmd.toggleThemeLight") : t("cmd.toggleThemeDark"),
+      category: t("cmd.catAppearance"),
     },
     {
       id: "new-code",
       icon: <Tag className="h-3.5 w-3.5" />,
-      label: "Yeni Kod",
-      description: "Kod sistemine yeni bir kod ekle",
-      category: "Kodlama",
+      label: t("cmd.newCode"),
+      description: t("cmd.newCodeDesc"),
+      category: t("cmd.catCoding"),
       disabled: !activeProjectId,
     },
     {
       id: "open-dashboard",
       icon: <LayoutGrid className="h-3.5 w-3.5" />,
-      label: "Dashboard'u Aç",
-      description: "Proje analiz panosuna git",
-      category: "Görünüm",
+      label: t("cmd.openDashboard"),
+      description: t("cmd.dashboardDesc"),
+      category: t("cmd.catAppearance"),
       disabled: !activeProjectId,
     },
     {
       id: "open-documents",
       icon: <FileText className="h-3.5 w-3.5" />,
-      label: "Belgeler",
-      description: "Tüm belgeler listesine dön",
-      category: "Görünüm",
+      label: t("cmd.openDocs"),
+      description: t("cmd.openDocsDesc"),
+      category: t("cmd.catAppearance"),
       disabled: !activeProjectId,
     },
     {
       id: "open-chat",
       icon: <MessageSquare className="h-3.5 w-3.5" />,
-      label: "AI Chat Aç",
-      description: "Yapay zeka asistanını başlat",
-      category: "AI",
+      label: t("cmd.openChat"),
+      description: t("cmd.chatDesc"),
+      category: t("cmd.catAi"),
       disabled: !activeProjectId,
     },
   ];
@@ -394,7 +398,7 @@ export function CommandPalette() {
               ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Komut ara…"
+              placeholder={t("cmd.search")}
               className="flex-1 bg-transparent text-sm outline-none"
               style={{ color: "var(--text-primary)" }}
             />
@@ -425,7 +429,7 @@ export function CommandPalette() {
               style={{ background: "var(--text-muted)" }}
             />
             <p className="text-[11px] truncate" style={{ color: "var(--text-secondary)" }}>
-              Seçili: "{activeSelection.text.slice(0, 60)}{activeSelection.text.length > 60 ? "…" : ""}"
+              {t("cmd.selected")} "{activeSelection.text.slice(0, 60)}{activeSelection.text.length > 60 ? "…" : ""}"
             </p>
           </div>
         )}
@@ -435,7 +439,7 @@ export function CommandPalette() {
           <div className="max-h-[320px] overflow-y-auto py-1.5">
             {filtered.length === 0 ? (
               <p className="text-center text-xs py-8" style={{ color: "var(--text-muted)" }}>
-                Komut bulunamadı
+                {t("cmd.notFound")}
               </p>
             ) : (
               Object.entries(grouped).map(([category, cmds]) => (
@@ -535,7 +539,7 @@ export function CommandPalette() {
           >
             <AlertCircle className="h-7 w-7" style={{ color: "var(--danger)" }} />
             <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-              İstek Başarısız
+              {t("cmd.reqFailed")}
             </p>
             <p
               className="text-[11px] leading-relaxed max-w-[360px]"
@@ -551,7 +555,7 @@ export function CommandPalette() {
                 color: "var(--text-secondary)",
               }}
             >
-              Geri dön
+              {t("cmd.goBack")}
             </button>
           </motion.div>
         )}
@@ -567,10 +571,10 @@ export function CommandPalette() {
           >
             <div className="flex items-center gap-3">
               <span className="text-[10px]" style={{ color: "var(--text-disabled)" }}>
-                <kbd className="font-mono">↑↓</kbd> Gezin
+                <kbd className="font-mono">↑↓</kbd> {t("cmd.navigate")}
               </span>
               <span className="text-[10px]" style={{ color: "var(--text-disabled)" }}>
-                <kbd className="font-mono">↵</kbd> Çalıştır
+                <kbd className="font-mono">↵</kbd> {t("cmd.run")}
               </span>
             </div>
             {hasApiKey ? (
@@ -583,7 +587,7 @@ export function CommandPalette() {
               </span>
             ) : (
               <span className="text-[10px]" style={{ color: "var(--text-disabled)" }}>
-                API anahtarı yok
+                {t("cmd.noKey")}
               </span>
             )}
           </div>

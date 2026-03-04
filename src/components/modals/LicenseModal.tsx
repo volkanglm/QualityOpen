@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Key, CheckCircle, Loader2, ExternalLink, Sparkles, Layers, ShieldCheck, DownloadCloud } from "lucide-react";
 import { useLicenseStore } from "@/store/license.store";
 import { useToastStore } from "@/store/toast.store";
+import { useT } from "@/lib/i18n";
 
 export function LicenseModal() {
+  const t = useT();
   const { modalOpen, error, activateLicense, closeModal } = useLicenseStore();
   const { push } = useToastStore();
 
@@ -37,11 +39,11 @@ export function LicenseModal() {
       setPhase("success");
       setTimeout(() => {
         closeModal();
-        push("Lisans aktifleştirildi. QualityOpen Pro'ya hoş geldiniz!", "success");
+        push(t("license.successToast"), "success");
       }, 1800);
     } else {
       setPhase("idle");
-      setLocalErr(result.error ?? "Geçersiz lisans anahtarı.");
+      setLocalErr(result.error ?? t("license.invalidKey"));
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   };
@@ -119,7 +121,7 @@ export function LicenseModal() {
                   className="mt-6 text-xl font-bold"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  Aktivasyon Başarılı!
+                  {t("license.successTitle")}
                 </motion.h2>
                 <motion.p
                   initial={{ opacity: 0 }}
@@ -128,7 +130,7 @@ export function LicenseModal() {
                   className="text-sm mt-2 font-medium"
                   style={{ color: "var(--accent)" }}
                 >
-                  QualityOpen Pro'ya hoş geldiniz. Sınırları kaldırdınız.
+                  {t("license.successSubtitle")}
                 </motion.p>
               </motion.div>
             )}
@@ -142,10 +144,10 @@ export function LicenseModal() {
 
             <div className="relative z-10">
               <h2 className="text-xl font-bold tracking-tight mb-2" style={{ color: "var(--text-primary)" }}>
-                Araştırmanızda Sınırları Kaldırın
+                {t("license.featuresTitle")}
               </h2>
               <p className="text-xs leading-relaxed mb-8" style={{ color: "var(--text-muted)" }}>
-                QualityOpen Pro ile projelerinizdeki kısıtlamaları aşın ve tam yapılandırılmış güçlü AI araçlarından sınırsızca yararlanın.
+                {t("license.featuresSubtitle")}
               </p>
 
               <ul className="space-y-4">
@@ -154,8 +156,8 @@ export function LicenseModal() {
                     <Layers className="w-3.5 h-3.5" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Sınırsız Belge ve Proje</p>
-                    <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>Proje ve ekleyebileceğiniz analiz belgelerinde limite takılmayın.</p>
+                    <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{t("license.featUnlimited")}</p>
+                    <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>{t("license.featUnlimitedDesc")}</p>
                   </div>
                 </li>
                 <li className="flex gap-3">
@@ -163,8 +165,8 @@ export function LicenseModal() {
                     <Sparkles className="w-3.5 h-3.5" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Gelişmiş Yapay Zeka</p>
-                    <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>Metin kodlama, sentezleme ve asistan özelliklerini kullanın.</p>
+                    <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{t("license.featAi")}</p>
+                    <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>{t("license.featAiDesc")}</p>
                   </div>
                 </li>
                 <li className="flex gap-3">
@@ -172,8 +174,8 @@ export function LicenseModal() {
                     <DownloadCloud className="w-3.5 h-3.5" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Tam Dışa Aktarma</p>
-                    <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>Word, Excel, CSV ve yüksek çözünürlüklü grafik dışa aktarım formatları.</p>
+                    <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{t("license.featExport")}</p>
+                    <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>{t("license.featExportDesc")}</p>
                   </div>
                 </li>
                 <li className="flex gap-3">
@@ -181,8 +183,8 @@ export function LicenseModal() {
                     <ShieldCheck className="w-3.5 h-3.5" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>1 Yıllık Güncelleme</p>
-                    <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>Yazılıma gelecek tüm yeni araç ve analiz bileşenlerinden ücretsiz yararlanın.</p>
+                    <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{t("license.featUpdates")}</p>
+                    <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>{t("license.featUpdatesDesc")}</p>
                   </div>
                 </li>
               </ul>
@@ -196,10 +198,10 @@ export function LicenseModal() {
                 className="w-full h-11 rounded-lg flex items-center justify-center gap-2 text-sm font-bold shadow-sm"
                 style={{ background: "var(--accent)", color: "white" }}
               >
-                Ömür Boyu Lisans Al ($149)
+                {t("license.buyNow")}
                 <ExternalLink className="w-4 h-4 ml-1 opacity-80" />
               </motion.button>
-              <p className="text-[10px] text-center mt-3 text-emerald-600/80 font-medium">✨ Tek seferlik ödeme. Abonelik yok.</p>
+              <p className="text-[10px] text-center mt-3 text-emerald-600/80 font-medium">{t("license.oneTime")}</p>
             </div>
           </div>
 
@@ -210,12 +212,12 @@ export function LicenseModal() {
                 <Key className="w-5 h-5 text-[var(--text-secondary)]" />
               </div>
 
-              <h3 className="text-lg font-bold mb-1" style={{ color: "var(--text-primary)" }}>Zaten lisansınız var mı?</h3>
-              <p className="text-xs mb-8" style={{ color: "var(--text-muted)" }}>Satın aldığınız lisans anahtarını yapıştırarak bilgisayarınızı etkinleştirin.</p>
+              <h3 className="text-lg font-bold mb-1" style={{ color: "var(--text-primary)" }}>{t("license.alreadyHave")}</h3>
+              <p className="text-xs mb-8" style={{ color: "var(--text-muted)" }}>{t("license.activateDesc")}</p>
 
               <div className="space-y-2 mb-6">
                 <label className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
-                  Lisans Anahtarı
+                  {t("license.label")}
                 </label>
                 <div className="relative group">
                   <input
@@ -276,10 +278,10 @@ export function LicenseModal() {
                 {phase === "loading" ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin text-[var(--bg-primary)]" />
-                    <span className="opacity-90">Doğrulanıyor...</span>
+                    <span className="opacity-90">{t("license.verifying")}</span>
                   </>
                 ) : (
-                  "Etkinleştir"
+                  t("license.activate")
                 )}
               </motion.button>
             </div>

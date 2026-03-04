@@ -5,7 +5,9 @@ import { useSyncStore } from "@/store/sync.store";
 import { useAuthStore } from "@/store/auth.store";
 import { useLicenseStore } from "@/store/license.store";
 import { Button } from "@/components/ui/Button";
+import { useT } from "@/lib/i18n";
 import type { BackupSchedule } from "@/types";
+
 
 
 export function SyncStatus() {
@@ -13,6 +15,8 @@ export function SyncStatus() {
     syncNow, backupNow, setSchedule, resetDrive } =
     useSyncStore();
   const { accessToken, user, signOut, signIn, loading: authLoading } = useAuthStore();
+  const { isPro, openModal } = useLicenseStore();
+  const t = useT();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -44,12 +48,12 @@ export function SyncStatus() {
   };
 
   const formatTime = (ts: number | null) => {
-    if (!ts) return "Hiç";
+    if (!ts) return t("sync.never");
     const diff = Date.now() - ts;
-    if (diff < 60_000) return "Az önce";
-    if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}d önce`;
-    if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}s önce`;
-    return new Date(ts).toLocaleDateString("tr-TR");
+    if (diff < 60_000) return t("sync.justNow");
+    if (diff < 3_600_000) return t("sync.minsAgo").replace("{count}", Math.floor(diff / 60_000).toString());
+    if (diff < 86_400_000) return t("sync.hoursAgo").replace("{count}", Math.floor(diff / 3_600_000).toString());
+    return new Date(ts).toLocaleDateString();
   };
 
   return (
@@ -70,16 +74,16 @@ export function SyncStatus() {
             }}
           >
             {/* License Status / Upgrade */}
-            {!useLicenseStore.getState().isPro && (
+            {!isPro && (
               <div className="mb-3 pb-3 border-b" style={{ borderColor: "var(--border-subtle)" }}>
                 <Button
                   variant="primary"
                   size="sm"
                   className="w-full justify-center gap-2 text-[12px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border-none text-white shadow-md shadow-blue-900/20"
-                  onClick={() => { setMenuOpen(false); useLicenseStore.getState().openModal(); }}
+                  onClick={() => { setMenuOpen(false); openModal(); }}
                 >
                   <Sparkles className="h-3.5 w-3.5" />
-                  QualityOpen Pro'yu Etkinleştir
+                  {t("sync.activatePro")}
                 </Button>
               </div>
             )}
@@ -120,7 +124,7 @@ export function SyncStatus() {
                   onClick={() => { setMenuOpen(false); void signIn(); }}
                 >
                   <LogIn className="h-3.5 w-3.5" />
-                  {authLoading ? "Giriş yapılıyor…" : "Google ile Giriş Yap"}
+                  {authLoading ? t("sync.signingIn") : t("sync.signInGoogle")}
                 </Button>
               </div>
             )}
@@ -149,12 +153,12 @@ export function SyncStatus() {
                   color: "#fca319",
                 }}
               >
-                <p>Google Drive API etkin değil veya izin eksik. Veriler yalnızca yerel olarak kaydediliyor.</p>
+                <p>{t("sync.driveDisabled")}</p>
                 <button
                   className="underline text-[10px] opacity-80 hover:opacity-100"
                   onClick={() => { resetDrive(); setMenuOpen(false); }}
                 >
-                  Yeniden dene
+                  {t("sync.retry")}
                 </button>
               </div>
             )}
@@ -169,20 +173,20 @@ export function SyncStatus() {
                   color: "#fca319",
                 }}
               >
-                Drive yedeği için yeniden giriş yapın.
+                {t("sync.reAuthDrive")}
               </div>
             )}
 
             {/* Sync stats */}
             <div className="space-y-1 mb-3">
-              <InfoRow label="Son senkronizasyon" value={formatTime(lastSyncAt)} />
-              <InfoRow label="Son yedek" value={formatTime(lastBackupAt)} />
+              <InfoRow label={t("sync.lastSync")} value={formatTime(lastSyncAt)} />
+              <InfoRow label={t("sync.lastBackup")} value={formatTime(lastBackupAt)} />
             </div>
 
             {/* Schedule selector */}
             <div className="mb-3">
               <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--text-muted)" }}>
-                Otomatik yedekleme
+                {t("sync.autoBackup")}
               </p>
               <div className="grid grid-cols-2 gap-1">
                 {(["manual", "daily", "weekly", "monthly"] as BackupSchedule[]).map((s) => (
@@ -196,7 +200,7 @@ export function SyncStatus() {
                       border: `1px solid ${backupSchedule === s ? "var(--accent-border)" : "var(--border)"}`,
                     }}
                   >
-                    {s === "manual" ? "Manuel" : s === "daily" ? "Günlük" : s === "weekly" ? "Haftalık" : "Aylık"}
+                    {s === "manual" ? t("sync.manual") : s === "daily" ? t("sync.daily") : s === "weekly" ? t("sync.weekly") : t("sync.monthly")}
                   </button>
                 ))}
               </div>
@@ -212,7 +216,7 @@ export function SyncStatus() {
                 disabled={!accessToken || status === "syncing"}
               >
                 <Cloud className="h-3.5 w-3.5" />
-                Şimdi yedekle
+                {t("sync.backupNow")}
               </Button>
               {user && (
                 <Button
@@ -222,7 +226,7 @@ export function SyncStatus() {
                   onClick={() => { setMenuOpen(false); void signOut(); }}
                 >
                   <LogOut className="h-3.5 w-3.5" />
-                  Çıkış yap
+                  {t("sync.signOut")}
                 </Button>
               )}
             </div>
@@ -244,7 +248,7 @@ export function SyncStatus() {
           }}
           whileHover={accessToken && !driveDisabled ? { scale: 1.08 } : {}}
           whileTap={accessToken && !driveDisabled ? { scale: 0.92 } : {}}
-          title={!accessToken ? "Drive sync için yeniden giriş yapın" : driveDisabled ? "Drive bağlı değil — yerel kaydediliyor" : "Şimdi senkronize et"}
+          title={!accessToken ? t("sync.reAuthDrive") : driveDisabled ? t("sync.driveLocalOnly") : t("sync.syncNow")}
         >
           <StatusIcon status={status} hasToken={!!accessToken} driveDisabled={driveDisabled} />
         </motion.button>
@@ -260,7 +264,7 @@ export function SyncStatus() {
           }}
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.92 }}
-          title="Hesap & senkronizasyon"
+          title={t("sync.accountAndSync")}
         >
           {user?.photoURL ? (
             <img src={user.photoURL} alt="" className="h-7 w-7 rounded-full object-cover" />
