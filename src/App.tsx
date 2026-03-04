@@ -6,7 +6,6 @@ import { TitleBar } from "@/components/layout/TitleBar";
 import { PanelLayout } from "@/components/layout/PanelLayout";
 import { SyncStatus } from "@/components/layout/SyncStatus";
 import { OfflineBadge } from "@/components/layout/OfflineBadge";
-import { LoginPage } from "@/pages/LoginPage";
 import { PaywallPage } from "@/pages/PaywallPage";
 import { CommandPalette } from "@/components/command/CommandPalette";
 import { ToastContainer } from "@/components/ui/Toast";
@@ -92,7 +91,7 @@ function SplashScreen() {
 export default function App() {
   const t = useT();
   const { theme, commandPaletteOpen, activeProjectId, setActiveProject } = useAppStore();
-  const { user, accessToken, booting, initialized } = useAuthStore();
+  const { accessToken, booting, initialized } = useAuthStore();
   const { checkSchedule } = useSyncStore();
   const { projects, createProject } = useProjectStore();
 
@@ -262,7 +261,6 @@ export default function App() {
         {booting && <SplashScreen />}
 
         {/* ── Auth / License gate ── */}
-        {showLogin && <LoginPage />}
         {showPaywall && <PaywallPage />}
         {showLoading && (
           <div className="fixed inset-0 flex items-center justify-center" style={{ background: "var(--bg-primary)" }}>
