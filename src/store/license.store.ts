@@ -39,8 +39,8 @@ export const useLicenseStore = create<LicenseStoreType>()((set) => {
   const getStore = () => load("qo_license.bin", { autoSave: true, defaults: {} });
 
   return {
-    status: "idle",
-    isPro: false,
+    status: import.meta.env.DEV ? "active" : "idle",
+    isPro: import.meta.env.DEV ? true : false,
     licenseKey: null,
     deviceToken: null,
     modalOpen: false,
@@ -61,11 +61,11 @@ export const useLicenseStore = create<LicenseStoreType>()((set) => {
             deviceToken: token,
           });
         } else {
-          set({ status: "inactive", isPro: false });
+          set({ status: import.meta.env.DEV ? "active" : "inactive", isPro: import.meta.env.DEV ? true : false });
         }
       } catch (e) {
         console.error("Failed to load license store", e);
-        set({ status: "inactive", isPro: false });
+        set({ status: import.meta.env.DEV ? "active" : "inactive", isPro: import.meta.env.DEV ? true : false });
       }
     },
 
@@ -105,7 +105,7 @@ export const useLicenseStore = create<LicenseStoreType>()((set) => {
       await store.delete("licenseKey");
       await store.delete("deviceToken");
       await store.save();
-      set({ status: "inactive", isPro: false, licenseKey: null, deviceToken: null });
+      set({ status: import.meta.env.DEV ? "active" : "inactive", isPro: import.meta.env.DEV ? true : false, licenseKey: null, deviceToken: null });
     },
 
     openModal: () => set({ modalOpen: true }),

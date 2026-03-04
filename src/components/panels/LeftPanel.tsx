@@ -58,7 +58,7 @@ export function LeftPanel() {
   const t = useT();
   const { getProvider } = useSettingsStore();
 
-  const { projects, documents, segments, createProject, createDocument, deleteDocument, updateDocument } =
+  const { projects, documents, segments, createProject, createDocument, deleteDocument, updateDocument, updateProject } =
     useProjectStore();
 
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
@@ -67,9 +67,9 @@ export function LeftPanel() {
   const [newDocModal, setNewDocModal] = useState(false);
   const [newDocName, setNewDocName] = useState("");
   const [newDocType, setNewDocType] = useState<Document["type"]>("interview");
-  const [contextMenu, setContextMenu] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ id: string; type: "project" | "doc" } | null>(null);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
-  const [renameDocId, setRenameDocId] = useState<string | null>(null);
+  const [renameId, setRenameId] = useState<{ id: string; type: "project" | "doc" } | null>(null);
   const [renameVal, setRenameVal] = useState("");
   const [colorPickerDoc, setColorPickerDoc] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
@@ -212,7 +212,7 @@ export function LeftPanel() {
           className="text-[11px] font-semibold uppercase tracking-widest"
           style={{ color: "var(--text-muted)" }}
         >
-          Explorer
+          {t("left.explorer")}
         </span>
         <div className="flex items-center gap-0.5">
           <Tooltip content="New document" side="bottom">
@@ -261,6 +261,11 @@ export function LeftPanel() {
                       : "hover:bg-[var(--surface-hover)]"
                   )}
                   onClick={() => toggleProject(project.id)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setContextMenu({ id: project.id, type: "project" });
+                    setContextMenuPos({ x: e.clientX, y: e.clientY });
+                  }}
                 >
                   <motion.div
                     animate={{ rotate: isExpanded ? 90 : 0 }}
@@ -293,6 +298,48 @@ export function LeftPanel() {
                   </span>
                 </div>
 
+                <AnimatePresence>
+                  {contextMenu?.id === project.id && contextMenu?.type === "project" && contextMenuPos && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9, y: -4 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.1 }}
+                      className="fixed z-[999] rounded-lg border p-1.5 min-w-[180px] shadow-xl"
+                      style={{
+                        left: contextMenuPos.x,
+                        top: contextMenuPos.y,
+                        background: "#1c1c1e",
+                        borderColor: "#333",
+                        boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
+                      }}
+                    >
+                      <ContextItem
+                        icon={<Pencil className="h-3 w-3" />}
+                        label={t('left.rename')}
+                        onClick={() => {
+                          setRenameId({ id: project.id, type: "project" });
+                          setRenameVal(project.name);
+                          setContextMenu(null);
+                          setContextMenuPos(null);
+                        }}
+                      />
+                      <div className="h-px my-1" style={{ background: "#333" }} />
+                      <ContextItem
+                        icon={<Trash2 className="h-3 w-3" />}
+                        label={t('left.deleteProject')}
+                        danger
+                        onClick={() => {
+                          const { deleteProject } = useProjectStore.getState();
+                          deleteProject(project.id);
+                          setContextMenu(null);
+                          setContextMenuPos(null);
+                        }}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {/* Document list */}
                 <AnimatePresence initial={false}>
                   {isExpanded && (
@@ -323,10 +370,10 @@ export function LeftPanel() {
                         >
                           <FileUp className="h-5 w-5" style={{ color: "var(--text-muted)", opacity: 0.7 }} />
                           <p className="text-[11px] leading-tight" style={{ color: "var(--text-muted)" }}>
-                            Belgeleri buraya sürükleyin
+                            {t("left.dropFiles")}
                           </p>
                           <p className="text-[10px]" style={{ color: "var(--text-disabled)" }}>
-                            veya tıklayın
+                            {t("left.orClick")}
                           </p>
                         </motion.div>
                       ) : (
@@ -346,7 +393,7 @@ export function LeftPanel() {
                               onClick={() => openDoc(doc)}
                               onContextMenu={(e) => {
                                 e.preventDefault();
-                                setContextMenu(doc.id);
+                                setContextMenu({ id: doc.id, type: "doc" });
                                 setContextMenuPos({ x: e.clientX, y: e.clientY });
                               }}
                             >
@@ -376,17 +423,17 @@ export function LeftPanel() {
                                 <button
                                   className={cn(
                                     "h-4 w-4 flex items-center justify-center rounded opacity-0 group-hover/doc:opacity-100 transition-opacity",
-                                    contextMenu === doc.id && "opacity-100"
+                                    contextMenu?.id === doc.id && contextMenu?.type === "doc" && "opacity-100"
                                   )}
                                   style={{ color: "var(--text-muted)" }}
                                   onClick={() =>
-                                    setContextMenu(contextMenu === doc.id ? null : doc.id)
+                                    setContextMenu(contextMenu?.id === doc.id ? null : { id: doc.id, type: "doc" })
                                   }
                                 >
                                   <MoreHorizontal className="h-3 w-3" />
                                 </button>
                                 <AnimatePresence>
-                                  {contextMenu === doc.id && contextMenuPos && (
+                                  {contextMenu?.id === doc.id && contextMenu?.type === "doc" && contextMenuPos && (
                                     <motion.div
                                       initial={{ opacity: 0, scale: 0.9, y: -4 }}
                                       animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -502,17 +549,15 @@ export function LeftPanel() {
             onDrop={handleDrop}
             onClick={() => activeProjectId && !importing && fileInputRef.current?.click()}
           >
-            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center border-2 border-dashed rounded-xl m-4 transition-colors hover:border-blue-500/50 hover:bg-blue-500/5 bg-white/5 border-white/10 group cursor-pointer"
-              onClick={() => fileInputRef.current?.click()}
-            >
+            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center border-2 border-dashed rounded-xl m-4 transition-colors hover:border-blue-500/50 hover:bg-blue-500/5 bg-white/5 border-white/10 group cursor-pointer">
               <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <FileUp className="h-6 w-6 text-blue-500" />
               </div>
-              <p className="text-sm font-medium text-white mb-1">{t('welcome.dropFiles')}</p>
+              <p className="text-sm font-medium text-white mb-1">{t('welcome.dragDrop')}</p>
               <p className="text-xs text-neutral-500">{t('welcome.selectDoc')}</p>
             </div>
             <p className="text-[10px] text-zinc-500 mt-0.5">
-              .txt, .docx, .pdf, video veya görsel
+              {t("left.supportedFiles")}
             </p>
           </div>
         </div>
@@ -606,11 +651,7 @@ export function LeftPanel() {
                         : { color: "var(--text-secondary)" }
                     }
                   >
-                    {type === "interview" ? "Görüşme" :
-                      type === "fieldnote" ? "Saha Notu" :
-                        type === "document" ? "Belge" :
-                          type === "memo" ? "Not" :
-                            type === "video" ? "Video" : "Görsel"}
+                    {t(`left.type.${type}`)}
                   </button>
                 );
               })}
@@ -625,30 +666,38 @@ export function LeftPanel() {
         </div>
       </Modal>
 
-      {/* Rename Document Modal */}
-      <Modal open={!!renameDocId} onClose={() => setRenameDocId(null)} title={t("common.rename")}>
+      {/* Rename Modal */}
+      <Modal open={!!renameId} onClose={() => setRenameId(null)} title={t("common.rename")}>
         <div className="space-y-4">
           <Input
-            label={t("common.docName")}
+            label={renameId?.type === "project" ? t("common.projectName") : t("common.docName")}
             value={renameVal}
             onChange={(e) => setRenameVal(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && renameDocId && renameVal.trim()) {
-                updateDocument(renameDocId, { name: renameVal.trim() });
-                setRenameDocId(null);
+              if (e.key === "Enter" && renameId && renameVal.trim()) {
+                if (renameId.type === "project") {
+                  updateProject(renameId.id, { name: renameVal.trim() });
+                } else {
+                  updateDocument(renameId.id, { name: renameVal.trim() });
+                }
+                setRenameId(null);
               }
             }}
             autoFocus
           />
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setRenameDocId(null)}>{t("common.cancel")}</Button>
+            <Button variant="ghost" onClick={() => setRenameId(null)}>{t("common.cancel")}</Button>
             <Button
               variant="primary"
               disabled={!renameVal.trim()}
               onClick={() => {
-                if (renameDocId && renameVal.trim()) {
-                  updateDocument(renameDocId, { name: renameVal.trim() });
-                  setRenameDocId(null);
+                if (renameId && renameVal.trim()) {
+                  if (renameId.type === "project") {
+                    updateProject(renameId.id, { name: renameVal.trim() });
+                  } else {
+                    updateDocument(renameId.id, { name: renameVal.trim() });
+                  }
+                  setRenameId(null);
                 }
               }}
             >
@@ -662,7 +711,7 @@ export function LeftPanel() {
       <Modal open={!!colorPickerDoc} onClose={() => setColorPickerDoc(null)} title={t("common.color")}>
         <div className="space-y-3">
           <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>
-            Bu belge için bir renk seçin:
+            {t("left.selectColor")}
           </p>
           <div className="grid grid-cols-6 gap-2">
             {DOC_COLOR_PALETTE.map((c) => (

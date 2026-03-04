@@ -57,7 +57,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   loading: false,
   initialized: false,
   error: null,
-  premium: null,
+  premium: import.meta.env.DEV ? true : null,
   offlineMode: false,
   booting: true,   // show splash while finding user
   localFolderPath: localStorage.getItem("qo_local_folder_path"),
@@ -74,7 +74,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
         photoURL: result.user.photoURL,
       };
       // premium from JWT — null means not yet verified (default to false to avoid paywall loops)
-      const premium = result.premium ?? false;
+      const premium = import.meta.env.DEV ? true : (result.premium ?? false);
       set({ user: profile, accessToken: result.accessToken, premium, loading: false, error: null, initialized: true });
       // Fire-and-forget: don't let IndexedDB issues block the UI after sign-in
       void saveAuthCache({ ...profile, premium }).catch((e) =>
@@ -109,9 +109,10 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     if (!user) return;
     try {
       const claims = await refreshAndGetClaims(true);
-      if (claims) {
-        set({ premium: claims.premium });
-        await saveAuthCache({ ...user, premium: claims.premium });
+      if (claims || import.meta.env.DEV) {
+        const prm = import.meta.env.DEV ? true : (claims?.premium ?? false);
+        set({ premium: prm });
+        await saveAuthCache({ ...user, premium: prm });
       }
     } catch {
       // Network issue — stay with current premium value
@@ -161,7 +162,7 @@ export function initAuthListener(): () => void {
       if (cache) {
         useAuthStore.setState({
           user: { uid: cache.uid, email: cache.email, displayName: cache.displayName, photoURL: cache.photoURL },
-          premium: cache.premium,
+          premium: import.meta.env.DEV ? true : cache.premium,
           offlineMode: !navigator.onLine,
           initialized: true,
           booting: false,
@@ -169,7 +170,7 @@ export function initAuthListener(): () => void {
       } else {
         useAuthStore.setState({
           user: null,
-          premium: null,
+          premium: import.meta.env.DEV ? true : null,
           offlineMode: !navigator.onLine,
           initialized: true,
           booting: false,
@@ -181,7 +182,7 @@ export function initAuthListener(): () => void {
       }
     } catch (err) {
       console.error("[AuthBoot] Cache boot failed, forcing completion:", err);
-      useAuthStore.setState({ booting: false, initialized: true, user: null, premium: null });
+      useAuthStore.setState({ booting: false, initialized: true, user: null, premium: import.meta.env.DEV ? true : null });
     }
   })();
 
@@ -216,9 +217,10 @@ export function initAuthListener(): () => void {
 
             try {
               const claims = await refreshAndGetClaims(false);
-              if (claims) {
-                setState({ premium: claims.premium, offlineMode: false });
-                void saveAuthCache({ ...profile, premium: claims.premium }).catch(() => { });
+              if (claims || import.meta.env.DEV) {
+                const prm = import.meta.env.DEV ? true : (claims?.premium ?? false);
+                setState({ premium: prm, offlineMode: false });
+                void saveAuthCache({ ...profile, premium: prm }).catch(() => { });
               } else {
                 setState({ premium: false, offlineMode: false });
               }
@@ -235,7 +237,7 @@ export function initAuthListener(): () => void {
         }
         // Boot still pending (rare) and Firebase confirmed no session
         if (currentState.booting) {
-          setState({ user: null, premium: null, offlineMode: !navigator.onLine, initialized: true, booting: false });
+          setState({ user: null, premium: import.meta.env.DEV ? true : null, offlineMode: !navigator.onLine, initialized: true, booting: false });
         }
       }
     } catch (err) {

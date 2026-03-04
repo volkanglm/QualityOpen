@@ -63,7 +63,7 @@ export function AiChatPanel() {
               .join(", ");
             return `  [${codeNames}]: "${s.text}"`;
           });
-        return `### Belge: ${d.name}\n${d.content.slice(0, 3000)}${d.content.length > 3000 ? "\n…" : ""}${docSegs.length > 0 ? `\n\nKodlanmış segmentler:\n${docSegs.join("\n")}` : ""}`;
+        return `### ${t("chat.docLabel")} ${d.name}\n${d.content.slice(0, 3000)}${d.content.length > 3000 ? "\n…" : ""}${docSegs.length > 0 ? `\n\n${t("chat.segsLabel")}\n${docSegs.join("\n")}` : ""}`;
       })
       .join("\n\n---\n\n");
 
@@ -105,7 +105,7 @@ ${ctx.docContext ? `${t("chat.contextLabel")}\n${ctx.docContext}` : t("chat.noCo
         { id: uuid(), role: "assistant", content: reply },
       ]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Bir hata oluştu");
+      setError(err instanceof Error ? err.message : t("chat.errorGeneric"));
     } finally {
       setLoading(false);
     }

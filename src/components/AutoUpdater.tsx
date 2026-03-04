@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { check, Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { Download, X } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 export function AutoUpdater() {
+    const t = useT();
     const [update, setUpdate] = useState<Update | null>(null);
     const [downloading, setDownloading] = useState(false);
     const [progress, setProgress] = useState(0); // 0 to 100
@@ -12,7 +14,7 @@ export function AutoUpdater() {
 
     useEffect(() => {
         // Wait a few seconds after app start to calmly check for updates
-        const t = setTimeout(() => {
+        const timer = setTimeout(() => {
             check().then((res) => {
                 if (res?.available) {
                     setUpdate(res);
@@ -20,7 +22,7 @@ export function AutoUpdater() {
             }).catch((e) => console.error("Silently failed to check updates:", e));
         }, 3000);
 
-        return () => clearTimeout(t);
+        return () => clearTimeout(timer);
     }, []);
 
     const handleUpdate = async () => {
@@ -48,7 +50,7 @@ export function AutoUpdater() {
             });
             await relaunch();
         } catch (err) {
-            console.error("Güncelleme yüklenemedi:", err);
+            console.error("Update failed:", err);
             setDownloading(false);
             setDismissed(true); // Hide on error to not block UI
         }
@@ -67,7 +69,7 @@ export function AutoUpdater() {
                 style={{
                     background: "var(--bg-secondary)",
                     borderColor: "var(--border)",
-                    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.75)", // Strong dark mode shadow
+                    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.75)",
                 }}
             >
                 <div className="flex items-start justify-between mb-3">
@@ -76,7 +78,7 @@ export function AutoUpdater() {
                             <Download className="h-4 w-4" />
                         </div>
                         <h3 className="text-[13px] font-semibold tracking-wide" style={{ color: "var(--text-primary)" }}>
-                            Yeni Sürüm Hazır
+                            {t("update.ready")}
                         </h3>
                     </div>
                     <button
@@ -84,21 +86,20 @@ export function AutoUpdater() {
                         disabled={downloading}
                         className="rounded-md p-1 opacity-60 transition-opacity hover:opacity-100 disabled:pointer-events-none"
                         style={{ color: "var(--text-muted)" }}
-                        title="Kapat"
+                        title={t("update.close")}
                     >
                         <X className="h-4 w-4" />
                     </button>
                 </div>
 
                 <p className="mb-4 text-[12px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                    <strong className="text-blue-400 font-medium">v{update.version}</strong> sürümü indirilebilir durumda.
-                    Performans iyileştirmeleri ve hata düzeltmeleri içerir.
+                    <strong className="text-blue-400 font-medium">v{update.version}</strong> {t("update.available")}
                 </p>
 
                 {downloading ? (
                     <div className="space-y-2">
                         <div className="flex items-center justify-between text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
-                            <span>İndiriliyor...</span>
+                            <span>{t("update.downloading")}</span>
                             <span>{progress}%</span>
                         </div>
                         <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
@@ -116,14 +117,14 @@ export function AutoUpdater() {
                             onClick={() => void handleUpdate()}
                             className="flex-1 rounded-md px-3 py-2 text-[12px] text-white transition-all bg-blue-600 hover:bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-900/20"
                         >
-                            Şimdi Güncelle
+                            {t("update.now")}
                         </button>
                         <button
                             onClick={() => setDismissed(true)}
                             className="rounded-md px-3 py-2 text-[12px] transition-colors hover:bg-white/5"
                             style={{ color: "var(--text-secondary)", border: "1px solid var(--border-subtle)" }}
                         >
-                            Daha Sonra
+                            {t("update.later")}
                         </button>
                     </div>
                 )}

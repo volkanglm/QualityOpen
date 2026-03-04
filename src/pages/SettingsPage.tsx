@@ -2,15 +2,17 @@ import { useState, useRef } from "react";
 import { motion, type Variants } from "framer-motion";
 import { Settings, Key, Eye, EyeOff, Check, Trash2, Info, Cpu, Globe, Download, Upload, Database, RefreshCw } from "lucide-react";
 import { AppLogo } from "@/components/ui/AppLogo";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { APP_NAME, APP_VERSION } from "@/lib/constants";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
 import { useAuthStore } from "@/store/auth.store";
 import { useSettingsStore, type DefaultProvider } from "@/store/settings.store";
+import { useLicenseStore } from "@/store/license.store";
 import { Button } from "@/components/ui/Button";
 import { useT } from "@/lib/i18n";
 import { SyncManager } from "@/components/sync/SyncManager";
-import { FolderOpen } from "lucide-react";
+import { FolderOpen, BadgeCheck } from "lucide-react";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -219,6 +221,8 @@ export function SettingsPage() {
     clearKeys,
   } = useSettingsStore();
 
+  const { isPro, licenseKey, activateLicense, deactivateLicense } = useLicenseStore();
+
   const t = useT();
   const provider = getProvider();
   const hasAnyKey = !!(getOpenAIKey() || getAnthropicKey() || getGeminiKey());
@@ -227,6 +231,32 @@ export function SettingsPage() {
   const [importStatus, setImportStatus] = useState<"idle" | "success" | "error">("idle");
 
   const [syncManagerOpen, setSyncManagerOpen] = useState(false);
+  const [draftLicense, setDraftLicense] = useState("");
+  const [licenseLoading, setLicenseLoading] = useState(false);
+
+  const handleSelectFolder = async () => {
+    try {
+      const selected = await openDialog({
+        directory: true,
+        multiple: false,
+        title: t("settings.selectFolder"),
+      });
+
+      if (selected && typeof selected === "string") {
+        useAuthStore.getState().setLocalFolderPath(selected);
+      }
+    } catch (err) {
+      console.error("Folder selection failed:", err);
+    }
+  };
+
+  const handleActivateLicense = async () => {
+    if (!draftLicense.trim()) return;
+    setLicenseLoading(true);
+    await activateLicense(draftLicense.trim());
+    setLicenseLoading(false);
+    setDraftLicense("");
+  };
 
   const handleExport = () => {
     const payload = {
@@ -483,6 +513,75 @@ export function SettingsPage() {
           </div>
         </motion.div>
 
+        {/* ── License Management ── */}
+        <motion.div
+          variants={itemVariants}
+          className="rounded-[var(--radius-lg)] border p-5"
+          style={{ borderColor: "var(--border)", background: "var(--bg-secondary)" }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <BadgeCheck className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
+            <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+              {t("settings.licenseSection")}
+            </h2>
+          </div>
+          <p className="text-[11px] mb-4" style={{ color: "var(--text-muted)" }}>
+            {t("settings.licenseSubtitle")}
+          </p>
+
+          <div className="space-y-4">
+            {isPro ? (
+              <div className="bg-[var(--bg-tertiary)] p-4 rounded-[var(--radius-md)] border border-[var(--border-subtle)] flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[var(--code-2)]" />
+                    <h3 className="text-xs font-semibold" style={{ color: "var(--code-2)" }}>
+                      {t("settings.proActive")}
+                    </h3>
+                  </div>
+                  <p className="text-[10px] font-mono mt-1" style={{ color: "var(--text-secondary)" }}>
+                    {licenseKey ? `${licenseKey.slice(0, 8)}••••••••${licenseKey.slice(-4)}` : "Developer/Pro Bypass"}
+                  </p>
+                </div>
+                {licenseKey && (
+                  <Button size="sm" variant="outline" className="h-8 text-[11px] text-[var(--danger)] border-[var(--danger)]/30 hover:bg-[var(--danger)]/10" onClick={() => deactivateLicense()}>
+                    {t("settings.deactivate")}
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder={t("settings.licenseKeyHolder")}
+                  value={draftLicense}
+                  onChange={(e) => setDraftLicense(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleActivateLicense()}
+                  className="w-full h-8 rounded-[var(--radius-sm)] border px-3 text-xs font-mono outline-none"
+                  style={{
+                    background: "var(--bg-tertiary)",
+                    borderColor: "var(--border)",
+                    color: "var(--text-primary)",
+                  }}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
+                  onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <Button
+                  size="sm"
+                  variant="primary"
+                  className="h-8 gap-1 text-[11px] flex-shrink-0"
+                  onClick={handleActivateLicense}
+                  disabled={!draftLicense.trim() || licenseLoading}
+                >
+                  {licenseLoading ? t("settings.activating") : t("settings.activate")}
+                </Button>
+              </div>
+            )}
+          </div>
+        </motion.div>
+
         {/* ── Data Management ── */}
         <motion.div
           variants={itemVariants}
@@ -539,26 +638,41 @@ export function SettingsPage() {
                   <h3 className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--text-primary)" }}>
                     <FolderOpen className="h-3 w-3" />
                     {t("settings.localSync")}
-                    <span className="text-[9px] px-1 rounded bg-[rgba(234,179,8,0.1)] text-yellow-500 font-bold ml-1">
-                      {t("settings.premium")}
-                    </span>
+                    {!isPro && (
+                      <span className="text-[9px] px-1 rounded bg-[rgba(234,179,8,0.1)] text-yellow-500 font-bold ml-1">
+                        {t("settings.premium")}
+                      </span>
+                    )}
                   </h3>
                   <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>
                     {t("settings.localSubtitle")}
                   </p>
                 </div>
-                {localFolderPath && accessToken && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 gap-1.5 text-[11px] flex-shrink-0 ml-2"
-                    style={{ borderColor: "var(--accent-border)", color: "var(--accent)" }}
-                    onClick={() => setSyncManagerOpen(true)}
-                  >
-                    <RefreshCw className="h-3 w-3" />
-                    {t("settings.syncCenter")}
-                  </Button>
-                )}
+                <div className="flex gap-2">
+                  {!localFolderPath && isPro && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 gap-1.5 text-[11px] flex-shrink-0"
+                      onClick={handleSelectFolder}
+                    >
+                      <FolderOpen className="h-3 w-3" />
+                      {t("settings.selectFolder")}
+                    </Button>
+                  )}
+                  {localFolderPath && accessToken && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 gap-1.5 text-[11px] flex-shrink-0"
+                      style={{ borderColor: "var(--accent-border)", color: "var(--accent)" }}
+                      onClick={() => setSyncManagerOpen(true)}
+                    >
+                      <RefreshCw className="h-3 w-3" />
+                      {t("settings.syncCenter")}
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {localFolderPath ? (
@@ -567,14 +681,23 @@ export function SettingsPage() {
                   style={{ background: "var(--bg-tertiary)", borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
                 >
                   <span className="truncate flex-1 mr-2">{localFolderPath}</span>
-                  <button
-                    onClick={() => {
-                      useAuthStore.getState().setLocalFolderPath(null);
-                    }}
-                    className="p-1 hover:text-[var(--danger)] transition-colors"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={handleSelectFolder}
+                      className="p-1 hover:text-[var(--accent)] transition-colors"
+                      title={t("settings.changeFolder")}
+                    >
+                      <RefreshCw className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        useAuthStore.getState().setLocalFolderPath(null);
+                      }}
+                      className="p-1 hover:text-[var(--danger)] transition-colors"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <p className="text-[10px]" style={{ color: "var(--text-disabled)" }}>
@@ -599,9 +722,34 @@ export function SettingsPage() {
               <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
                 {APP_NAME}
               </p>
-              <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-                v{APP_VERSION} · Qualitative Data Analysis
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                  v{APP_VERSION} · Qualitative Data Analysis
+                </p>
+                <button
+                  onClick={async () => {
+                    const { check } = await import("@tauri-apps/plugin-updater");
+                    try {
+                      const update = await check();
+                      if (update?.available) {
+                        // The AutoUpdater component in App.tsx will pick it up if we force a re-render or similar
+                        // But for simplicity, we just notify the user it's checking
+                        const { useToastStore } = await import("@/store/toast.store");
+                        useToastStore.getState().push(t("update.ready"), "success");
+                      } else {
+                        const { useToastStore } = await import("@/store/toast.store");
+                        useToastStore.getState().push(t("update.upToDate"), "success");
+                      }
+                    } catch (e) {
+                      console.error(e);
+                    }
+                  }}
+                  className="text-[10px] underline opacity-60 hover:opacity-100 transition-opacity"
+                  style={{ color: "var(--accent)" }}
+                >
+                  {t("settings.checkUpdate")}
+                </button>
+              </div>
             </div>
           </div>
           <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>

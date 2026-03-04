@@ -22,6 +22,9 @@ import { AutoUpdater } from "@/components/AutoUpdater";
 import { useT } from "@/lib/i18n";
 import "./index.css";
 
+import { t } from "@/lib/i18n";
+import { useAppStore } from "@/store/app.store";
+
 // ─── Error Boundary ────────────────────────────────────────────────────────────
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null };
@@ -29,9 +32,10 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
   componentDidCatch(error: Error, info: ErrorInfo) { console.error("App crash:", error, info); }
   render() {
     if (this.state.error) {
+      const lang = useAppStore.getState().language;
       return (
         <div style={{ position: "fixed", inset: 0, background: "#09090b", color: "#ef4444", fontFamily: "monospace", fontSize: 12, padding: 24, overflow: "auto", zIndex: 99999 }}>
-          <p style={{ color: "#fafafa", marginBottom: 8, fontSize: 14, fontWeight: 600 }}>QualityOpen — Render Hatası</p>
+          <p style={{ color: "#fafafa", marginBottom: 8, fontSize: 14, fontWeight: 600 }}>{t("app.renderError", lang)}</p>
           <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
             {(this.state.error as Error).message}{"\n\n"}
             {(this.state.error as Error).stack}
