@@ -144,7 +144,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 //
 export function initAuthListener(): () => void {
   if (!firebaseConfigured) {
-    useAuthStore.setState({ booting: false, initialized: true, user: null, premium: null });
+    useAuthStore.setState({ booting: false, initialized: true });
     return () => { };
   }
 
