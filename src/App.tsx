@@ -19,11 +19,8 @@ import { ShortcutEngine } from "@/components/keyboard/ShortcutEngine";
 import { importFile, getFileCategory } from "@/lib/fileImport";
 import { WelcomeScreen } from "@/components/onboarding/WelcomeScreen";
 import { AutoUpdater } from "@/components/AutoUpdater";
-import { useT } from "@/lib/i18n";
+import { t, useT } from "@/lib/i18n";
 import "./index.css";
-
-import { t } from "@/lib/i18n";
-import { useAppStore } from "@/store/app.store";
 
 // ─── Error Boundary ────────────────────────────────────────────────────────────
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
