@@ -26,8 +26,8 @@ async function update() {
     const findAsset = (ext) => assets.find(a => a.name.endsWith(ext));
 
     const platforms = {
-        "darwin-x86_64": { ext: "x64.dmg.tar.gz", sigExt: "x64.dmg.tar.gz.sig" },
-        "darwin-aarch64": { ext: "aarch64.dmg.tar.gz", sigExt: "aarch64.dmg.tar.gz.sig" },
+        "darwin-x86_64": { ext: "x64.app.tar.gz", sigExt: "x64.app.tar.gz.sig" },
+        "darwin-aarch64": { ext: "aarch64.app.tar.gz", sigExt: "aarch64.app.tar.gz.sig" },
         "windows-x86_64": { ext: "x64-setup.nsis.zip", sigExt: "x64-setup.nsis.zip.sig" }
     };
 

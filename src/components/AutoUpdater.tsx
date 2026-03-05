@@ -2,18 +2,17 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { check, Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
-import { Download, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useT } from "@/lib/i18n";
 
 export function AutoUpdater() {
     const t = useT();
     const [update, setUpdate] = useState<Update | null>(null);
-    const [downloading, setDownloading] = useState(false);
+    const [step, setStep] = useState<"available" | "downloading" | "ready">("available");
     const [progress, setProgress] = useState(0); // 0 to 100
     const [dismissed, setDismissed] = useState(false);
 
     useEffect(() => {
-        // Wait a few seconds after app start to calmly check for updates
         const timer = setTimeout(() => {
             check().then((res) => {
                 if (res?.available) {
@@ -21,13 +20,18 @@ export function AutoUpdater() {
                 }
             }).catch((e) => console.error("Silently failed to check updates:", e));
         }, 3000);
-
         return () => clearTimeout(timer);
     }, []);
 
-    const handleUpdate = async () => {
+    const handleAction = async () => {
         if (!update) return;
-        setDownloading(true);
+
+        if (step === "ready") {
+            await relaunch();
+            return;
+        }
+
+        setStep("downloading");
         let contentLength = 0;
         let downloaded = 0;
 
@@ -48,11 +52,10 @@ export function AutoUpdater() {
                         break;
                 }
             });
-            await relaunch();
+            setStep("ready");
         } catch (err) {
             console.error("Update failed:", err);
-            setDownloading(false);
-            setDismissed(true); // Hide on error to not block UI
+            setDismissed(true);
         }
     };
 
@@ -61,71 +64,60 @@ export function AutoUpdater() {
     return (
         <AnimatePresence>
             <motion.div
-                initial={{ opacity: 0, y: 50, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 50, scale: 0.95 }}
+                initial={{ y: 50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 50, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                className="fixed bottom-6 right-6 z-[9999] w-80 rounded-[var(--radius-lg)] border p-4"
-                style={{
-                    background: "var(--bg-secondary)",
-                    borderColor: "var(--border)",
-                    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.75)",
-                }}
+                className="fixed bottom-6 right-6 bg-zinc-900 border border-zinc-700 p-4 rounded-xl shadow-2xl flex items-center gap-4 z-[9999]"
             >
-                <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-2.5">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/10 text-blue-400">
-                            <Download className="h-4 w-4" />
-                        </div>
-                        <h3 className="text-[13px] font-semibold tracking-wide" style={{ color: "var(--text-primary)" }}>
-                            {t("update.ready")}
-                        </h3>
-                    </div>
-                    <button
-                        onClick={() => setDismissed(true)}
-                        disabled={downloading}
-                        className="rounded-md p-1 opacity-60 transition-opacity hover:opacity-100 disabled:pointer-events-none"
-                        style={{ color: "var(--text-muted)" }}
-                        title={t("update.close")}
-                    >
-                        <X className="h-4 w-4" />
-                    </button>
+                <div className="flex flex-col min-w-[120px]">
+                    <span className="text-white text-sm font-bold">v{update.version} {t("update.available")}</span>
+                    <span className="text-zinc-400 text-xs">
+                        {step === "downloading" ? t("update.downloading") : step === "ready" ? t("update.ready") : "Bug fixes & performance boosts."}
+                    </span>
                 </div>
 
-                <p className="mb-4 text-[12px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                    <strong className="text-blue-400 font-medium">v{update.version}</strong> {t("update.available")}
-                </p>
-
-                {downloading ? (
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
-                            <span>{t("update.downloading")}</span>
-                            <span>{progress}%</span>
-                        </div>
-                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-                            <motion.div
-                                className="h-full bg-blue-500"
-                                initial={{ width: 0 }}
-                                animate={{ width: `${progress}%` }}
-                                transition={{ duration: 0.2, ease: "linear" }}
-                            />
+                {step === "downloading" ? (
+                    <div className="flex items-center gap-3">
+                        <span className="text-white text-xs font-mono">{progress}%</span>
+                        <div className="relative w-6 h-6">
+                            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                                <path
+                                    className="text-zinc-700"
+                                    strokeWidth="3"
+                                    stroke="currentColor"
+                                    fill="none"
+                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                />
+                                <path
+                                    className="text-white transition-all duration-300"
+                                    strokeDasharray={`${progress}, 100`}
+                                    strokeWidth="3"
+                                    strokeLinecap="round"
+                                    stroke="currentColor"
+                                    fill="none"
+                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                />
+                            </svg>
                         </div>
                     </div>
                 ) : (
-                    <div className="flex gap-2 font-medium">
+                    <div className="flex items-center gap-2">
                         <button
-                            onClick={() => void handleUpdate()}
-                            className="flex-1 rounded-md px-3 py-2 text-[12px] text-white transition-all bg-blue-600 hover:bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-900/20"
+                            onClick={handleAction}
+                            className={`${step === "ready" ? "bg-emerald-500 hover:bg-emerald-400 text-white" : "bg-white hover:bg-zinc-200 text-black"} px-4 py-1.5 rounded-full text-xs font-bold transition-colors shadow-sm`}
                         >
-                            {t("update.now")}
+                            {step === "ready" ? "Restart" : t("update.now")}
                         </button>
-                        <button
-                            onClick={() => setDismissed(true)}
-                            className="rounded-md px-3 py-2 text-[12px] transition-colors hover:bg-white/5"
-                            style={{ color: "var(--text-secondary)", border: "1px solid var(--border-subtle)" }}
-                        >
-                            {t("update.later")}
-                        </button>
+                        {step === "available" && (
+                            <button
+                                onClick={() => setDismissed(true)}
+                                className="p-1 rounded-full text-zinc-500 hover:text-white hover:bg-white/10 transition-colors"
+                                title={t("update.close")}
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        )}
                     </div>
                 )}
             </motion.div>
