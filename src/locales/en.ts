@@ -305,6 +305,8 @@ export const en = {
     "settings.exportDesc": "Download all projects as JSON",
     "settings.importFile": "Import from File",
     "settings.importDesc": "Load a JSON backup file",
+    "settings.exportSuccess": "Backup saved successfully.",
+    "settings.exportError": "Failed to save backup.",
     "settings.aboutDesc": "Modern, minimalist QDA tool for researchers.",
 
     "app.renderError": "QualityOpen — Render Error",

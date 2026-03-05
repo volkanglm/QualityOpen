@@ -20,25 +20,6 @@
     "core:webview:allow-create-webview",
     "core:webview:allow-webview-close",
     "core:webview:allow-get-all-webviews",
-    {
-      "identifier": "http:default",
-      "allow": [
-        {
-          "url": "https://identitytoolkit.googleapis.com/*"
-        },
-        {
-          "url": "https://securetoken.googleapis.com/*"
-        },
-        {
-          "url": "https://oauth2.googleapis.com/*"
-        },
-        {
-          "url": "https://www.googleapis.com/*"
-        },
-        {
-          "url": "https://accounts.google.com/*"
-        }
-      ]
-    }
+    "os:default"
   ]
 }

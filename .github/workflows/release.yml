@@ -56,6 +56,13 @@ jobs:
           releaseDraft: false
           prerelease: false
 
+      - name: Security Check - Verify Updater Signature
+        run: |
+          if grep -Fq "GITHUB_ACTION_CI_CI_BURADAN_SIG_DOSYASINI_OKUYUN" updater.json; then
+            echo "CRITICAL ERROR: updater.json contains placeholder signature! Failing build."
+            exit 1
+          fi
+
   update-metadata:
     needs: release
     runs-on: ubuntu-latest

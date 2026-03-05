@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { load } from "@tauri-apps/plugin-store";
 import { activateLicense as apiActivateLicense } from "@/services/lemonSqueezy";
+import { arch, platform, type, version } from '@tauri-apps/plugin-os';
 
 export type LicenseStatus = "idle" | "checking" | "active" | "inactive";
 
@@ -24,26 +25,43 @@ interface LicenseActions {
 
 type LicenseStoreType = LicenseState & LicenseActions;
 
-// Helper to get hardware/device ID. We'll use a local uuid or fallback string since Tauri 2 device ID varies
 async function getDeviceHardwareId(): Promise<string> {
-  const store = await load("qo_license.bin", { autoSave: true, defaults: {} });
-  let hwId = await store.get<string>("instanceId");
-  if (!hwId) {
-    hwId = crypto.randomUUID();
-    await store.set("instanceId", hwId);
-    await store.save();
-  }
-  return hwId;
+  const rawString = `${arch()}-${platform()}-${type()}-${version()}`;
+  const data = new TextEncoder().encode(rawString);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+
+/**
+ * Generates a HMAC-like integrity hash of the license data
+ * to detect manual editing of the JSON file.
+ */
+async function generateIntegrityHash(data: { key: string | null, verifiedAt: number | null }): Promise<string> {
+  const hwId = await getDeviceHardwareId();
+  const payload = `${data.key ?? "NONE"}|${data.verifiedAt ?? 0}|${hwId}`;
+  const encoder = new TextEncoder();
+
+  // CRIT-02: Use a dynamic secret with a frontend pepper
+  const HMAC_SECRET = "QO_CORE_PEPPER_" + hwId;
+  const keyData = encoder.encode(HMAC_SECRET);
+  const msgData = encoder.encode(payload);
+
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  const signature = await crypto.subtle.sign('HMAC', cryptoKey, msgData);
+  return Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 export const useLicenseStore = create<LicenseStoreType>()((set) => {
-  const isDev = import.meta.env.DEV;
   const getStore = () => load("qo_license.bin", { autoSave: true, defaults: {} });
 
   return {
-    status: isDev ? "active" : "idle",
-    isPro: isDev ? true : false,
-    licenseKey: isDev ? "DEV_MODE_ACTIVE" : null,
+    status: "idle",
+    isPro: false,
+    licenseKey: null,
     instanceId: null,
     lastVerifiedAt: null,
     modalOpen: false,
@@ -63,20 +81,43 @@ export const useLicenseStore = create<LicenseStoreType>()((set) => {
         const key = await store.get<string>("licenseKey");
         const instanceId = await getDeviceHardwareId();
         const lastVerifiedAt = await store.get<number>("lastVerifiedAt");
+        const storedHash = await store.get<string>("integrity");
+
+        // CRIT-01: Integrity check is MANDATORY if a key exists
+        if (key) {
+          if (!storedHash) {
+            console.error("🛑 License integrity check FAILED: hash missing!");
+            set({ status: "inactive", isPro: false, licenseKey: null, lastVerifiedAt: null });
+            await store.clear();
+            await store.save();
+            return;
+          }
+          const currentHash = await generateIntegrityHash({ key, verifiedAt: lastVerifiedAt ?? null });
+          if (storedHash !== currentHash) {
+            console.error("🛑 License integrity check FAILED: hash mismatch!");
+            set({ status: "inactive", isPro: false, licenseKey: null, lastVerifiedAt: null });
+            await store.clear();
+            await store.save();
+            return;
+          }
+        }
 
         if (key && instanceId) {
           // Attempt online verification quietly
           try {
             const res = await apiActivateLicense(key, instanceId);
             if (res.activated) {
-              await store.set("lastVerifiedAt", Date.now());
+              const now = Date.now();
+              await store.set("lastVerifiedAt", now);
+              const integrity = await generateIntegrityHash({ key, verifiedAt: now });
+              await store.set("integrity", integrity);
               await store.save();
               set({
                 status: "active",
                 isPro: true,
                 licenseKey: key,
                 instanceId,
-                lastVerifiedAt: Date.now()
+                lastVerifiedAt: now
               });
               return;
             }
@@ -113,14 +154,20 @@ export const useLicenseStore = create<LicenseStoreType>()((set) => {
       set({ error: null });
       try {
         const hwId = await getDeviceHardwareId();
-
         const res = await apiActivateLicense(key, hwId);
 
         if (res.activated && res.instance) {
           const store = await getStore();
+          const now = Date.now();
           await store.set("licenseKey", key);
           await store.set("instanceId", res.instance.id);
-          await store.set("lastVerifiedAt", Date.now());
+          await store.set("lastVerifiedAt", now);
+
+          const integrity = await generateIntegrityHash({
+            key,
+            verifiedAt: now,
+          });
+          await store.set("integrity", integrity);
           await store.save();
 
           set({
@@ -128,7 +175,7 @@ export const useLicenseStore = create<LicenseStoreType>()((set) => {
             isPro: true,
             licenseKey: key,
             instanceId: res.instance.id,
-            lastVerifiedAt: Date.now(),
+            lastVerifiedAt: now,
             error: null,
             modalOpen: false,
           });
@@ -147,6 +194,7 @@ export const useLicenseStore = create<LicenseStoreType>()((set) => {
       const store = await getStore();
       await store.delete("licenseKey");
       await store.delete("lastVerifiedAt");
+      await store.delete("integrity");
       await store.save();
       set({ status: "inactive", isPro: false, licenseKey: null, lastVerifiedAt: null });
     },
