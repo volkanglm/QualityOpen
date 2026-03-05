@@ -39,6 +39,7 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEBUG: "tauri-bundler:*"
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -58,6 +59,7 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: 'QualityOpen ${{ github.ref_name }}'
           releaseBody: 'See the assets to download and install this version.'
+          args: --verbose
           releaseDraft: false
           prerelease: false
 
