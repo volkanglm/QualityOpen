@@ -534,25 +534,7 @@ function buildCodeRows(payload: ExportPayload) {
 
 // ─── Segment-level rows (kept for Word export internals) ──────────────────────
 
-function buildSegmentRows(payload: ExportPayload) {
-  return payload.segments.map((seg) => {
-    const src = payload.documents.find((d) => d.id === seg.documentId);
-    const codeNames = payload.codes
-      .filter((c) => seg.codeIds.includes(c.id))
-      .map((c) => c.name)
-      .join("; ");
-    return {
-      "Belge": src?.name ?? "",
-      "Kod(lar)": codeNames,
-      "Metin Alıntısı": seg.text,
-      "Başlangıç": seg.start,
-      "Bitiş": seg.end,
-      "Not": seg.memo ?? "",
-      "Vurgulama": seg.isHighlight ? "Evet" : "Hayır",
-      "Oluşturulma": new Date(seg.createdAt).toLocaleDateString("tr-TR"),
-    };
-  });
-}
+
 
 function buildHierarchyRows(payload: ExportPayload) {
   return payload.codes.map((code) => {

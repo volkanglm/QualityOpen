@@ -3,8 +3,8 @@ import { AnimatePresence } from "framer-motion";
 import { Image as ImageIcon, Trash2, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import type { Document, Code } from "@/types";
 import { useProjectStore } from "@/store/project.store";
-import { useSettingsStore } from "@/store/settings.store";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { CodeAssignPanel } from "@/components/editor/CodeAssignPanel";
 
 interface ImageWorkspaceProps {
     doc: Document;
@@ -162,7 +162,7 @@ export function ImageWorkspace({ doc }: ImageWorkspaceProps) {
 
     const removeRegion = (regionId: string) => {
         // Find the segment and delete it
-        const seg = segments.find(s => s.regionId === regionId);
+        const seg = segments.find((s: any) => s.regionId === regionId);
         if (seg) deleteSegment(seg.id);
 
         // Remove from doc regions
@@ -224,8 +224,8 @@ export function ImageWorkspace({ doc }: ImageWorkspaceProps) {
                             {/* Render existing coded regions */}
                             {regions.map(r => {
                                 // Find associated code color
-                                const seg = segments.find(s => s.regionId === r.id);
-                                const code = seg ? codes.find(c => seg.codeIds.includes(c.id)) : null;
+                                const seg = segments.find((s: any) => s.regionId === r.id);
+                                const code = seg ? codes.find((c: any) => seg.codeIds.includes(c.id)) : null;
                                 const color = code?.color || "var(--accent)";
 
                                 return (
@@ -299,8 +299,8 @@ export function ImageWorkspace({ doc }: ImageWorkspaceProps) {
                     )}
 
                     {regions.map((r, i) => {
-                        const seg = segments.find(s => s.regionId === r.id);
-                        const segCodes = codes.filter((c) => seg?.codeIds.includes(c.id));
+                        const seg = segments.find((s: any) => s.regionId === r.id);
+                        const segCodes = codes.filter((c: any) => seg?.codeIds.includes(c.id));
 
                         return (
                             <div key={r.id} className="p-3 rounded-lg border bg-[var(--bg-secondary)] relative group transition-colors" style={{ borderColor: "var(--border)" }}>
@@ -308,7 +308,7 @@ export function ImageWorkspace({ doc }: ImageWorkspaceProps) {
                                     Region #{i + 1}
                                 </div>
                                 <div className="flex flex-wrap gap-1.5">
-                                    {segCodes.map(c => (
+                                    {segCodes.map((c: any) => (
                                         <span key={c.id} className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: `${c.color}15`, color: c.color, border: `1px solid ${c.color}30` }}>
                                             <span className="w-1.5 h-1.5 rounded-full" style={{ background: c.color }} />
                                             {c.name}

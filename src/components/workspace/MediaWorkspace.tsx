@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import React, { useRef, useState, useCallback, useMemo } from "react";
 import { AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, FileAudio, FileText, FileVideo, Import, Loader2, Maximize, MessageSquare, Pause, Play, Plus, Search, Tag, X } from "lucide-react";
+import { FileAudio, FileVideo, Loader2, Pause, Play, Import } from "lucide-react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import type { Document, Code } from "@/types";
 import { useProjectStore } from "@/store/project.store";
