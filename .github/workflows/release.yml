@@ -75,10 +75,11 @@ jobs:
         with:
           repository: volkanglm/QualityOpen-Releases
           tag_name: ${{ github.ref_name }}
-          name: QualityOpen ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
           files: |
             src-tauri/target/release/bundle/dmg/*.dmg
             src-tauri/target/release/bundle/nsis/*.exe
+            updater.json
         env:
           GITHUB_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
 
