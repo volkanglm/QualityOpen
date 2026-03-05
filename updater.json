@@ -1,19 +1,6 @@
 {
-    "version": "1.0.8",
-    "notes": "Performans iyileştirmeleri ve hata düzeltmeleri.",
-    "pub_date": "2026-03-04T12:00:00Z",
-    "platforms": {
-        "darwin-x86_64": {
-            "signature": "GITHUB_ACTION_CI_CI_BURADAN_SIG_DOSYASINI_OKUYUN",
-            "url": "https://github.com/volkanglm/QualityOpen/releases/download/v0.1.1/QualityOpen_0.1.1_x64.dmg.tar.gz"
-        },
-        "darwin-aarch64": {
-            "signature": "GITHUB_ACTION_CI_CI_BURADAN_SIG_DOSYASINI_OKUYUN",
-            "url": "https://github.com/volkanglm/QualityOpen/releases/download/v0.1.1/QualityOpen_0.1.1_aarch64.dmg.tar.gz"
-        },
-        "windows-x86_64": {
-            "signature": "GITHUB_ACTION_CI_CI_BURADAN_SIG_DOSYASINI_OKUYUN",
-            "url": "https://github.com/volkanglm/QualityOpen/releases/download/v0.1.1/QualityOpen_0.1.1_x64-setup.nsis.zip"
-        }
-    }
+  "version": "1.0.8",
+  "notes": "QualityOpen v1.0.8 update.",
+  "pub_date": "2026-03-05T11:30:54.077Z",
+  "platforms": {}
 }
