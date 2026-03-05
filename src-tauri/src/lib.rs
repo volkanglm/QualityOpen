@@ -179,9 +179,18 @@ async fn exchange_google_code(
         ])
         .send()
         .await
-        .map_err(|e| format!("token exchange: {e}"))?;
+        .map_err(|e| format!("token exchange (network error): {e}"))?;
 
-    let text = res.text().await.map_err(|e| format!("body: {e}"))?;
+    let status = res.status();
+    let text = res
+        .text()
+        .await
+        .map_err(|e| format!("body read error: {e}"))?;
+
+    if !status.is_success() {
+        return Err(format!("Google API Error (Status {status}): {text}"));
+    }
+
     Ok(text)
 }
 
@@ -189,16 +198,10 @@ async fn exchange_google_code(
 /// Used by the drag-and-drop file import handler (Tauri file-drop events provide paths, not File objects).
 #[tauri::command]
 fn read_file_base64(path: String) -> Result<String, String> {
-    // ── Security: path traversal guard ───────────────────────────────────────
-    // Reject any path that contains `../` or `..\` sequences so that a crafted
-    // drag-and-drop event cannot escape the intended directory.
-    if path.contains("../")
-        || path.contains("..\\")
-        || path.contains("/..")
-        || path.contains("\\..")
-    {
-        return Err("read_file_base64: path traversal not allowed".to_string());
-    }
+    // ── Security: path canonicalization guard ───────────────────────────────
+    let canonical =
+        std::fs::canonicalize(&path).map_err(|e| format!("Cannot resolve path '{path}': {e}"))?;
+    let path_str = canonical.to_string_lossy().to_string();
 
     // ── Security: file-extension allowlist ───────────────────────────────────
     // Only permit the document / media types the app legitimately imports.
@@ -208,7 +211,7 @@ fn read_file_base64(path: String) -> Result<String, String> {
         "pdf", "docx", "doc", "txt", "csv", "jpg", "jpeg", "png", "gif", "webp", "svg", "bmp",
         "mp4", "mov", "webm", "avi", "mkv",
     ];
-    let path_lower = path.to_lowercase();
+    let path_lower = path_str.to_lowercase();
     let has_allowed_ext = ALLOWED_EXTS
         .iter()
         .any(|ext| path_lower.ends_with(&format!(".{}", ext)));
@@ -220,7 +223,7 @@ fn read_file_base64(path: String) -> Result<String, String> {
         );
     }
 
-    let bytes = std::fs::read(&path).map_err(|e| format!("Failed to read \"{path}\": {e}"))?;
+    let bytes = std::fs::read(&canonical).map_err(|e| format!("Failed to read \"{path}\": {e}"))?;
     Ok(encode_base64(&bytes))
 }
 
@@ -255,7 +258,7 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_http::init())
+        .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())

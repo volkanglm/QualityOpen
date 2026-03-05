@@ -305,6 +305,8 @@ export const tr = {
     "settings.exportDesc": "Tüm proje verilerini JSON dosyası olarak indir",
     "settings.importFile": "Dosyadan İçe Aktar",
     "settings.importDesc": "JSON yedek dosyasını yükle",
+    "settings.exportSuccess": "Yedek başarıyla kaydedildi.",
+    "settings.exportError": "Yedek kaydedilirken hata oluştu.",
     "settings.aboutDesc": "Araştırmacılar ve akademisyenler için modern, minimalist nitel veri analiz aracı.",
 
     "app.renderError": "QualityOpen — Render Hatası",

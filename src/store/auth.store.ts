@@ -75,10 +75,11 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       };
       // premium from JWT — null means not yet verified (default to false to avoid paywall loops)
       const premium = import.meta.env.DEV ? true : (result.premium ?? false);
-      set({ user: profile, accessToken: result.accessToken, premium, loading: false, error: null, initialized: true });
-      // Fire-and-forget: don't let IndexedDB issues block the UI after sign-in
+      set({ user: profile, accessToken: result.accessToken, premium, loading: false, error: null, initialized: true, offlineMode: false });
+
+      // Save to cache
       void saveAuthCache({ ...profile, premium }).catch((e) =>
-        console.warn("[Auth] saveAuthCache failed (non-blocking):", e)
+        console.warn("[Auth] saveAuthCache failed:", e)
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Sign-in failed";

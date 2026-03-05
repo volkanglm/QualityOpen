@@ -312,7 +312,7 @@ export function SettingsPage() {
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const payload = {
       version: "1.0",
       exportedAt: new Date().toISOString(),
@@ -322,25 +322,47 @@ export function SettingsPage() {
       segments,
       memos,
     };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    const dateStr = new Date().toISOString().slice(0, 10);
-    a.download = `QualityOpen_backup_${dateStr}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+
+    try {
+      const { save } = await import("@tauri-apps/plugin-dialog");
+      const { writeTextFile } = await import("@tauri-apps/plugin-fs");
+      const { useToastStore } = await import("@/store/toast.store");
+
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const filePath = await save({
+        filters: [{ name: "JSON", extensions: ["json"] }],
+        defaultPath: `QualityOpen_backup_${dateStr}.json`,
+      });
+
+      if (!filePath) return;
+
+      await writeTextFile(filePath, JSON.stringify(payload, null, 2));
+      useToastStore.getState().push(t("settings.exportSuccess"), "success");
+    } catch (err) {
+      console.error("Export failed:", err);
+      const { useToastStore } = await import("@/store/toast.store");
+      useToastStore.getState().push(t("settings.exportError"), "error");
+    }
   };
 
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
+      const { z } = await import("zod");
       const text = await file.text();
-      const payload = JSON.parse(text);
-      if (!payload.projects || !payload.documents || !payload.codes) {
-        throw new Error("Geçersiz yedek dosyası");
-      }
+      const raw = JSON.parse(text);
+
+      const schema = z.object({
+        projects: z.array(z.any()),
+        documents: z.array(z.any()),
+        codes: z.array(z.any()),
+        segments: z.array(z.any()).optional(),
+        memos: z.array(z.any()).optional(),
+      });
+
+      const payload = schema.parse(raw);
+
       importBackup({
         projects: payload.projects,
         documents: payload.documents,
@@ -350,7 +372,8 @@ export function SettingsPage() {
       });
       setImportStatus("success");
       setTimeout(() => setImportStatus("idle"), 3000);
-    } catch {
+    } catch (err) {
+      console.error("Import validation failed:", err);
       setImportStatus("error");
       setTimeout(() => setImportStatus("idle"), 3000);
     }

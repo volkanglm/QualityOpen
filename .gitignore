@@ -28,3 +28,4 @@ dist-ssr
 ignore/
 Rakipler/
 sos.md
+*.log
