@@ -20,6 +20,14 @@
     "core:webview:allow-create-webview",
     "core:webview:allow-webview-close",
     "core:webview:allow-get-all-webviews",
-    "os:default"
+    "os:default",
+    {
+      "identifier": "http:default",
+      "allow": [
+        {
+          "url": "https://api.lemonsqueezy.com/*"
+        }
+      ]
+    }
   ]
 }
