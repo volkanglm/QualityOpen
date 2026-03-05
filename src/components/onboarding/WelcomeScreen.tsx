@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Plus, FolderOpen, Keyboard, BookOpen } from "lucide-react";
+import { AppLogo } from "@/components/ui/AppLogo";
 import { Button } from "@/components/ui/Button";
 import { useT } from "@/lib/i18n";
 import { useAppStore } from "@/store/app.store";
@@ -37,8 +38,8 @@ export function WelcomeScreen({ onNewProject, onOpenProject }: WelcomeScreenProp
                 className="relative z-10 w-full max-w-md px-8 pt-12 pb-16 text-center border border-white/5 bg-white/5 backdrop-blur-xl rounded-[32px] shadow-2xl"
             >
                 {/* Logo Icon */}
-                <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 shadow-lg shadow-blue-900/20">
-                    <div className="text-3xl font-bold text-white tracking-tighter italic">QO</div>
+                <div className="mx-auto mb-8 flex items-center justify-center">
+                    <AppLogo size={80} variant="badge" />
                 </div>
 
                 <h1 className="mb-3 text-3xl font-semibold tracking-tight text-white">
