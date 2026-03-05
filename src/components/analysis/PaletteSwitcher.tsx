@@ -56,7 +56,7 @@ export function PaletteSwitcher() {
                     ))}
                 </div>
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)] hidden sm:inline">
-                    {t(PALETTE_NAME_KEYS[activePalette.id] ?? activePalette.id)}
+                    {t((PALETTE_NAME_KEYS[activePalette.id] ?? activePalette.id) as any)}
                 </span>
                 <ChevronDown className={cn("h-3.5 w-3.5 opacity-50 transition-transform", open && "rotate-180")} />
             </button>
@@ -95,7 +95,7 @@ export function PaletteSwitcher() {
                                             "text-[11px] font-medium transition-colors",
                                             activePaletteId === p.id ? "text-[var(--accent)]" : "text-[var(--text-primary)]"
                                         )}>
-                                            {t(PALETTE_NAME_KEYS[p.id] ?? p.id)}
+                                            {t((PALETTE_NAME_KEYS[p.id] ?? p.id) as any)}
                                         </span>
                                         <div className="flex gap-0.5">
                                             {p.colors.map((c, i) => (

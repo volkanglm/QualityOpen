@@ -768,7 +768,7 @@ export function CenterPanel() {
 
       {/* ── Content area ── */}
       <div className="flex-1 flex overflow-hidden relative">
-        {doc.type === "video" || doc.type === "audio" || format === "video" || doc.mediaType === "audio" || doc.mediaType === "video" ? (
+        {doc.type === "video" || format === "video" || doc.mediaType === "audio" || doc.mediaType === "video" ? (
           <MediaWorkspace doc={doc} />
         ) : doc.type === "image" || format === "image" || doc.mediaType === "image" ? (
           <ImageWorkspace doc={doc} />

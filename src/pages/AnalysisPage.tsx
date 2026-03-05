@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import {
   LayoutGrid,
@@ -25,7 +25,7 @@ import React from "react";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
 import { useT } from "@/lib/i18n";
-import { Button } from "@/components/ui/Button";
+
 import { cn } from "@/lib/utils";
 
 import { PaletteSwitcher } from "@/components/analysis/PaletteSwitcher";
