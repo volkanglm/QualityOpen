@@ -13,7 +13,7 @@ async function update() {
     const pkg = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
     const version = pkg.version;
     const tag = `v${version}`;
-    const repo = "volkanglm/QualityOpen";
+    const repo = "volkanglm/QualityOpen-Releases";
 
     console.log(`Detected version: ${version} (${tag})`);
 
