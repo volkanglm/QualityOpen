@@ -79,36 +79,49 @@ export async function askAi(
       return data.content?.[0]?.text ?? "";
 
     } else if (provider === "gemini") {
-      const res = await nativeHttp(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            system_instruction: { parts: [{ text: systemPrompt }] },
-            contents: messages.map((m) => ({
-              role: m.role === "user" ? "user" : "model",
-              parts: [{ text: m.content }],
-            })),
-          }),
-        }
-      );
+      const maxRetries = 3;
+      let currentRetry = retryCount;
+      let res;
 
-      if (res.status === 429 && retryCount < 1) {
-        await new Promise(r => setTimeout(r, 2000));
-        return askAi(key, messages, systemPrompt, retryCount + 1);
+      while (currentRetry <= maxRetries) {
+        res = await nativeHttp(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              system_instruction: { parts: [{ text: systemPrompt }] },
+              contents: messages.map((m) => ({
+                role: m.role === "user" ? "user" : "model",
+                parts: [{ text: m.content }],
+              })),
+            }),
+          }
+        );
+
+        if (res.status === 429 && currentRetry < maxRetries) {
+          const delay = 3000 * Math.pow(2, currentRetry);
+          console.warn(`Gemini 429 received. Retrying in ${delay}ms (Attempt ${currentRetry + 1}/${maxRetries})...`);
+          await new Promise(r => setTimeout(r, delay));
+          currentRetry++;
+          continue;
+        }
+        break;
       }
+
+      if (!res) throw new Error("Gemini API request failed to initiate.");
 
       if (res.status < 200 || res.status >= 300) {
         try {
           const errData = JSON.parse(res.body);
           if (res.status === 429) {
             const lang = useAppStore.getState().language;
-            throw new Error(`${t("ai.error.quotaExceeded", lang)} (${errData.error?.message || ""})`);
+            throw new Error(`${t("ai.error.quotaExceeded", lang)} (API Quota Exceeded. Please check your Google AI Studio billing/limits.)`);
           }
           const lang = useAppStore.getState().language;
           throw new Error(`${t("ai.error.gemini", lang)} (HTTP ${res.status}): ${errData.error?.message || ""}`);
-        } catch (e) {
+        } catch (e: any) {
+          if (e.message?.includes("Quota")) throw e;
           const lang = useAppStore.getState().language;
           throw new Error(`${t("ai.error.gemini", lang)} (HTTP ${res.status})`);
         }
