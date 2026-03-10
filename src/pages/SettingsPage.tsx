@@ -220,8 +220,12 @@ function CheckUpdateButton() {
       } else {
         useToastStore.getState().push(t("update.upToDate"), "success");
       }
-    } catch {
-      // Silently fail — updater may not be configured in dev
+    } catch (e: unknown) {
+      if (!import.meta.env.DEV) {
+        const { useToastStore } = await import("@/store/toast.store");
+        const msg = e instanceof Error ? e.message : String(e);
+        useToastStore.getState().push(`Update check failed: ${msg}`, "error");
+      }
     } finally {
       setChecking(false);
     }
