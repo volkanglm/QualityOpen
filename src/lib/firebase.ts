@@ -313,7 +313,7 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
       error_description?: string;
     };
     if (tokens.error) {
-      console.error("[OAuth] Token exchange error response:", tokenText);
+      console.error("[OAuth] Token exchange error:", tokens.error, tokens.error_description);
       throw new Error(tokens.error_description ?? tokens.error);
     }
     if (!tokens.id_token) throw new Error("No id_token in token response");

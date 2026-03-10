@@ -126,8 +126,8 @@ export const useLicenseStore = create<LicenseStoreType>()((set) => {
           }
 
           // Fallback to offline verification
-          const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-          if (lastVerifiedAt && Date.now() - lastVerifiedAt < THIRTY_DAYS_MS) {
+          const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+          if (lastVerifiedAt && Date.now() - lastVerifiedAt < SEVEN_DAYS_MS) {
             console.log("Offline Pro mode activated based on recent verification.");
             set({
               status: "active",
