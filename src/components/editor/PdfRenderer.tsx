@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ZoomIn, ZoomOut, ScanLine, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import type { Segment, Code } from "@/types";
 
 interface PdfRendererProps {
   /** base64-encoded PDF data */
@@ -10,9 +11,13 @@ interface PdfRendererProps {
   onOcrComplete?: (text: string) => void;
   /** Called when all pages are loaded/text extracted to report total text length */
   onLoadComplete?: (totalLength: number) => void;
+  /** Segments to highlight on the PDF */
+  segments?: Segment[];
+  /** Codes for segment colors */
+  codes?: Code[];
 }
 
-export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, onLoadComplete }: PdfRendererProps) {
+export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, onLoadComplete, segments, codes }: PdfRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [totalPages, setTotalPages] = useState(0);
   const [scale, setScale] = useState(1.2);
@@ -21,7 +26,7 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
   const [hasTextLayer, setHasTextLayer] = useState(true);
   const [ocrStatus, setOcrStatus] = useState<"idle" | "running" | "done" | "error">("idle");
   const [ocrProgress, setOcrProgress] = useState(0);
-  const [pagesData, setPagesData] = useState<{ id: number; text: string }[]>([]);
+  const [pagesData, setPagesData] = useState<{ id: number; text: string; startOffset: number }[]>([]);
 
   // pdfjs stored in ref
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -60,7 +65,7 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
         setTotalPages(pdf.numPages);
 
         // Extract text from all pages for global offset sync
-        const extractedPages: { id: number; text: string }[] = [];
+        const extractedPages: { id: number; text: string; startOffset: number }[] = [];
         let totalLen = 0;
         let anyText = false;
 
@@ -69,7 +74,7 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
           const textContent = await page.getTextContent();
           const pageText = textContent.items.map((it: any) => it.str).join(" ");
           if (pageText.trim()) anyText = true;
-          extractedPages.push({ id: i, text: pageText });
+          extractedPages.push({ id: i, text: pageText, startOffset: totalLen });
           totalLen += pageText.length + 1; // +1 for newline/space between pages
         }
 
@@ -223,6 +228,9 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
             pdf={pdfDocRef.current}
             pageNumber={pageData.id}
             scale={scale}
+            pageStartOffset={pageData.startOffset}
+            segments={segments}
+            codes={codes}
           />
         ))}
       </div>
@@ -231,7 +239,21 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
 });
 
 /** Individual Page Component */
-const PdfPage = memo(function PdfPage({ pdf, pageNumber, scale }: { pdf: any; pageNumber: number; scale: number }) {
+const PdfPage = memo(function PdfPage({
+  pdf,
+  pageNumber,
+  scale,
+  pageStartOffset = 0,
+  segments,
+  codes,
+}: {
+  pdf: any;
+  pageNumber: number;
+  scale: number;
+  pageStartOffset?: number;
+  segments?: Segment[];
+  codes?: Code[];
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
   const [rendered, setRendered] = useState(false);
@@ -261,12 +283,18 @@ const PdfPage = memo(function PdfPage({ pdf, pageNumber, scale }: { pdf: any; pa
       const textContent = await page.getTextContent();
       if (cancelled) return;
 
+      // Build spans with character offset attributes for selection → segment mapping
+      let charOffset = pageStartOffset;
       for (const item of textContent.items) {
         const ti = item as any;
         if (!ti.str) continue;
         const tx = ti.transform;
         const span = document.createElement("span");
         span.textContent = ti.str;
+        // Track character positions so we can map selections ↔ segments
+        span.dataset.charStart = String(charOffset);
+        span.dataset.charEnd = String(charOffset + ti.str.length);
+        charOffset += ti.str.length + 1; // +1 matches the " " separator used during extraction
         span.style.position = "absolute";
         span.style.left = `${tx[4]}px`;
         span.style.top = `${viewport.height - tx[5] - ti.height}px`;
@@ -276,13 +304,20 @@ const PdfPage = memo(function PdfPage({ pdf, pageNumber, scale }: { pdf: any; pa
         span.style.whiteSpace = "pre";
         span.style.lineHeight = "1";
         span.style.transformOrigin = "0% 0%";
+        span.style.borderRadius = "2px";
         textLayer.appendChild(span);
       }
       setRendered(true);
     }
     render();
     return () => { cancelled = true; };
-  }, [pdf, pageNumber, scale]);
+  }, [pdf, pageNumber, scale, pageStartOffset]);
+
+  // Apply highlight backgrounds whenever segments/codes change
+  useEffect(() => {
+    if (!rendered || !textLayerRef.current) return;
+    applyPdfHighlights(textLayerRef.current, segments ?? [], codes ?? []);
+  }, [rendered, segments, codes]);
 
   return (
     <div className="relative shadow-xl mx-auto border transition-opacity duration-500"
@@ -294,6 +329,7 @@ const PdfPage = memo(function PdfPage({ pdf, pageNumber, scale }: { pdf: any; pa
       <canvas ref={canvasRef} style={{ display: "block" }} />
       <div
         ref={textLayerRef}
+        data-pdf-text-layer="true"
         className="absolute inset-0 overflow-hidden"
         style={{
           userSelect: "text",
@@ -305,6 +341,38 @@ const PdfPage = memo(function PdfPage({ pdf, pageNumber, scale }: { pdf: any; pa
     </div>
   );
 });
+
+// ─── Helper: Apply highlight backgrounds to PDF text layer spans ──────────────
+function applyPdfHighlights(textLayer: HTMLDivElement, segments: Segment[], codes: Code[]) {
+  const spans = textLayer.querySelectorAll<HTMLElement>("span[data-char-start]");
+  // Reset all highlights first
+  for (const span of spans) {
+    span.style.backgroundColor = "";
+    span.style.borderBottom = "";
+  }
+  if (!segments.length) return;
+
+  for (const span of spans) {
+    const spanStart = parseInt(span.dataset.charStart ?? "0", 10);
+    const spanEnd = parseInt(span.dataset.charEnd ?? "0", 10);
+
+    for (const seg of segments) {
+      if (seg.end <= spanStart || seg.start >= spanEnd) continue; // no overlap
+
+      // Determine color: code color > highlight color > default yellow
+      let color = seg.highlightColor ?? "#fcd34d";
+      if (seg.codeIds?.length > 0) {
+        const code = codes.find((c) => c.id === seg.codeIds[0]);
+        if (code?.color) color = code.color;
+      }
+
+      // Semi-transparent background overlay (canvas renders the actual text beneath)
+      span.style.backgroundColor = `${color}55`;
+      span.style.borderBottom = `2px solid ${color}`;
+      break; // first matching segment wins for overlapping cases
+    }
+  }
+}
 
 // ─── Helper: Load Tesseract.js ───────────────────────────────────────────────
 async function loadTesseract() {

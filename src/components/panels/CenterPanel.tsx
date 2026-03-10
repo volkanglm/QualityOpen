@@ -211,7 +211,10 @@ export function CenterPanel() {
     if (!text) { setFloatPos(null); setActiveSelection(null); return; }
 
     const rect = range.getBoundingClientRect();
-    const { start, end } = getOffsets(range, readerRef.current);
+    // For PDFs use span data attributes; for text/HTML use DOM traversal
+    const { start, end } = format === "pdf"
+      ? getPdfOffsets(range)
+      : getOffsets(range, readerRef.current);
 
     setFloatPos({
       centerX: rect.left + rect.width / 2,
@@ -221,8 +224,6 @@ export function CenterPanel() {
       end,
     });
 
-    // Optimization: Don't set global selection state on every tiny change
-    // if it's already the same or if we are in PDF mode to avoid reset.
     if (doc) setActiveSelection({ text, start, end, documentId: doc.id });
   }, [editMode, doc, setActiveSelection, ctxMenu, format]);
 
@@ -237,7 +238,9 @@ export function CenterPanel() {
     setFloatPos(null);  // hide floating menu
 
     const range = sel!.getRangeAt(0);
-    const { start, end } = getOffsets(range, readerRef.current);
+    const { start, end } = format === "pdf"
+      ? getPdfOffsets(range)
+      : getOffsets(range, readerRef.current);
     setCtxMenu({
       x: e.clientX,
       y: e.clientY,
@@ -841,6 +844,8 @@ export function CenterPanel() {
                             base64={doc.content}
                             onLoadComplete={handlePdfLoadComplete}
                             onOcrComplete={handleOcrComplete}
+                            segments={docSegments}
+                            codes={projectCodes}
                           />
                         </div>
                       ) : (
@@ -1459,6 +1464,26 @@ function getOffsets(range: Range, container: HTMLElement | null): { start: numbe
     const start = pre.toString().length;
     const end = start + range.toString().length;
     return { start, end };
+  } catch {
+    return { start: 0, end: 0 };
+  }
+}
+
+/** For PDF format: read character offsets from data-char-start/end attributes on text layer spans */
+function getPdfOffsets(range: Range): { start: number; end: number } {
+  function resolveOffset(node: Node, localOffset: number): number {
+    // Walk up to find the nearest span with data-char-start
+    let el: Element | null = node.nodeType === Node.TEXT_NODE ? node.parentElement : node as Element;
+    while (el && !el.hasAttribute("data-char-start")) {
+      el = el.parentElement;
+    }
+    if (!el) return 0;
+    return parseInt(el.getAttribute("data-char-start") ?? "0", 10) + localOffset;
+  }
+  try {
+    const start = resolveOffset(range.startContainer, range.startOffset);
+    const end = resolveOffset(range.endContainer, range.endOffset);
+    return { start: Math.min(start, end), end: Math.max(start, end) };
   } catch {
     return { start: 0, end: 0 };
   }
