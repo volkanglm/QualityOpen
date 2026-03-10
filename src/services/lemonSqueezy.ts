@@ -56,18 +56,20 @@ export async function activateLicense(
                 meta: data.meta,
             };
         } else {
+            console.error("License activation failed:", data);
             return {
                 activated: false,
                 instance: null,
-                error: data.error || "Aktivasyon başarısız",
+                error: data.error || "Aktivasyon başarısız (Geçersiz anahtar veya limit aşımı)",
                 meta: null,
             };
         }
     } catch (error: any) {
+        console.error("Activation error detail:", error);
         return {
             activated: false,
             instance: null,
-            error: error.message || "Ağ hatası",
+            error: error.message || "Ağ hatası veya sunucu yanıt vermedi.",
             meta: null,
         };
     }
