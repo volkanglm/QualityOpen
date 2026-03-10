@@ -13,6 +13,7 @@ import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
 import { useAuthStore, initAuthListener, initNetworkWatcher } from "@/store/auth.store";
 import { useLicenseStore } from "@/store/license.store";
+import { useSettingsStore } from "@/store/settings.store";
 import { LicenseModal } from "@/components/modals/LicenseModal";
 import { AppLogo } from "@/components/ui/AppLogo";
 import { useSyncStore } from "@/store/sync.store";
@@ -107,6 +108,9 @@ export default function App() {
   useEffect(() => {
     let unsubAuth: () => void = () => { };
     let unsubNetwork: () => void = () => { };
+    // Load API keys from OS keychain (async, non-blocking)
+    useSettingsStore.getState().loadKeys();
+
     try {
       useLicenseStore.getState().checkLicense();
       unsubAuth = initAuthListener();
