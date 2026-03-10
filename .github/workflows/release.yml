@@ -40,7 +40,9 @@ jobs:
       - name: Setup Apple API Key for Notarization
         if: runner.os == 'macOS'
         run: |
-          echo "${{ secrets.APPLE_API_KEY_CONTENT }}" > ${{ runner.temp }}/AuthKey.p8
+          cat << 'EOF' > ${{ runner.temp }}/AuthKey.p8
+          ${{ secrets.APPLE_API_KEY_CONTENT }}
+          EOF
 
       - name: Build and Release Tauri app
         uses: tauri-apps/tauri-action@v0
