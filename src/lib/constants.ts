@@ -15,7 +15,7 @@ export const CODE_COLORS = [
 ] as const;
 
 export const APP_NAME = "QualityOpen";
-export const APP_VERSION = "1.1.12";
+export const APP_VERSION = "1.1.21";
 
 export const NAV_ITEMS = [
   { id: "documents", label: "Documents", icon: "FileText" },
