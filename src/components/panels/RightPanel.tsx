@@ -647,29 +647,29 @@ export function RightPanel() {
       <div className="flex items-center border-b flex-shrink-0"
         style={{ borderColor: "var(--border-subtle)" }}>
         <button
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-widest transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-widest transition-colors min-w-0"
           style={{
             color: activeTab === "codes" ? "var(--accent)" : "var(--text-muted)",
             borderBottom: activeTab === "codes" ? "2px solid var(--accent)" : "2px solid transparent",
           }}
           onClick={() => setActiveTab("codes")}
         >
-          <Tag className="h-3.5 w-3.5" />
-          {t("right.tabs.codes")}
+          <Tag className="h-3.5 w-3.5 flex-shrink-0" />
+          <span className="truncate">{t("right.tabs.codes")}</span>
         </button>
         <button
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-widest transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-widest transition-colors min-w-0"
           style={{
             color: activeTab === "info" ? "var(--accent)" : "var(--text-muted)",
             borderBottom: activeTab === "info" ? "2px solid var(--accent)" : "2px solid transparent",
           }}
           onClick={() => setActiveTab("info")}
         >
-          <Info className="h-3.5 w-3.5" />
-          {t("right.tabs.info")}
+          <Info className="h-3.5 w-3.5 flex-shrink-0" />
+          <span className="truncate">{t("right.tabs.info")}</span>
         </button>
         {activeTab === "codes" && (
-          <div className="flex items-center gap-1 mr-2 no-export">
+          <div className="flex items-center gap-1 mr-2 flex-shrink-0 no-export">
             <div className="relative group/code-export">
               <Button size="icon" variant="ghost" className="h-6 w-6">
                 <Download className="h-3.5 w-3.5" />
@@ -729,7 +729,9 @@ export function RightPanel() {
                   {t("right.selectProject")}
                 </p>
               ) : flatCodes.length === 0 ? (
-                <EmptyCodeState />
+                <div className="flex h-full items-center justify-center">
+                  <EmptyCodeState />
+                </div>
               ) : (
                 <DndContext
                   sensors={sensors}

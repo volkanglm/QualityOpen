@@ -467,4 +467,16 @@ export const tr = {
     "palette.grayscale": "Gri Tonları",
     "palette.midnight": "Gece Yarısı",
     "palette.highContrast": "Yüksek Kontrast",
+    
+    // ── Database View ───────────────────────────────────────────────────────────
+    "db.title": "Belge Veritabanı",
+    "db.stats": "Toplam {docCount} belge, {propCount} özel özellik",
+    "db.download": "İndir",
+    "db.downloadTooltip": "CSV olarak indir",
+    "db.colName": "Belge Adı",
+    "db.colType": "Tür",
+    "db.colWords": "Kelime",
+    "db.empty": "Veritabanı Boş",
+    "db.emptyHint": "Tabloyu görmek için yeni bir belge ekleyin.",
+    "db.downloadSuccess": "Veritabanı İndirildi",
 };
