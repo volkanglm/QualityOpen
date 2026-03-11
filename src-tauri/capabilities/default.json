@@ -24,6 +24,7 @@
     "os:default",
     "store:default",
     "process:default",
+    "process:allow-restart",
     {
       "identifier": "http:default",
       "allow": [
