@@ -91,7 +91,17 @@ export function ContextCodeMenu({
           autoFocus={!creating}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") onClose();
+            if (e.key === "Enter" && query.trim()) {
+              if (filtered.length > 0) {
+                onSelect(filtered[0]);
+              } else {
+                onCreate(query.trim());
+              }
+              onClose();
+            }
+          }}
           placeholder="Kod ara…"
           className="w-full h-6 px-2 text-[12px] rounded-[var(--radius-xs)] outline-none border"
           style={{
@@ -174,7 +184,7 @@ export function ContextCodeMenu({
           </div>
         ) : (
           <button
-            onClick={() => { setCreating(true); setQuery(""); }}
+            onClick={() => { setCreating(true); setNewName(query); setQuery(""); }}
             className="w-full flex items-center gap-2 px-1 py-1 text-left rounded-[var(--radius-xs)] transition-colors"
             style={{ color: "var(--text-muted)" }}
             onMouseEnter={(e) =>

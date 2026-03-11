@@ -81,8 +81,10 @@ async function update() {
         }
 
         if (Object.keys(updater.platforms).length === 0) {
-            console.error('❌ No platform assets found — updater.json will have empty platforms.');
-            console.error('   Make sure TAURI_SIGNING_PRIVATE_KEY is set and builds completed.');
+            console.error('❌ CRITICAL ERROR: No platform assets found — updater.json will have empty platforms.');
+            console.error('   Make sure TAURI_SIGNING_PRIVATE_KEY is correctly set as a repository secret.');
+            console.error('   Tauri requires signing keys to generate .sig signature files. The build cannot proceed.');
+            process.exit(1);
         }
 
         fs.writeFileSync(path.join(__dirname, '../updater.json'), JSON.stringify(updater, null, 2));
