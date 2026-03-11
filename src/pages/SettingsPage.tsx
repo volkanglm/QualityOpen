@@ -9,6 +9,7 @@ import { useProjectStore } from "@/store/project.store";
 import { useAuthStore } from "@/store/auth.store";
 import { useSettingsStore, type DefaultProvider } from "@/store/settings.store";
 import { useLicenseStore } from "@/store/license.store";
+import { useUpdateStore } from "@/store/update.store";
 import { Button } from "@/components/ui/Button";
 import { useT } from "@/lib/i18n";
 import { SyncManager } from "@/components/sync/SyncManager";
@@ -205,30 +206,13 @@ function SegmentedControl<T extends string>({
 // ─── Check Update Button ──────────────────────────────────────────────────────
 
 function CheckUpdateButton() {
-  const [checking, setChecking] = useState(false);
+  const { step, checkForUpdates } = useUpdateStore();
   const t = useT();
+  const checking = step === "checking";
 
   const handleCheck = async () => {
     if (checking) return;
-    setChecking(true);
-    try {
-      const { check } = await import("@tauri-apps/plugin-updater");
-      const { useToastStore } = await import("@/store/toast.store");
-      const update = await check();
-      if (update?.available) {
-        useToastStore.getState().push(t("update.ready"), "success");
-      } else {
-        useToastStore.getState().push(t("update.upToDate"), "success");
-      }
-    } catch (e: unknown) {
-      if (!import.meta.env.DEV) {
-        const { useToastStore } = await import("@/store/toast.store");
-        const msg = e instanceof Error ? e.message : String(e);
-        useToastStore.getState().push(`Update check failed: ${msg}`, "error");
-      }
-    } finally {
-      setChecking(false);
-    }
+    await checkForUpdates(true);
   };
 
   return (

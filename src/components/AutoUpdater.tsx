@@ -1,24 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { check, Update } from "@tauri-apps/plugin-updater";
-import { relaunch } from "@tauri-apps/plugin-process";
+import { useUpdateStore } from "@/store/update.store";
 import { X } from "lucide-react";
 import { useT } from "@/lib/i18n";
 
 export function AutoUpdater() {
     const t = useT();
-    const [update, setUpdate] = useState<Update | null>(null);
-    const [step, setStep] = useState<"available" | "downloading" | "ready">("available");
-    const [progress, setProgress] = useState(0); // 0 to 100
-    const [dismissed, setDismissed] = useState(false);
+    const { update, step, progress, dismissed, checkForUpdates, downloadAndInstall, restart, setDismissed } = useUpdateStore();
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            check().then((res) => {
-                if (res?.available) {
-                    setUpdate(res);
-                }
-            }).catch((e) => console.error("Silently failed to check updates:", e));
+            checkForUpdates();
         }, 3000);
         return () => clearTimeout(timer);
     }, []);
@@ -27,39 +19,14 @@ export function AutoUpdater() {
         if (!update) return;
 
         if (step === "ready") {
-            await relaunch();
+            await restart();
             return;
         }
 
-        setStep("downloading");
-        let contentLength = 0;
-        let downloaded = 0;
-
-        try {
-            await update.downloadAndInstall((e) => {
-                switch (e.event) {
-                    case "Started":
-                        contentLength = e.data.contentLength ?? 0;
-                        break;
-                    case "Progress":
-                        downloaded += e.data.chunkLength;
-                        if (contentLength > 0) {
-                            setProgress(Math.round((downloaded / contentLength) * 100));
-                        }
-                        break;
-                    case "Finished":
-                        setProgress(100);
-                        break;
-                }
-            });
-            setStep("ready");
-        } catch (err) {
-            console.error("Update failed:", err);
-            setDismissed(true);
-        }
+        await downloadAndInstall();
     };
 
-    if (!update || dismissed) return null;
+    if ((step === "idle" || step === "checking") || dismissed) return null;
 
     return (
         <AnimatePresence>
@@ -71,7 +38,7 @@ export function AutoUpdater() {
                 className="fixed bottom-6 right-6 bg-zinc-900 border border-zinc-700 p-4 rounded-xl shadow-2xl flex items-center gap-4 z-[9999]"
             >
                 <div className="flex flex-col min-w-[120px]">
-                    <span className="text-white text-sm font-bold">v{update.version} {t("update.available")}</span>
+                    <span className="text-white text-sm font-bold">v{update?.version} {t("update.available")}</span>
                     <span className="text-zinc-400 text-xs">
                         {step === "downloading" ? t("update.downloading") : step === "ready" ? t("update.ready") : "Bug fixes & performance boosts."}
                     </span>
