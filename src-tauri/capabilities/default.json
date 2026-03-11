@@ -23,6 +23,7 @@
     "core:webview:allow-get-all-webviews",
     "os:default",
     "store:default",
+    "process:default",
     {
       "identifier": "http:default",
       "allow": [
