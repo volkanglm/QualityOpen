@@ -1,6 +1,9 @@
 import { create } from "zustand";
 import { load } from "@tauri-apps/plugin-store";
-import { activateLicense as apiActivateLicense } from "@/services/lemonSqueezy";
+import { 
+  activateLicense as apiActivateLicense,
+  deactivateLicense as apiDeactivateLicense
+} from "@/services/lemonSqueezy";
 import { arch, platform, type, version } from '@tauri-apps/plugin-os';
 
 export type LicenseStatus = "idle" | "checking" | "active" | "inactive";
@@ -20,7 +23,7 @@ interface LicenseActions {
   activateLicense: (key: string) => Promise<{ success: boolean; error?: string }>;
   openModal: () => void;
   closeModal: () => void;
-  deactivateLicense: () => Promise<void>;
+  deactivateLicense: () => Promise<{ success: boolean; error?: string }>;
 }
 
 type LicenseStoreType = LicenseState & LicenseActions;
@@ -191,12 +194,38 @@ export const useLicenseStore = create<LicenseStoreType>()((set) => {
     },
 
     deactivateLicense: async () => {
-      const store = await getStore();
-      await store.delete("licenseKey");
-      await store.delete("lastVerifiedAt");
-      await store.delete("integrity");
-      await store.save();
-      set({ status: "inactive", isPro: false, licenseKey: null, lastVerifiedAt: null });
+      const { licenseKey, instanceId } = useLicenseStore.getState();
+      
+      // If no key or instance, just clear local (shouldn't happen if PRO is active)
+      if (!licenseKey || !instanceId) {
+        const store = await getStore();
+        await store.delete("licenseKey");
+        await store.delete("instanceId");
+        await store.delete("lastVerifiedAt");
+        await store.delete("integrity");
+        await store.save();
+        set({ status: "inactive", isPro: false, licenseKey: null, instanceId: null, lastVerifiedAt: null });
+        return { success: true };
+      }
+
+      try {
+        const res = await apiDeactivateLicense(licenseKey, instanceId);
+        
+        if (res.success) {
+          const store = await getStore();
+          await store.delete("licenseKey");
+          await store.delete("instanceId");
+          await store.delete("lastVerifiedAt");
+          await store.delete("integrity");
+          await store.save();
+          set({ status: "inactive", isPro: false, licenseKey: null, instanceId: null, lastVerifiedAt: null });
+          return { success: true };
+        } else {
+          return { success: false, error: res.error || "Deaktivasyon işlemi başarısız oldu." };
+        }
+      } catch (err: any) {
+        return { success: false, error: err.message || "Bilinmeyen bir hata oluştu." };
+      }
     },
 
     openModal: () => set({ modalOpen: true }),

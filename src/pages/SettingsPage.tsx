@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, type Variants } from "framer-motion";
 import { Settings, Key, Eye, EyeOff, Check, Trash2, Info, Cpu, Globe, Download, Upload, Database, RefreshCw } from "lucide-react";
 import { AppLogo } from "@/components/ui/AppLogo";
-import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import { open as openDialog, ask } from "@tauri-apps/plugin-dialog";
 import { APP_NAME, APP_VERSION } from "@/lib/constants";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
@@ -292,6 +292,7 @@ export function SettingsPage() {
   const [syncManagerOpen, setSyncManagerOpen] = useState(false);
   const [draftLicense, setDraftLicense] = useState("");
   const [licenseLoading, setLicenseLoading] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
 
   const handleSelectFolder = async () => {
     try {
@@ -322,6 +323,26 @@ export function SettingsPage() {
     } else {
       const { useToastStore } = await import("@/store/toast.store");
       useToastStore.getState().push(result.error || t("license.invalidKey"), "error");
+    }
+  };
+
+  const handleDeactivateLicense = async () => {
+    const confirm = await ask(t("settings.deactivateConfirm"), {
+      title: t("settings.deactivate"),
+      kind: "warning",
+    });
+
+    if (!confirm) return;
+
+    setDeactivating(true);
+    const result = await deactivateLicense();
+    setDeactivating(false);
+
+    const { useToastStore } = await import("@/store/toast.store");
+    if (result.success) {
+      useToastStore.getState().push(t("settings.deactivateSuccess"), "success");
+    } else {
+      useToastStore.getState().push(result.error || t("settings.deactivateError"), "error");
     }
   };
 
@@ -634,8 +655,14 @@ export function SettingsPage() {
                   </p>
                 </div>
                 {licenseKey && (
-                  <Button size="sm" variant="outline" className="h-8 text-[11px] text-[var(--danger)] border-[var(--danger)]/30 hover:bg-[var(--danger)]/10" onClick={() => deactivateLicense()}>
-                    {t("settings.deactivate")}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-[11px] text-[var(--danger)] border-[var(--danger)]/30 hover:bg-[var(--danger)]/10"
+                    onClick={handleDeactivateLicense}
+                    disabled={deactivating}
+                  >
+                    {deactivating ? t("settings.deactivating") : t("settings.deactivate")}
                   </Button>
                 )}
               </div>
