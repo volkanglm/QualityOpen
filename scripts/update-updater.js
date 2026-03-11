@@ -16,15 +16,16 @@ async function update() {
     const packagePath = path.join(__dirname, '../package.json');
     const pkg = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
     const version = pkg.version;
-    // Use tag from argument or fallback to vVersion
     const tag = process.argv[2] || `v${version}`;
     const repo = "volkanglm/QualityOpen-Releases";
-    
+
     console.log(`Targeting release: ${tag} (App version: ${version})`);
 
     try {
-        // Use GH CLI to list assets
-        const assetsJson = execSync(`gh release view ${tag} --repo ${repo} --json assets`, { stdio: ['pipe', 'pipe', 'pipe'] }).toString();
+        const assetsJson = execSync(
+            `gh release view ${tag} --repo ${repo} --json assets`,
+            { stdio: ['pipe', 'pipe', 'pipe'] }
+        ).toString();
         const assets = JSON.parse(assetsJson).assets;
 
         console.log("Release assets found:", assets.map(a => a.name));
@@ -36,48 +37,54 @@ async function update() {
             platforms: {}
         };
 
-        const getSignature = (assetName) => {
+        // Download signature content via curl using the asset's browser_download_url
+        const getSignature = (sigAsset) => {
             try {
-                return execSync(
-                    `gh release download ${tag} --repo ${repo} --file ${assetName} --output -`,
-                    { stdio: ['pipe', 'pipe', 'pipe'] }
+                // Use the asset URL directly with curl (works for public repos)
+                const sig = execSync(
+                    `curl -sL "${sigAsset.url}"`,
+                    { stdio: ['pipe', 'pipe', 'pipe'], timeout: 15000 }
                 ).toString().trim();
+
+                if (!sig || sig.includes('Not Found') || sig.includes('<html')) {
+                    console.warn(`  ⚠️  Signature content invalid for ${sigAsset.name}`);
+                    return null;
+                }
+                console.log(`  ✅ Downloaded signature for ${sigAsset.name} (${sig.length} chars)`);
+                return sig;
             } catch (e) {
-                console.warn(`  ⚠️  Failed to download signature for ${assetName}`);
+                console.warn(`  ⚠️  Failed to download ${sigAsset.name}: ${e.message}`);
                 return null;
             }
         };
 
-        // Helper to find specific asset by pattern
-        const findAsset = (pattern) => assets.find(a => a.name.toLowerCase().includes(pattern.toLowerCase()));
-
         // macOS arm64
         const macArmBundle = assets.find(a => a.name.includes('aarch64') && a.name.endsWith('.app.tar.gz'));
         const macArmSig = assets.find(a => a.name.includes('aarch64') && a.name.endsWith('.app.tar.gz.sig'));
-        
+
         if (macArmBundle && macArmSig) {
-            console.log(`✅ Found macOS arm64: ${macArmBundle.name}`);
-            const sig = getSignature(macArmSig.name);
+            console.log(`Found macOS arm64: ${macArmBundle.name}`);
+            const sig = getSignature(macArmSig);
             if (sig) updater.platforms['darwin-aarch64'] = { signature: sig, url: macArmBundle.url };
         }
 
         // macOS x64
         const macX64Bundle = assets.find(a => a.name.includes('x64') && a.name.endsWith('.app.tar.gz'));
         const macX64Sig = assets.find(a => a.name.includes('x64') && a.name.endsWith('.app.tar.gz.sig'));
-        
+
         if (macX64Bundle && macX64Sig) {
-            console.log(`✅ Found macOS x64: ${macX64Bundle.name}`);
-            const sig = getSignature(macX64Sig.name);
+            console.log(`Found macOS x64: ${macX64Bundle.name}`);
+            const sig = getSignature(macX64Sig);
             if (sig) updater.platforms['darwin-x86_64'] = { signature: sig, url: macX64Bundle.url };
         }
 
-        // Generic macOS (fallback)
+        // Generic macOS fallback (no arch in name)
         if (!updater.platforms['darwin-aarch64'] && !updater.platforms['darwin-x86_64']) {
             const genericBundle = assets.find(a => a.name.endsWith('.app.tar.gz'));
             const genericSig = assets.find(a => a.name.endsWith('.app.tar.gz.sig'));
             if (genericBundle && genericSig) {
-                console.log(`✅ Found generic macOS: ${genericBundle.name}`);
-                const sig = getSignature(genericSig.name);
+                console.log(`Found generic macOS: ${genericBundle.name}`);
+                const sig = getSignature(genericSig);
                 if (sig) {
                     updater.platforms['darwin-aarch64'] = { signature: sig, url: genericBundle.url };
                     updater.platforms['darwin-x86_64'] = { signature: sig, url: genericBundle.url };
@@ -88,34 +95,31 @@ async function update() {
         // Windows
         const winBundle = assets.find(a => a.name.endsWith('.nsis.zip'));
         const winSig = assets.find(a => a.name.endsWith('.nsis.zip.sig'));
-        
+
         if (winBundle && winSig) {
-            console.log(`✅ Found Windows: ${winBundle.name}`);
-            const sig = getSignature(winSig.name);
+            console.log(`Found Windows: ${winBundle.name}`);
+            const sig = getSignature(winSig);
             if (sig) updater.platforms['windows-x86_64'] = { signature: sig, url: winBundle.url };
         }
 
+        console.log(`\nPlatforms resolved: ${Object.keys(updater.platforms).join(', ') || 'NONE'}`);
+
         if (Object.keys(updater.platforms).length === 0) {
-            console.error('❌ CRITICAL ERROR: No platform assets found in the release.');
-            console.error('   This usually means signing failed or the assets haven\'t uploaded yet.');
+            console.error('❌ CRITICAL: No platform signatures could be downloaded.');
+            console.error('   Check that PUBLIC_REPO_TOKEN has read access and .sig files exist.');
             process.exit(1);
         }
 
         fs.writeFileSync(path.join(__dirname, '../updater.json'), JSON.stringify(updater, null, 2));
         console.log("🎉 updater.json updated successfully!");
-        console.log("Platforms:", Object.keys(updater.platforms));
     } catch (err) {
-        console.error("❌ GitHub CLI error occurred:");
-        if (err.stderr) {
-            console.error("Stderr:", err.stderr.toString());
-        } else {
-            console.error(err.message);
-        }
+        console.error("❌ Error:");
+        console.error(err.stderr ? err.stderr.toString() : err.message);
         process.exit(1);
     }
 }
 
 update().catch(err => {
-    console.error("❌ UNCAUGHT ERROR:", err.message);
+    console.error("❌ UNCAUGHT:", err.message);
     process.exit(1);
 });
