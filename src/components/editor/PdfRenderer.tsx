@@ -296,9 +296,17 @@ const PdfPage = memo(function PdfPage({
         span.dataset.charEnd = String(charOffset + ti.str.length);
         charOffset += ti.str.length + 1; // +1 matches the " " separator used during extraction
         span.style.position = "absolute";
-        span.style.left = `${tx[4]}px`;
-        span.style.top = `${viewport.height - tx[5] - ti.height}px`;
-        span.style.fontSize = `${ti.height}px`;
+        // Apply scale to coordinates! tx[4] is X, tx[5] is Y (from bottom).
+        const x = tx[4] * scale;
+        const y = tx[5] * scale;
+        const height = (ti.height || tx[3]) * scale;
+        const width = ti.width * scale;
+
+        span.style.left = `${x}px`;
+        span.style.top = `${viewport.height - y - height}px`;
+        span.style.fontSize = `${height}px`;
+        span.style.width = `${width}px`;
+        span.style.height = `${height}px`;
         span.style.fontFamily = ti.fontName || "sans-serif";
         span.style.color = "transparent";
         span.style.whiteSpace = "pre";
