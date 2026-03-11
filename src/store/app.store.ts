@@ -46,6 +46,9 @@ interface AppStore extends AppState {
   // Split view
   setSplitView: (split: boolean) => void;
   toggleSplitView: () => void;
+  // Drag and drop
+  isDragOver: boolean;
+  setIsDragOver: (over: boolean) => void;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -113,6 +116,9 @@ export const useAppStore = create<AppStore>()(
       toggleLineNumbers: () => set((s) => ({ showLineNumbers: !s.showLineNumbers })),
       setSplitView: (split) => set({ splitView: split }),
       toggleSplitView: () => set((s) => ({ splitView: !s.splitView })),
+      // ── drag and drop ──
+      isDragOver: false,
+      setIsDragOver: (over) => set({ isDragOver: over }),
     }),
     {
       name: "qo-app-state",

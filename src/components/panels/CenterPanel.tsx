@@ -107,7 +107,7 @@ export function CenterPanel() {
   const [codePanelSel, setCodePanelSel] = useState<FloatingMenuPos | null>(null);
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; pos: FloatingMenuPos } | null>(null);
   const [importing, setImporting] = useState(false);
-  const [isDragOver, setIsDragOver] = useState(false);
+  const isDragOver = useAppStore((s) => s.isDragOver);
   const [pdfTextLength, setPdfTextLength] = useState(0);
   const [noteExpanded, setNoteExpanded] = useState(false);
   const [noteVal, setNoteVal] = useState(doc?.note ?? "");
@@ -409,21 +409,6 @@ export function CenterPanel() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (!file) return;
-    if (!doc && activeProjectId) {
-      const cat = getFileCategory(file);
-      const docType = cat === "video" ? "video" : cat === "image" ? "image" : "document";
-      const newDoc = createDocument(activeProjectId, file.name.replace(/\.[^.]+$/, ""), docType);
-      setActiveDocument(newDoc.id);
-      await applyImport(file, newDoc.id);
-    } else {
-      await applyImport(file);
-    }
-  };
-
   // ─────────────────────────────────────────────────────────────────────────
   // SETTINGS / ANALYSIS VIEW
   // ─────────────────────────────────────────────────────────────────────────
@@ -470,31 +455,7 @@ export function CenterPanel() {
         <div
           className="flex h-full flex-col overflow-hidden relative"
           style={{ background: "var(--bg-primary)" }}
-          onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
-          onDragLeave={() => setIsDragOver(false)}
-          onDrop={async (e) => {
-            setIsDragOver(false);
-            e.preventDefault();
-            const file = e.dataTransfer.files[0];
-            if (!file || !activeProjectId) return;
-            const cat = getFileCategory(file);
-            const docType = cat === "video" ? "video" : cat === "image" ? "image" : "document";
-            const newDoc = createDocument(activeProjectId, file.name.replace(/\.[^.]+$/, ""), docType);
-            setActiveDocument(newDoc.id);
-            await applyImport(file, newDoc.id);
-          }}
         >
-          {isDragOver && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-              <div className="flex flex-col items-center gap-4 rounded-2xl bg-[var(--surface)] p-8 shadow-2xl scale-105 transition-transform">
-                <div className="rounded-full bg-[var(--accent-subtle)] p-4 text-[var(--accent)]">
-                  <Upload className="h-8 w-8" />
-                </div>
-                <h3 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>{t('center.dropLoaded')}</h3>
-                <p className="text-sm" style={{ color: "var(--text-muted)" }}>{t('center.fileWillBeAdded')}</p>
-              </div>
-            </div>
-          )}
           <DatabaseView />
         </div>
       );
@@ -504,19 +465,9 @@ export function CenterPanel() {
       <EmptyState
         isDragOver={isDragOver}
         hasProject={!!activeProjectId}
-        onDragEnter={() => setIsDragOver(true)}
-        onDragLeave={() => setIsDragOver(false)}
-        onDrop={async (e) => {
-          e.preventDefault();
-          setIsDragOver(false);
-          const file = e.dataTransfer.files[0];
-          if (!file || !activeProjectId) return;
-          const cat = getFileCategory(file);
-          const docType = cat === "video" ? "video" : cat === "image" ? "image" : "document";
-          const newDoc = createDocument(activeProjectId, file.name.replace(/\.[^.]+$/, ""), docType);
-          setActiveDocument(newDoc.id);
-          await applyImport(file, newDoc.id);
-        }}
+        onDragEnter={() => {}} // Controlled by App.tsx
+        onDragLeave={() => {}} // Controlled by App.tsx
+        onDrop={() => {}}      // Controlled by App.tsx
       />
     );
   }
@@ -528,9 +479,6 @@ export function CenterPanel() {
     <div
       className="flex h-full flex-col overflow-hidden relative"
       style={{ background: "var(--bg-primary)" }}
-      onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
-      onDragLeave={() => setIsDragOver(false)}
-      onDrop={(e) => { setIsDragOver(false); handleDrop(e); }}
     >
       {/* ── Header ── */}
       <DocHeader
