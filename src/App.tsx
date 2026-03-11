@@ -16,6 +16,7 @@ import { useLicenseStore } from "@/store/license.store";
 import { useSettingsStore } from "@/store/settings.store";
 import { LicenseModal } from "@/components/modals/LicenseModal";
 import { AppLogo } from "@/components/ui/AppLogo";
+import { Upload } from "lucide-react";
 import { useSyncStore } from "@/store/sync.store";
 import { AiChatPanel } from "@/components/chat/AiChatPanel";
 import { ShortcutEngine } from "@/components/keyboard/ShortcutEngine";
@@ -174,61 +175,71 @@ export default function App() {
     return () => window.removeEventListener("keydown", handleDevShortcuts);
   }, []);
 
-  /* Tauri OS file-drop handler (fires when user drags files from Finder) */
+  /* Tauri OS drag-and-drop handler (Tauri v2) */
   useEffect(() => {
-    let unlisten: (() => void) | undefined;
+    let unlistenDrop: (() => void) | undefined;
+    let unlistenEnter: (() => void) | undefined;
+    let unlistenLeave: (() => void) | undefined;
 
     const setup = async () => {
       try {
-        unlisten = await listen<{ paths: string[] }>(
-          "tauri://file-drop",
+        const { setIsDragOver } = useAppStore.getState();
+
+        unlistenEnter = await listen("tauri://drag-enter", () => setIsDragOver(true));
+        unlistenLeave = await listen("tauri://drag-leave", () => setIsDragOver(false));
+
+        unlistenDrop = await listen<{ paths: string[] }>(
+          "tauri://drag-drop",
           async (event) => {
-            const path = event.payload?.paths?.[0];
-            if (!path) return;
+            setIsDragOver(false);
+            const paths = event.payload?.paths;
+            if (!paths || paths.length === 0) return;
 
             const { activeProjectId, setActiveDocument, setActiveView } =
               useAppStore.getState();
             if (!activeProjectId) return;
 
-            try {
-              // Read file via Rust (base64-encoded)
-              const b64 = await invoke<string>("read_file_base64", { path });
-              const name = path.split("/").pop() ?? path;
+            for (const path of paths) {
+              try {
+                // Read file via Rust (base64-encoded)
+                const b64 = await invoke<string>("read_file_base64", { path });
+                const name = path.split(/[/\\]/).pop() ?? path;
 
-              // Determine mime type from extension
-              const ext = name.split(".").pop()?.toLowerCase() ?? "";
-              const mimeMap: Record<string, string> = {
-                pdf: "application/pdf", txt: "text/plain",
-                docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                doc: "application/msword",
-                mp4: "video/mp4", mov: "video/quicktime", webm: "video/webm",
-                jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
-                gif: "image/gif", webp: "image/webp",
-              };
-              const mime = mimeMap[ext] ?? "application/octet-stream";
+                // Determine mime type from extension
+                const ext = name.split(".").pop()?.toLowerCase() ?? "";
+                const mimeMap: Record<string, string> = {
+                  pdf: "application/pdf", txt: "text/plain",
+                  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                  doc: "application/msword",
+                  mp4: "video/mp4", mov: "video/quicktime", webm: "video/webm",
+                  jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
+                  gif: "image/gif", webp: "image/webp",
+                };
+                const mime = mimeMap[ext] ?? "application/octet-stream";
 
-              // Decode base64 → File
-              const raw = atob(b64);
-              const ia = new Uint8Array(raw.length);
-              for (let i = 0; i < raw.length; i++) ia[i] = raw.charCodeAt(i);
-              const file = new File([ia], name, { type: mime });
+                // Decode base64 → File
+                const raw = atob(b64);
+                const ia = new Uint8Array(raw.length);
+                for (let i = 0; i < raw.length; i++) ia[i] = raw.charCodeAt(i);
+                const file = new File([ia], name, { type: mime });
 
-              // Import via existing logic
-              const imported = await importFile(file);
-              const cat = getFileCategory(file);
-              const docType = cat === "video" ? "video" : cat === "image" ? "image" : "document";
+                // Import via existing logic
+                const imported = await importFile(file);
+                const cat = getFileCategory(file);
+                const docType = cat === "video" ? "video" : cat === "image" ? "image" : "document";
 
-              const { createDocument, updateDocument } = useProjectStore.getState();
-              const newDoc = createDocument(activeProjectId, imported.name || name, docType);
-              updateDocument(newDoc.id, {
-                content: imported.content,
-                format: imported.format,
-                wordCount: imported.wordCount,
-              });
-              setActiveDocument(newDoc.id);
-              setActiveView("coding");
-            } catch (err) {
-              console.error("Tauri file drop import failed:", err);
+                const { createDocument, updateDocument } = useProjectStore.getState();
+                const newDoc = createDocument(activeProjectId, imported.name || name, docType);
+                updateDocument(newDoc.id, {
+                  content: imported.content,
+                  format: imported.format,
+                  wordCount: imported.wordCount,
+                });
+                setActiveDocument(newDoc.id);
+                setActiveView("coding");
+              } catch (err) {
+                console.error(`Tauri file drop import failed for ${path}:`, err);
+              }
             }
           }
         );
@@ -238,7 +249,11 @@ export default function App() {
     };
 
     void setup();
-    return () => { unlisten?.(); };
+    return () => {
+      unlistenDrop?.();
+      unlistenEnter?.();
+      unlistenLeave?.();
+    };
   }, []);
 
   /* Scheduled backup check */
@@ -309,6 +324,28 @@ export default function App() {
         )}
 
         {/* ── Global overlays (always mounted) ── */}
+
+        {/* Drag over overlay (Tauri v2) */}
+        <AnimatePresence>
+          {useAppStore((s) => s.isDragOver) && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-none"
+            >
+              <div className="flex flex-col items-center gap-4 rounded-2xl bg-[var(--surface)] p-8 shadow-2xl scale-110 border border-[var(--border)]">
+                <div className="rounded-full bg-[var(--accent-subtle)] p-4 text-[var(--accent)]">
+                  <Upload className="h-8 w-8" />
+                </div>
+                <div className="text-center">
+                  <h3 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>{t('center.dropLoaded')}</h3>
+                  <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>{t('center.fileWillBeAdded')}</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Sync status / account widget — always visible after boot */}
         <AnimatePresence>
