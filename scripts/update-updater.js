@@ -20,7 +20,7 @@ async function update() {
     const tag = process.argv[2] || `v${version}`;
     const repo = "volkanglm/QualityOpen-Releases";
     
-    console.log(`Targeting tag: ${tag} (Version: ${version})`);
+    console.log(`Targeting release: ${tag} (App version: ${version})`);
 
     try {
         // Use GH CLI to list assets
@@ -36,55 +36,68 @@ async function update() {
             platforms: {}
         };
 
-        // Flexible asset finder: tries each suffix pattern in order, returns first match
-        const findAsset = (...suffixes) => {
-            for (const suffix of suffixes) {
-                const found = assets.find(a => a.name.endsWith(suffix));
-                if (found) return found;
+        const getSignature = (assetName) => {
+            try {
+                return execSync(
+                    `gh release download ${tag} --repo ${repo} --file ${assetName} --output -`,
+                    { stdio: ['pipe', 'pipe', 'pipe'] }
+                ).toString().trim();
+            } catch (e) {
+                console.warn(`  ⚠️  Failed to download signature for ${assetName}`);
+                return null;
             }
-            return null;
         };
 
-        // macOS: Tauri may produce arch-specific names OR generic name
-        // macos-latest runner is arm64 (aarch64), so we map to darwin-aarch64
-        const macBundle = findAsset('aarch64.app.tar.gz', 'x64.app.tar.gz', '.app.tar.gz');
-        const macSig = findAsset('aarch64.app.tar.gz.sig', 'x64.app.tar.gz.sig', '.app.tar.gz.sig');
+        // Helper to find specific asset by pattern
+        const findAsset = (pattern) => assets.find(a => a.name.toLowerCase().includes(pattern.toLowerCase()));
 
-        if (macBundle && macSig) {
-            console.log(`✅ Found macOS assets: ${macBundle.name} + ${macSig.name}`);
-            const sigContent = execSync(
-                `gh release download ${tag} --repo ${repo} --file ${macSig.name} --output -`
-            ).toString().trim();
-
-            // Determine which darwin target based on the bundle name
-            const isX64 = macBundle.name.includes('x64');
-            const target = isX64 ? 'darwin-x86_64' : 'darwin-aarch64';
-            updater.platforms[target] = { signature: sigContent, url: macBundle.url };
-            console.log(`  → Mapped to ${target}`);
-        } else {
-            if (!macBundle) console.warn('⚠️  No macOS .app.tar.gz bundle found');
-            if (!macSig)    console.warn('⚠️  No macOS .app.tar.gz.sig signature found (signing key configured?)');
+        // macOS arm64
+        const macArmBundle = assets.find(a => a.name.includes('aarch64') && a.name.endsWith('.app.tar.gz'));
+        const macArmSig = assets.find(a => a.name.includes('aarch64') && a.name.endsWith('.app.tar.gz.sig'));
+        
+        if (macArmBundle && macArmSig) {
+            console.log(`✅ Found macOS arm64: ${macArmBundle.name}`);
+            const sig = getSignature(macArmSig.name);
+            if (sig) updater.platforms['darwin-aarch64'] = { signature: sig, url: macArmBundle.url };
         }
 
-        // Windows: NSIS updater bundle
-        const winBundle = findAsset('x64-setup.nsis.zip');
-        const winSig    = findAsset('x64-setup.nsis.zip.sig');
+        // macOS x64
+        const macX64Bundle = assets.find(a => a.name.includes('x64') && a.name.endsWith('.app.tar.gz'));
+        const macX64Sig = assets.find(a => a.name.includes('x64') && a.name.endsWith('.app.tar.gz.sig'));
+        
+        if (macX64Bundle && macX64Sig) {
+            console.log(`✅ Found macOS x64: ${macX64Bundle.name}`);
+            const sig = getSignature(macX64Sig.name);
+            if (sig) updater.platforms['darwin-x86_64'] = { signature: sig, url: macX64Bundle.url };
+        }
 
+        // Generic macOS (fallback)
+        if (!updater.platforms['darwin-aarch64'] && !updater.platforms['darwin-x86_64']) {
+            const genericBundle = assets.find(a => a.name.endsWith('.app.tar.gz'));
+            const genericSig = assets.find(a => a.name.endsWith('.app.tar.gz.sig'));
+            if (genericBundle && genericSig) {
+                console.log(`✅ Found generic macOS: ${genericBundle.name}`);
+                const sig = getSignature(genericSig.name);
+                if (sig) {
+                    updater.platforms['darwin-aarch64'] = { signature: sig, url: genericBundle.url };
+                    updater.platforms['darwin-x86_64'] = { signature: sig, url: genericBundle.url };
+                }
+            }
+        }
+
+        // Windows
+        const winBundle = assets.find(a => a.name.endsWith('.nsis.zip'));
+        const winSig = assets.find(a => a.name.endsWith('.nsis.zip.sig'));
+        
         if (winBundle && winSig) {
-            console.log(`✅ Found Windows assets: ${winBundle.name} + ${winSig.name}`);
-            const sigContent = execSync(
-                `gh release download ${tag} --repo ${repo} --file ${winSig.name} --output -`
-            ).toString().trim();
-            updater.platforms['windows-x86_64'] = { signature: sigContent, url: winBundle.url };
-        } else {
-            if (!winBundle) console.warn('⚠️  No Windows .nsis.zip bundle found');
-            if (!winSig)    console.warn('⚠️  No Windows .nsis.zip.sig signature found');
+            console.log(`✅ Found Windows: ${winBundle.name}`);
+            const sig = getSignature(winSig.name);
+            if (sig) updater.platforms['windows-x86_64'] = { signature: sig, url: winBundle.url };
         }
 
         if (Object.keys(updater.platforms).length === 0) {
-            console.error('❌ CRITICAL ERROR: No platform assets found — updater.json will have empty platforms.');
-            console.error('   Make sure TAURI_SIGNING_PRIVATE_KEY is correctly set as a repository secret.');
-            console.error('   Tauri requires signing keys to generate .sig signature files. The build cannot proceed.');
+            console.error('❌ CRITICAL ERROR: No platform assets found in the release.');
+            console.error('   This usually means signing failed or the assets haven\'t uploaded yet.');
             process.exit(1);
         }
 
@@ -103,6 +116,6 @@ async function update() {
 }
 
 update().catch(err => {
-    console.error("❌ Failed to update updater.json:", err.message);
+    console.error("❌ UNCAUGHT ERROR:", err.message);
     process.exit(1);
 });
