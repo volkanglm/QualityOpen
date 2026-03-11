@@ -7,6 +7,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function update() {
+    if (!process.env.GH_TOKEN) {
+        console.error("❌ GH_TOKEN environment variable is not set.");
+        process.exit(1);
+    }
     console.log("🚀 Updating updater.json metadata...");
 
     const packagePath = path.join(__dirname, '../package.json');
