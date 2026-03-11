@@ -39,8 +39,8 @@ export function SynthesisGrid({ codes }: { codes: Code[] }) {
     const propertyValues = useMemo(() => {
         if (!selectedProperty) return [];
         const vals = new Set<string>();
-        documents.forEach(doc => {
-            if (doc.properties && doc.properties[selectedProperty]) {
+        documents.forEach((doc) => {
+            if (doc.properties?.[selectedProperty]) {
                 vals.add(doc.properties[selectedProperty]);
             }
         });

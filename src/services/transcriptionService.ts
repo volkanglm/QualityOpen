@@ -113,7 +113,7 @@ export async function transcribeWithWhisper(
         throw new Error("Invalid response format from Whisper API.");
     }
 
-    return data.segments.map((seg: any) => ({
+    return data.segments.map((seg: { start: number; end: number; text: string }) => ({
         id: crypto.randomUUID(),
         start: seg.start,
         end: seg.end,

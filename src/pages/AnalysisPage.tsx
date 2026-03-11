@@ -85,11 +85,11 @@ export function AnalysisPage() {
   // Derived data for legacy views
   const codeFrequency = useMemo(() => {
     const flat = flattenCodes(projectCodes, undefined, 0);
-    return flat.map((c: any) => {
+    return flat.map((c) => {
       const count = projectSegments.filter((s) => s.codeIds.includes(c.id)).length;
       const ownCount = projectSegments.filter((s) => s.codeIds.length === 1 && s.codeIds[0] === c.id).length;
       return { code: c, count, ownCount, depth: c.depth };
-    }).sort((a: any, b: any) => b.count - a.count);
+    }).sort((a, b) => b.count - a.count);
   }, [projectCodes, projectSegments]);
 
   if (!activeProjectId) {
@@ -366,7 +366,7 @@ export function AnalysisPage() {
 
           {activeTab === "cloud" && (
             <motion.div key="cloud" variants={pageVariants} initial="hidden" animate="show" className="h-full bg-[var(--bg-secondary)]/40 rounded-2xl border border-[var(--border)] p-8 relative overflow-hidden">
-              <BubbleCloud items={codeFrequency.map((f: any) => ({ code: f.code, count: f.count }))} zoom={tabZoom} />
+              <BubbleCloud items={codeFrequency.map((f) => ({ code: f.code, count: f.count }))} zoom={tabZoom} />
               <div className="absolute bottom-6 right-6 no-export">
                 <ZoomControls zoom={tabZoom} onZoomChange={setTabZoom} />
               </div>
@@ -454,7 +454,7 @@ export function AnalysisPage() {
                   <div className="h-full w-full relative">
                     {React.Children.map(maximizedCard.component, child => {
                       if (React.isValidElement(child)) {
-                        return React.cloneElement(child, { zoom: maximizedCard.zoom } as any);
+                        return React.cloneElement(child, { zoom: maximizedCard.zoom } as React.Attributes);
                       }
                       return child;
                     })}
@@ -613,7 +613,7 @@ function DashboardCard({ title, icon, children, className, onMaximize }: { title
       <div className="flex-1 min-h-0 relative">
         {React.Children.map(children, child => {
           if (React.isValidElement(child)) {
-            return React.cloneElement(child, { zoom } as any);
+            return React.cloneElement(child, { zoom } as React.Attributes);
           }
           return child;
         })}
@@ -622,21 +622,34 @@ function DashboardCard({ title, icon, children, className, onMaximize }: { title
   );
 }
 
-function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: any[]; codes: any[]; segments: any[]; codeFrequency: any[] }) {
+function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: any[]; codes: any[]; segments: any[]; codeFrequency: { code: any, count: number }[] }) {
   const t = useT();
   const { getCodeColor } = useVisualThemeStore();
+  
+  const pieData = useMemo(() => {
+    const top = codeFrequency.slice(0, 5).map((f, idx) => ({ 
+      id: f.code.id,
+      name: f.code.name, 
+      value: f.count, 
+      color: getCodeColor(idx, f.code.color) 
+    }));
+    const others = codeFrequency.slice(5).reduce((acc, curr) => acc + curr.count, 0);
+    if (others > 0) top.push({ id: "others", name: t("analysis.other"), value: others, color: "#52525b" });
+    return top;
+  }, [codeFrequency, t, getCodeColor]);
+
   const stats = useMemo(() => [
-    { label: t("nav.documents"), value: docs.length, color: "var(--text-muted)", icon: FileText },
-    { label: t("analysis.codes"), value: codes.length, color: "var(--text-muted)", icon: Tag },
-    { label: t("analysis.segments"), value: segments.length, color: "var(--text-muted)", icon: Hash },
-    { label: t("analysis.segPerDoc"), value: docs.length ? (segments.length / docs.length) : 0, icon: TrendingUp, isDecimal: true },
+    { id: "docs", label: t("nav.documents"), value: docs.length, color: "var(--text-muted)", icon: FileText },
+    { id: "codes", label: t("analysis.codes"), value: codes.length, color: "var(--text-muted)", icon: Tag },
+    { id: "segments", label: t("analysis.segments"), value: segments.length, color: "var(--text-muted)", icon: Hash },
+    { id: "growth", label: t("analysis.segPerDoc"), value: docs.length ? (segments.length / docs.length) : 0, icon: TrendingUp, isDecimal: true },
   ], [docs.length, codes.length, segments.length, t]);
 
   return (
     <div className="space-y-8 pb-12">
       <div className="grid grid-cols-4 gap-6">
-        {stats.map((s, i) => (
-          <div key={i} className="bg-[var(--bg-secondary)]/40 border border-[var(--border)] p-6 rounded-2xl flex items-center gap-4">
+        {stats.map((s) => (
+          <div key={s.id} className="bg-[var(--bg-secondary)]/40 border border-[var(--border)] p-6 rounded-2xl flex items-center gap-4">
             <div className="p-3 rounded-xl bg-[var(--surface)] text-[var(--text-secondary)]">
               <s.icon className="h-5 w-5" />
             </div>
@@ -688,12 +701,7 @@ function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: any[]; co
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsPieChart>
                   <Pie
-                    data={React.useMemo(() => {
-                      const top = codeFrequency.slice(0, 5).map((f, idx) => ({ name: f.code.name, value: f.count, color: getCodeColor(idx, f.code.color) }));
-                      const others = codeFrequency.slice(5).reduce((acc, curr) => acc + curr.count, 0);
-                      if (others > 0) top.push({ name: t("analysis.other"), value: others, color: "#52525b" });
-                      return top;
-                    }, [codeFrequency, t, getCodeColor])}
+                    data={pieData}
                     cx="50%"
                     cy="50%"
                     innerRadius={70}
@@ -702,19 +710,14 @@ function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: any[]; co
                     dataKey="value"
                     stroke="none"
                   >
-                    {React.useMemo(() => {
-                      const top = codeFrequency.slice(0, 5).map((f, idx) => ({ name: f.code.name, value: f.count, color: getCodeColor(idx, f.code.color) }));
-                      const others = codeFrequency.slice(5).reduce((acc, curr) => acc + curr.count, 0);
-                      if (others > 0) top.push({ name: t("analysis.other"), value: others, color: "#52525b" });
-                      return top;
-                    }, [codeFrequency, t, getCodeColor]).map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    {pieData.map((entry) => (
+                      <Cell key={entry.id} fill={entry.color} />
                     ))}
                   </Pie>
                   <RechartsTooltip
                     contentStyle={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '11px', fontWeight: 500 }}
                     itemStyle={{ color: 'var(--text-primary)' }}
-                    formatter={(value: any) => [t("analysis.segCountTooltip").replace("{count}", value.toString()), undefined]}
+                    formatter={(value: string | number | undefined) => [t("analysis.segCountTooltip").replace("{count}", (value ?? 0).toString()), ""]}
                   />
                 </RechartsPieChart>
               </ResponsiveContainer>
@@ -743,10 +746,12 @@ function TypologyTab({ docs, codes, segments }: { docs: any[]; codes: any[]; seg
     const clusterMap = new Map<string, { clusterId: string, codes: any[] }>();
     clusteredNodes.forEach((node, idx) => {
       if (node.cluster) {
-        if (!clusterMap.has(node.cluster)) {
-          clusterMap.set(node.cluster, { clusterId: node.cluster, codes: [] });
+        let cluster = clusterMap.get(node.cluster);
+        if (!cluster) {
+          cluster = { clusterId: node.cluster, codes: [] };
+          clusterMap.set(node.cluster, cluster);
         }
-        clusterMap.get(node.cluster)!.codes.push({
+        cluster.codes.push({
           ...node.code,
           color: getCodeColor(idx, node.code.color)
         });
@@ -756,12 +761,15 @@ function TypologyTab({ docs, codes, segments }: { docs: any[]; codes: any[]; seg
     const docClusterScores = new Map<string, Map<string, number>>();
     segments.forEach(seg => {
       const docId = seg.documentId;
-      if (!docClusterScores.has(docId)) docClusterScores.set(docId, new Map());
+      let scores = docClusterScores.get(docId);
+      if (!scores) {
+        scores = new Map();
+        docClusterScores.set(docId, scores);
+      }
 
-      const scores = docClusterScores.get(docId)!;
       seg.codeIds.forEach((cid: string) => {
         const cNode = clusteredNodes.find(n => n.id === cid);
-        if (cNode && cNode.cluster) {
+        if (cNode?.cluster) {
           scores.set(cNode.cluster, (scores.get(cNode.cluster) || 0) + 1);
         }
       });
@@ -839,7 +847,7 @@ function TypologyTab({ docs, codes, segments }: { docs: any[]; codes: any[]; seg
                     <FileText className="h-3.5 w-3.5 text-[var(--text-muted)] group-hover:text-blue-400" />
                     <span className="truncate">{doc.name}</span>
                   </div>
-                  {doc.properties && Object.keys(doc.properties).length > 0 && (
+                  {Object.keys(doc.properties ?? {}).length > 0 && (
                     <div className="flex items-center gap-1.5 mt-2.5 overflow-hidden flex-wrap">
                       {Object.entries(doc.properties).filter(([_, v]) => String(v).trim().length > 0).slice(0, 2).map(([k, v]) => (
                         <span key={k} className="text-[9px] bg-[var(--bg-secondary)] text-[var(--text-secondary)] px-1.5 py-0.5 rounded border border-[var(--border-subtle)] truncate max-w-[80px]" title={`${k}: ${v}`}>

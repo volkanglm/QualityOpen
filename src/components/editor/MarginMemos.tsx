@@ -34,13 +34,13 @@ export function MarginMemos({
 
         // Collect all segments that have a memo
         const raw: MemoBlock[] = segments
-            .filter((s) => s.memo && s.memo.trim())
+            .filter((s) => s.memo?.trim())
             .map((seg) => {
                 const firstCode = codes.find((c) => seg.codeIds.includes(c.id));
                 const topPct = (seg.start / contentLength) * 100;
                 return {
                     id: seg.id,
-                    memo: seg.memo!,
+                    memo: seg.memo ?? "",
                     codeName: firstCode?.name ?? (seg.isHighlight ? "Not" : "Kod"),
                     color: seg.isHighlight
                         ? (seg.highlightColor ?? "#fcd34d")

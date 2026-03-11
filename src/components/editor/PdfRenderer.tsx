@@ -72,7 +72,7 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
           const textContent = await page.getTextContent();
-          const pageText = textContent.items.map((it: any) => it.str).join(" ");
+          const pageText = textContent.items.map((it: any) => (it as { str: string }).str).join(" ");
           if (pageText.trim()) anyText = true;
           extractedPages.push({ id: i, text: pageText, startOffset: totalLen });
           totalLen += pageText.length + 1; // +1 for newline/space between pages
@@ -122,7 +122,8 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
         });
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const Tesseract = (window as any).Tesseract ?? await loadTesseract();
+        const tesseractPlugin = (window as any).Tesseract;
+        const Tesseract = tesseractPlugin ?? await loadTesseract();
         const { data } = await Tesseract.recognize(blob, "tur+eng", {
           logger: (m: { progress: number }) => {
             if (m.progress) {
@@ -286,9 +287,9 @@ const PdfPage = memo(function PdfPage({
       // Build spans with character offset attributes for selection → segment mapping
       let charOffset = pageStartOffset;
       for (const item of textContent.items) {
-        const ti = item as any;
+        const ti = item as { str?: string; transform?: number[]; height?: number; width?: number; fontName?: string };
         if (!ti.str) continue;
-        const tx = ti.transform;
+        const tx = ti.transform || [1, 0, 0, 1, 0, 0];
         const span = document.createElement("span");
         span.textContent = ti.str;
         // Track character positions so we can map selections ↔ segments
@@ -300,7 +301,7 @@ const PdfPage = memo(function PdfPage({
         const x = tx[4] * scale;
         const y = tx[5] * scale;
         const height = (ti.height || tx[3]) * scale;
-        const width = ti.width * scale;
+        const width = (ti.width ?? 0) * scale;
 
         span.style.left = `${x}px`;
         span.style.top = `${viewport.height - y - height}px`;
@@ -385,10 +386,11 @@ function applyPdfHighlights(textLayer: HTMLDivElement, segments: Segment[], code
 // ─── Helper: Load Tesseract.js ───────────────────────────────────────────────
 async function loadTesseract() {
   return new Promise<any>((resolve, reject) => {
-    if ((window as any).Tesseract) return resolve((window as any).Tesseract);
+    const win = window as any;
+    if (win.Tesseract) return resolve(win.Tesseract);
     const script = document.createElement("script");
     script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
-    script.onload = () => resolve((window as any).Tesseract);
+    script.onload = () => resolve(win.Tesseract);
     script.onerror = () => reject(new Error("Tesseract.js yüklenemedi"));
     document.head.appendChild(script);
   });

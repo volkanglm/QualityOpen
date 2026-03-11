@@ -139,7 +139,9 @@ export function CenterPanel() {
   const readerRef = useRef<HTMLDivElement>(null);
   const readerContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // deepsource-ignore-next-line JS-W1042
   const saveTimer = useRef<number | undefined>(undefined);
+  // deepsource-ignore-next-line JS-W1042
   const noteSaveTimer = useRef<number | undefined>(undefined);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [readerHeight, setReaderHeight] = useState(600);
@@ -232,13 +234,14 @@ export function CenterPanel() {
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     if (editMode || format === "video" || format === "image") return;
     const sel = window.getSelection();
-    const text = sel?.toString().trim() ?? "";
-    if (!text || !doc || !activeProjectId) return;
+    if (!sel || sel.isCollapsed || !sel.rangeCount || !activeProjectId) return;
+    const text = sel.toString().trim();
+    if (!text || !doc) return;
 
     e.preventDefault();
     setFloatPos(null);  // hide floating menu
 
-    const range = sel!.getRangeAt(0);
+    const range = sel.getRangeAt(0);
     const { start, end } = format === "pdf"
       ? getPdfOffsets(range)
       : getOffsets(range, readerRef.current);
@@ -1116,7 +1119,7 @@ function RetrievalView({
                         fontFamily: '"Georgia", "Times New Roman", serif',
                       }}
                     >
-                      "{seg.text}"
+                      &quot;{seg.text}&quot;
                     </p>
                   </div>
 

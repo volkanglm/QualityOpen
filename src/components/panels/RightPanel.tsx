@@ -312,7 +312,7 @@ function CodeRow(props: CodeRowProps) {
                 <div key={seg.id} className="pr-2 py-1 mx-1 rounded-[var(--radius-sm)] hover:bg-[var(--surface-hover)] transition-colors"
                   style={{ paddingLeft: `${depth * INDENT_W + 36}px` }}>
                   <p className="text-[11px] leading-relaxed line-clamp-2" style={{ color: "var(--text-secondary)" }}>
-                    <span style={{ color: code.color }}>"</span>{seg.text}<span style={{ color: code.color }}>"</span>
+                    <span style={{ color: code.color }}>&quot;</span>{seg.text}<span style={{ color: code.color }}>&quot;</span>
                   </p>
                 </div>
               ))}
@@ -326,7 +326,7 @@ function CodeRow(props: CodeRowProps) {
 
 // ─── Sortable wrapper ─────────────────────────────────────────────────────────
 
-function SortableCodeItem(props: CodeRowProps & { isActive: boolean; isFilterActive: boolean; overId: string | null; projection: any; id: string }) {
+function SortableCodeItem(props: CodeRowProps & { isActive: boolean; isFilterActive: boolean; overId: string | null; projection: { parentId: string | undefined; depth: number; position: "before" | "after" } | null; id: string }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } =
     useSortable({ id: props.code.id });
 
@@ -507,7 +507,8 @@ export function RightPanel() {
             if (seen.has(cur.id)) return true; // existing cycle
             if (cur.parentId === active.id) return true; // would create cycle
             seen.add(cur.id);
-            cur = projectCodes.find((c) => c.id === cur!.parentId);
+            const nextParentId: string = cur.parentId;
+            cur = projectCodes.find((c) => c.id === nextParentId);
           }
           return false;
         })();
@@ -515,9 +516,10 @@ export function RightPanel() {
         if (!wouldBeCircular) {
           moveCode(String(active.id), projection.parentId, String(over.id), projection.position);
           if (projection.parentId) {
+            const pid = projection.parentId;
             setCollapsedParents((prev) => {
               const next = new Set(prev);
-              next.delete(projection.parentId!);
+              next.delete(pid);
               return next;
             });
           }
