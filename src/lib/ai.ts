@@ -44,8 +44,8 @@ Kısa, analitik ve akademik bir dil kullan.`;
 export async function askAi(
   key: string,
   messages: Message[],
-  systemPrompt: string = CHAT_SYSTEM,
-  retryCount: number = 0
+  systemPrompt = CHAT_SYSTEM,
+  retryCount = 0
 ): Promise<string> {
   const provider = detectProvider(key);
 
@@ -112,25 +112,18 @@ export async function askAi(
       if (!res) throw new Error("Gemini API request failed to initiate.");
 
       if (res.status < 200 || res.status >= 300) {
-        try {
-          const errData = JSON.parse(res.body);
-          if (res.status === 429) {
-            const lang = useAppStore.getState().language;
-            throw new Error(`${t("ai.error.quotaExceeded", lang)} (API Quota Exceeded. Please check your Google AI Studio billing/limits.)`);
-          }
+        if (res.status === 429) {
           const lang = useAppStore.getState().language;
-          throw new Error(`${t("ai.error.gemini", lang)} (HTTP ${res.status}): ${errData.error?.message || ""}`);
-        } catch (e: any) {
-          if (e.message?.includes("Quota")) throw e;
-          const lang = useAppStore.getState().language;
-          throw new Error(`${t("ai.error.gemini", lang)} (HTTP ${res.status})`);
+          throw new Error(`${t("ai.error.quotaExceeded", lang)} (API Quota Exceeded. Please check your Google AI Studio billing/limits.)`);
         }
+        const lang = useAppStore.getState().language;
+        throw new Error(`${t("ai.error.gemini", lang)} (HTTP ${res.status})`);
       }
 
       let data;
       try {
         data = JSON.parse(res.body);
-      } catch (err) {
+      } catch {
         const lang = useAppStore.getState().language;
         throw new Error(`${t("ai.error.gemini", lang)}: Invalid JSON.`);
       }
@@ -190,7 +183,7 @@ export async function analyzeThematicCodes(
   const raw = await askAi(key, messages, THEMATIC_SYSTEM);
   try {
     return JSON.parse(raw) as ThematicResult;
-  } catch (err) {
+  } catch {
     console.error("Failed to parse thematic analysis result:", raw);
     throw new Error("AI yanıtı beklenen formatta değil.");
   }

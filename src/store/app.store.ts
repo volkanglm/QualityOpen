@@ -29,8 +29,8 @@ interface AppStore extends AppState {
   setRightWidth: (w: number) => void;
   toggleLeftPanel: () => void;
   toggleRightPanel: () => void;
-  setLeftCollapsed: (fn: (prev: boolean) => boolean | boolean) => void;
-  setRightCollapsed: (fn: (prev: boolean) => boolean | boolean) => void;
+  setLeftCollapsed: (fn: boolean | ((prev: boolean) => boolean)) => void;
+  setRightCollapsed: (fn: boolean | ((prev: boolean) => boolean)) => void;
 
   // AI / Command palette
   setActiveSelection: (s: ActiveSelection | null) => void;

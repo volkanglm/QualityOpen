@@ -38,12 +38,13 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
             useToastStore.getState().push("Up to date", "success");
         }
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : String(e);
       console.error("Update check failed:", e);
-      set({ step: "error", error: e.message || String(e) });
+      set({ step: "error", error: errMsg });
       if (manual) {
         const { useToastStore } = await import("@/store/toast.store");
-        useToastStore.getState().push(`Update check failed: ${e.message || String(e)}`, "error");
+        useToastStore.getState().push(`Update check failed: ${errMsg}`, "error");
       }
     }
   },
@@ -74,9 +75,10 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
         }
       });
       set({ step: "ready" });
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : String(e);
       console.error("Update failed:", e);
-      set({ step: "error", error: e.message || String(e) });
+      set({ step: "error", error: errMsg });
     }
   },
 

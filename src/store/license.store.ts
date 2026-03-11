@@ -74,6 +74,7 @@ export const useLicenseStore = create<LicenseStoreType>()((set) => {
       // GÜVENLİK NOTU: Bu blok sadece 'npm run tauri dev' modunda çalışır. 
       // Production build alındığında Vite bu kodu .exe/.dmg içinden tamamen silecektir (Dead code elimination).
       if (import.meta.env.DEV) {
+        // skipcq: JS-0002
         console.log("🛠️ DEV MODE: Pro özellikler test için kilitsiz.");
         set({ isPro: true, licenseKey: "DEV_MODE_ACTIVE", status: "active" });
         return;
@@ -131,6 +132,7 @@ export const useLicenseStore = create<LicenseStoreType>()((set) => {
           // Fallback to offline verification
           const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
           if (lastVerifiedAt && Date.now() - lastVerifiedAt < SEVEN_DAYS_MS) {
+            // skipcq: JS-0002
             console.log("Offline Pro mode activated based on recent verification.");
             set({
               status: "active",
@@ -187,9 +189,10 @@ export const useLicenseStore = create<LicenseStoreType>()((set) => {
           set({ error: res.error || "Geçersiz lisans anahtarı." });
           return { success: false, error: res.error || "Geçersiz lisans anahtarı." };
         }
-      } catch (err: any) {
-        set({ error: err.message || "Bilinmeyen bir hata oluştu." });
-        return { success: false, error: err.message || "Bilinmeyen bir hata oluştu." };
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu.";
+        set({ error: errMsg });
+        return { success: false, error: errMsg };
       }
     },
 
@@ -223,8 +226,9 @@ export const useLicenseStore = create<LicenseStoreType>()((set) => {
         } else {
           return { success: false, error: res.error || "Deaktivasyon işlemi başarısız oldu." };
         }
-      } catch (err: any) {
-        return { success: false, error: err.message || "Bilinmeyen bir hata oluştu." };
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu.";
+        return { success: false, error: errMsg };
       }
     },
 

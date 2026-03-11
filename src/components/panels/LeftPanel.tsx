@@ -161,13 +161,14 @@ export function LeftPanel() {
     await processFile(file);
   };
 
-  const processFile = async (file: File) => {
+  async function processFile(file: File) {
+    if (!activeProjectId) return;
     setImporting(true);
     try {
       const cat = getFileCategory(file);
       const docType = cat === "video" ? "video" : cat === "image" ? "image" : "document";
       const imported = await importFile(file);
-      const newDoc = createDocument(activeProjectId!, imported.name || file.name, docType);
+      const newDoc = createDocument(activeProjectId, imported.name || file.name, docType);
 
       const { localFolderPath } = useAuthStore.getState();
       if (localFolderPath) {
@@ -186,7 +187,7 @@ export function LeftPanel() {
       });
       setActiveDocument(newDoc.id);
       setActiveView("coding");
-      setExpandedProjects((s) => new Set(s).add(activeProjectId!));
+      setExpandedProjects((s) => new Set(s).add(activeProjectId));
     } catch (err) {
       console.error("Import failed:", err);
       const msg = err instanceof Error ? err.message : "Import failed";
@@ -194,7 +195,7 @@ export function LeftPanel() {
     } finally {
       setImporting(false);
     }
-  };
+  }
 
   const openDoc = (doc: Document) => {
     setActiveDocument(doc.id);

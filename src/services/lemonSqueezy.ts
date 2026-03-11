@@ -64,12 +64,13 @@ export async function activateLicense(
                 meta: null,
             };
         }
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const errMsg = error instanceof Error ? error.message : "Ağ hatası veya sunucu yanıt vermedi.";
         console.error("Activation error detail:", error);
         return {
             activated: false,
             instance: null,
-            error: error.message || "Ağ hatası veya sunucu yanıt vermedi.",
+            error: errMsg,
             meta: null,
         };
     }
@@ -113,11 +114,12 @@ export async function deactivateLicense(
                 error: data.error || "Deaktivasyon başarısız.",
             };
         }
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const errMsg = error instanceof Error ? error.message : "Ağ hatası veya sunucu yanıt vermedi.";
         console.error("Deactivation error detail:", error);
         return {
             success: false,
-            error: error.message || "Ağ hatası veya sunucu yanıt vermedi.",
+            error: errMsg,
         };
     }
 }
