@@ -45,6 +45,7 @@ jobs:
           EOF
 
       - name: Build and Release Tauri app
+        if: startsWith(github.ref, 'refs/tags/')
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -72,6 +73,7 @@ jobs:
           prerelease: false
 
       - name: List bundle output (debug signing)
+        if: startsWith(github.ref, 'refs/tags/')
         shell: bash
         run: |
           echo "=== Bundle output ==="
