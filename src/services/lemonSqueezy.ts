@@ -74,3 +74,50 @@ export async function activateLicense(
         };
     }
 }
+
+export async function deactivateLicense(
+    licenseKey: string,
+    instanceId: string
+): Promise<{ success: boolean; error: string | null }> {
+    try {
+        const body = new URLSearchParams({
+            license_key: licenseKey,
+            instance_id: instanceId,
+        }).toString();
+
+        const [status, text] = await invoke<[number, string]>("native_http", {
+            method: "POST",
+            url: "https://api.lemonsqueezy.com/v1/licenses/deactivate",
+            headersJson: JSON.stringify({
+                "Accept": "application/json",
+                "Content-Type": "application/x-www-form-urlencoded"
+            }),
+            body: body
+        });
+
+        // Parse response body
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch {
+            // If it's not JSON, check status
+            if (status >= 200 && status < 300) return { success: true, error: null };
+            throw new Error(`Invalid JSON response: ${text.substring(0, 50)}...`);
+        }
+
+        if (data.deactivated || (status >= 200 && status < 300)) {
+            return { success: true, error: null };
+        } else {
+            return {
+                success: false,
+                error: data.error || "Deaktivasyon başarısız.",
+            };
+        }
+    } catch (error: any) {
+        console.error("Deactivation error detail:", error);
+        return {
+            success: false,
+            error: error.message || "Ağ hatası veya sunucu yanıt vermedi.",
+        };
+    }
+}
