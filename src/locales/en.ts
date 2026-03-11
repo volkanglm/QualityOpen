@@ -467,4 +467,16 @@ export const en = {
     "palette.grayscale": "Grayscale",
     "palette.midnight": "Midnight",
     "palette.highContrast": "High Contrast",
+    
+    // ── Database View ───────────────────────────────────────────────────────────
+    "db.title": "Document Database",
+    "db.stats": "Total {docCount} documents, {propCount} custom properties",
+    "db.download": "Download",
+    "db.downloadTooltip": "Download as CSV",
+    "db.colName": "Document Name",
+    "db.colType": "Type",
+    "db.colWords": "Words",
+    "db.empty": "Database Empty",
+    "db.emptyHint": "Add a new document to see the table.",
+    "db.downloadSuccess": "Database Exported",
 };

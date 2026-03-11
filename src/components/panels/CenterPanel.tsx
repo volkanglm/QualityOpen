@@ -24,6 +24,7 @@ import { useT } from "@/lib/i18n";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
 import { Button } from "@/components/ui/Button";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { AnalysisPage } from "@/pages/AnalysisPage";
 import { SearchHighlighter } from "@/components/editor/SearchHighlighter";
@@ -1207,13 +1208,15 @@ function DocHeader({
         background: "var(--bg-primary)",
       }}
     >
-      <div className="flex items-center gap-3 min-w-0">
-        <h2
-          className="text-[13px] font-semibold tracking-wide truncate"
-          style={{ color: "var(--text-primary)" }}
-        >
-          {doc.name}
-        </h2>
+      <div className="flex items-center gap-3 min-w-0 pr-2">
+        <Tooltip content={doc.name} side="bottom">
+          <h2
+            className="text-[13px] font-semibold tracking-wide truncate"
+            style={{ color: "var(--text-primary)" }}
+          >
+            {doc.name}
+          </h2>
+        </Tooltip>
 
         {/* Stats */}
         <div className="flex items-center gap-2 text-[11px]" style={{ color: "var(--text-muted)" }}>

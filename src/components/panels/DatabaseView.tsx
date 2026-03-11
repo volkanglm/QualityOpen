@@ -5,9 +5,11 @@ import { useAppStore } from "@/store/app.store";
 import { Button } from "@/components/ui/Button";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { useToastStore } from "@/store/toast.store";
-import { useProjectStore } from "@/store/project.store"; // Assuming this import is missing and needed for useProjectStore
+import { useProjectStore } from "@/store/project.store";
+import { useT } from "@/lib/i18n";
 
 export function DatabaseView() {
+    const t = useT();
     const { documents } = useProjectStore();
     const { activeProjectId, setActiveDocument } = useAppStore();
     const { push: addToast } = useToastStore();
@@ -32,15 +34,16 @@ export function DatabaseView() {
         if (projectDocs.length === 0) return;
 
         // Build headers
-        const headers = ["ID", "Belge Adı", "Format", "Tür", "Kelime Sayısı", "Oluşturulma Tarihi", ...allPropertyKeys];
+        const headers = ["ID", t("db.colName"), t("right.format"), t("db.colType"), t("db.colWords"), t("right.createdAt"), ...allPropertyKeys];
 
         // Build rows
         const rows = projectDocs.map((doc) => {
+            const docTranslatedType = t(`left.type.${doc.type || "document"}` as any);
             const row = [
                 doc.id,
                 doc.name.replace(/"/g, '""'), // escape quotes
                 doc.format || "text",
-                doc.type || "document",
+                docTranslatedType,
                 doc.wordCount?.toString() || "0",
                 new Date(doc.createdAt).toLocaleDateString(),
             ];
@@ -64,16 +67,16 @@ export function DatabaseView() {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
 
-        addToast("Veritabanı İndirildi", "success");
+        addToast(t("db.downloadSuccess"), "success");
     };
 
     if (projectDocs.length === 0) {
         return (
             <div className="flex h-full flex-col items-center justify-center p-8 bg-[var(--bg-primary)]">
                 <FileText className="h-12 w-12 mb-4" style={{ color: "var(--border)" }} />
-                <h2 className="text-lg font-medium mb-1" style={{ color: "var(--text-primary)" }}>Veritabanı Boş</h2>
+                <h2 className="text-lg font-medium mb-1" style={{ color: "var(--text-primary)" }}>{t("db.empty")}</h2>
                 <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-                    Tabloyu görmek için yeni bir belge ekleyin.
+                    {t("db.emptyHint")}
                 </p>
             </div>
         );
@@ -88,17 +91,19 @@ export function DatabaseView() {
             >
                 <div>
                     <h2 className="text-sm font-semibold tracking-wide" style={{ color: "var(--text-primary)" }}>
-                        Belge Veritabanı
+                        {t("db.title")}
                     </h2>
                     <p className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-                        Toplam {projectDocs.length} belge, {allPropertyKeys.length} özel özellik
+                        {t("db.stats")
+                            .replace("{docCount}", projectDocs.length.toString())
+                            .replace("{propCount}", allPropertyKeys.length.toString())}
                     </p>
                 </div>
 
-                <Tooltip content="CSV olarak indir" side="bottom">
+                <Tooltip content={t("db.downloadTooltip")} side="bottom">
                     <Button variant="outline" size="sm" onClick={handleDownloadCSV} className="gap-2">
                         <Download className="h-3.5 w-3.5" />
-                        <span className="text-[11px] font-medium">İndir</span>
+                        <span className="text-[11px] font-medium">{t("db.download")}</span>
                     </Button>
                 </Tooltip>
             </div>
@@ -110,9 +115,9 @@ export function DatabaseView() {
                         <thead>
                             <tr style={{ background: "var(--surface)", borderBottom: "1px solid var(--border-subtle)" }}>
                                 <th className="px-4 py-3 font-semibold w-12 text-center" style={{ color: "var(--text-secondary)" }}>#</th>
-                                <th className="px-4 py-3 font-semibold" style={{ color: "var(--text-secondary)" }}>Belge Adı</th>
-                                <th className="px-4 py-3 font-semibold" style={{ color: "var(--text-secondary)" }}>Tür</th>
-                                <th className="px-4 py-3 font-semibold" style={{ color: "var(--text-secondary)" }}>Kelime</th>
+                                <th className="px-4 py-3 font-semibold" style={{ color: "var(--text-secondary)" }}>{t("db.colName")}</th>
+                                <th className="px-4 py-3 font-semibold" style={{ color: "var(--text-secondary)" }}>{t("db.colType")}</th>
+                                <th className="px-4 py-3 font-semibold" style={{ color: "var(--text-secondary)" }}>{t("db.colWords")}</th>
                                 {allPropertyKeys.map((key) => (
                                     <th key={key} className="px-4 py-3 font-semibold whitespace-nowrap" style={{ color: "var(--text-secondary)", borderLeft: "1px solid var(--border-subtle)" }}>
                                         {key}
@@ -138,8 +143,8 @@ export function DatabaseView() {
                                     <td className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ color: "var(--text-primary)" }}>
                                         {doc.name}
                                     </td>
-                                    <td className="px-4 py-2.5 capitalize" style={{ color: "var(--text-muted)" }}>
-                                        {doc.type}
+                                    <td className="px-4 py-2.5" style={{ color: "var(--text-muted)" }}>
+                                        {t(`left.type.${doc.type || "document"}` as any)}
                                     </td>
                                     <td className="px-4 py-2.5" style={{ color: "var(--text-muted)" }}>
                                         {doc.wordCount?.toLocaleString() || "0"}
