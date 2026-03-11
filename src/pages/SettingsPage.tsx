@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, type Variants } from "framer-motion";
 import { Settings, Key, Eye, EyeOff, Check, Trash2, Info, Cpu, Globe, Download, Upload, Database, RefreshCw } from "lucide-react";
 import { AppLogo } from "@/components/ui/AppLogo";
@@ -255,6 +255,15 @@ function CheckUpdateButton() {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function SettingsPage() {
+  const [appVersion, setAppVersion] = useState(APP_VERSION);
+
+  useEffect(() => {
+    import("@tauri-apps/api/app")
+      .then((api) => api.getVersion())
+      .then(setAppVersion)
+      .catch(console.error);
+  }, []);
+
   const { theme, setTheme, language, setLanguage } = useAppStore();
   const { projects, documents, codes, segments, memos, importBackup } = useProjectStore();
   const { accessToken, localFolderPath } = useAuthStore();
@@ -805,7 +814,7 @@ export function SettingsPage() {
               </p>
               <div className="flex items-center gap-2 mt-1">
                 <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-                  v{APP_VERSION} · Qualitative Data Analysis
+                  v{appVersion} · Qualitative Data Analysis
                 </p>
                 <CheckUpdateButton />
               </div>
