@@ -16,14 +16,15 @@ async function update() {
     const packagePath = path.join(__dirname, '../package.json');
     const pkg = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
     const version = pkg.version;
-    const tag = `v${version}`;
+    // Use tag from argument or fallback to vVersion
+    const tag = process.argv[2] || `v${version}`;
     const repo = "volkanglm/QualityOpen-Releases";
-
-    console.log(`Detected version: ${version} (${tag})`);
+    
+    console.log(`Targeting tag: ${tag} (Version: ${version})`);
 
     try {
         // Use GH CLI to list assets
-        const assetsJson = execSync(`gh release view ${tag} --repo ${repo} --json assets`).toString();
+        const assetsJson = execSync(`gh release view ${tag} --repo ${repo} --json assets`, { stdio: ['pipe', 'pipe', 'pipe'] }).toString();
         const assets = JSON.parse(assetsJson).assets;
 
         console.log("Release assets found:", assets.map(a => a.name));
@@ -91,8 +92,13 @@ async function update() {
         console.log("🎉 updater.json updated successfully!");
         console.log("Platforms:", Object.keys(updater.platforms));
     } catch (err) {
-        console.error("❌ GitHub CLI error. Make sure you are logged in ('gh auth login') and the release exists.");
-        throw err;
+        console.error("❌ GitHub CLI error occurred:");
+        if (err.stderr) {
+            console.error("Stderr:", err.stderr.toString());
+        } else {
+            console.error(err.message);
+        }
+        process.exit(1);
     }
 }
 

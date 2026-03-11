@@ -120,7 +120,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
         run: |
-          node scripts/update-updater.js
+          node scripts/update-updater.js ${{ github.ref_name }}
 
       - name: Commit and push changes
         run: |
