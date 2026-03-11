@@ -118,7 +118,7 @@ jobs:
 
       - name: Update updater.json
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
         run: |
           node scripts/update-updater.js
 
