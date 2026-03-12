@@ -344,7 +344,6 @@ export function CommandPalette() {
         // Add segment with all codes assigned
         addSegment({
           documentId: activeSelection.documentId,
-          projectId: activeProjectId,
           start: activeSelection.start,
           end: activeSelection.end,
           text: activeSelection.text,

@@ -291,7 +291,7 @@ export function MediaWorkspace({ doc }: MediaWorkspaceProps) {
                 onAssignCode={(pos: FloatingMenuPos) => setCodePanelSel(pos)}
                 onHighlight={() => {
                     if (!floatPos) return;
-                    addSegment({ documentId: doc.id, projectId: doc.projectId, start: floatPos.start, end: floatPos.end, text: floatPos.text, codeIds: [], isHighlight: true, highlightColor: "#fcd34d" });
+                    addSegment({ documentId: doc.id, start: floatPos.start, end: floatPos.end, text: floatPos.text, codeIds: [], isHighlight: true, highlightColor: "#fcd34d" });
                     setFloatPos(null);
                     window.getSelection()?.removeAllRanges();
                 }}
@@ -307,14 +307,14 @@ export function MediaWorkspace({ doc }: MediaWorkspaceProps) {
                         selectionText={codePanelSel.text}
                         codes={codes}
                         onApply={(code: Code) => {
-                            addSegment({ documentId: doc.id, projectId: doc.projectId, start: codePanelSel.start, end: codePanelSel.end, text: codePanelSel.text, codeIds: [code.id] });
+                            addSegment({ documentId: doc.id, start: codePanelSel.start, end: codePanelSel.end, text: codePanelSel.text, codeIds: [code.id] });
                             setCodePanelSel(null);
                             setFloatPos(null);
                             window.getSelection()?.removeAllRanges();
                         }}
                         onCreate={(name: string) => {
                             const c = createCode(doc.projectId, name);
-                            addSegment({ documentId: doc.id, projectId: doc.projectId, start: codePanelSel.start, end: codePanelSel.end, text: codePanelSel.text, codeIds: [c.id] });
+                            addSegment({ documentId: doc.id, start: codePanelSel.start, end: codePanelSel.end, text: codePanelSel.text, codeIds: [c.id] });
                             setCodePanelSel(null);
                             setFloatPos(null);
                             window.getSelection()?.removeAllRanges();
@@ -333,13 +333,13 @@ export function MediaWorkspace({ doc }: MediaWorkspaceProps) {
                         codes={codes}
                         selectedText={ctxMenu.pos.text}
                         onSelect={(code: Code) => {
-                            addSegment({ documentId: doc.id, projectId: doc.projectId, start: ctxMenu.pos.start, end: ctxMenu.pos.end, text: ctxMenu.pos.text, codeIds: [code.id] });
+                            addSegment({ documentId: doc.id, start: ctxMenu.pos.start, end: ctxMenu.pos.end, text: ctxMenu.pos.text, codeIds: [code.id] });
                             setCtxMenu(null);
                             window.getSelection()?.removeAllRanges();
                         }}
                         onCreate={(name: string) => {
                             const c = createCode(doc.projectId, name);
-                            addSegment({ documentId: doc.id, projectId: doc.projectId, start: ctxMenu.pos.start, end: ctxMenu.pos.end, text: ctxMenu.pos.text, codeIds: [c.id] });
+                            addSegment({ documentId: doc.id, start: ctxMenu.pos.start, end: ctxMenu.pos.end, text: ctxMenu.pos.text, codeIds: [c.id] });
                             setCtxMenu(null);
                             window.getSelection()?.removeAllRanges();
                         }}

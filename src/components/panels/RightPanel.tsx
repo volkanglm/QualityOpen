@@ -164,6 +164,7 @@ interface CodeRowProps {
   onMoveCode: (id: string) => void;
   isPotentialParent?: boolean;
   isFilterActive?: boolean;
+  t: any;
 }
 
 function CodeRow(props: CodeRowProps) {
@@ -175,6 +176,7 @@ function CodeRow(props: CodeRowProps) {
     onStartEdit, onCommitEdit, onCancelEdit, onEditName,
     onDelete, onColorClick, onAddSubCode, onFilterClick, onMoveCode,
     isPotentialParent = false, isFilterActive = false,
+    t
   } = props;
   const colorBtnRef = useRef<HTMLButtonElement>(null);
   const depth = projDepth ?? code.depth;
@@ -765,6 +767,7 @@ export function RightPanel() {
                             overId={overId}
                             projection={projection}
                             isPotentialParent={isPotentialParent}
+                            t={t}
                           />
                         );
                       })}
