@@ -48,6 +48,7 @@ export const tr = {
     "right.clickHint": "Tıkla: segmentleri görüntüle · Çift tıkla: adlandır",
     "right.subCodeModal": "Alt Kod Ekle",
     "right.subCodeOf": "Üst kod:",
+    "right.changeParent": "Üst kodu değiştir",
 
     // ── Center panel ────────────────────────────────────────────────────────────
     "center.edit": "Düzenle",
@@ -66,6 +67,8 @@ export const tr = {
     "center.dropHint": "Dosyayı bırakın",
     "center.lineNumbers": "Satır Numaraları",
     "center.splitView": "Bölünmüş Görünüm",
+    "center.zoomIn": "Yakınlaştır",
+    "center.zoomOut": "Uzaklaştır",
     "center.lock": "Kilitle (Salt Okuma)",
     "center.unlock": "Kilidi Aç (Düzenle)",
     "center.importHint": "Belge olarak içe aktarılacak",
@@ -92,6 +95,8 @@ export const tr = {
     "theory.solar": "Güneş Sistemi",
     "theory.case": "Vaka Analizi",
     "theory.anchor": "Ankraj Düğümü",
+    "theory.anchorHint": "Haritanın merkezine sabitlemek istediğiniz bir düğüme tıklayın. Bağlantılı kodlar çekim alanına girecektir.",
+    "theory.noSelection": "Seçim yok...",
     "theory.cases": "Seçilen Vakalar",
     "analysis.docs": "belge",
     "analysis.codes": "kod",
@@ -299,6 +304,8 @@ export const tr = {
     "common.and": "VE",
     "common.or": "VEYA",
     "common.back": "Geri",
+    "common.undo": "Geri Al",
+    "common.redo": "Yinele",
     "retrieval.noSegs": "Henüz kodlanmış segment bulunmuyor.",
     "retrieval.unknown": "Bilinmeyen Belge",
     "retrieval.none": "Yok",
@@ -444,6 +451,7 @@ export const tr = {
     "center.addNoteHint": "Bu belge hakkında araştırmacı notunuzu buraya yazın…",
     "center.comparisonPanel": "Kıyaslama Paneli",
     "center.comparisonNotSupported": "Bu dosya türü için kıyaslama şu an desteklenmiyor",
+    "center.selectDocToSeeInfo": "Bilgileri görmek için bir belge seçin.",
 
     // ── Extra Analysis ──
     "analysis.noVariables": "Henüz Değişken Yok",

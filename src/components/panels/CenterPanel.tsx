@@ -19,6 +19,10 @@ import {
   StickyNote,
   ChevronDown,
   ArrowLeft,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  RotateCw,
 } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { useAppStore } from "@/store/app.store";
@@ -92,6 +96,10 @@ export function CenterPanel() {
     addSegment,
     addSegments,
     updateDocument,
+    undo,
+    redo,
+    textScale,
+    setTextScale,
   } = useProjectStore();
   // Using full store is okay here because CenterPanel is a major container, 
   // but let's ensure child components are optimized.
@@ -267,7 +275,6 @@ export function CenterPanel() {
     if (!doc || !activeProjectId) return;
     addSegment({
       documentId: doc.id,
-      projectId: activeProjectId,
       start: pos.start,
       end: pos.end,
       text: pos.text,
@@ -292,7 +299,6 @@ export function CenterPanel() {
       // Add as a highlight segment with memo
       addSegment({
         documentId: doc.id,
-        projectId: activeProjectId,
         start: pos.start,
         end: pos.end,
         text: pos.text,
@@ -313,7 +319,6 @@ export function CenterPanel() {
     if (!codePanelSel || !doc || !activeProjectId) return;
     addSegment({
       documentId: doc.id,
-      projectId: activeProjectId,
       start: codePanelSel.start,
       end: codePanelSel.end,
       text: codePanelSel.text,
@@ -346,21 +351,44 @@ export function CenterPanel() {
       }
     };
 
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey)) {
+        if (e.key === "z") {
+          e.preventDefault();
+          if (e.shiftKey) redo();
+          else undo();
+        } else if (e.key === "y") {
+          e.preventDefault();
+          redo();
+        } else if (e.key === "+" || e.key === "=") {
+          e.preventDefault();
+          setTextScale(textScale + 0.1);
+        } else if (e.key === "-") {
+          e.preventDefault();
+          setTextScale(textScale - 0.1);
+        } else if (e.key === "0") {
+          e.preventDefault();
+          setTextScale(1);
+        }
+      }
+    };
+
     window.addEventListener("open-local-search", handleOpenSearch);
     window.addEventListener("open-code-menu", handleOpenCodeMenu);
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
       window.removeEventListener("open-local-search", handleOpenSearch);
       window.removeEventListener("open-code-menu", handleOpenCodeMenu);
+      window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [searchOpen]);
+  }, [searchOpen, undo, redo, textScale, setTextScale]);
 
   // ── Context menu handlers ─────────────────────────────────────────────────
   const handleCtxSelect = (code: { id: string; name: string; color: string }) => {
     if (!ctxMenu || !doc || !activeProjectId) return;
     addSegment({
       documentId: doc.id,
-      projectId: activeProjectId,
       start: ctxMenu.pos.start,
       end: ctxMenu.pos.end,
       text: ctxMenu.pos.text,
@@ -511,6 +539,11 @@ export function CenterPanel() {
         onToggleSearch={() => setSearchOpen((v) => !v)}
         onToggleChat={() => setChatOpen(!chatOpen)}
         onToggleLineNumbers={toggleLineNumbers}
+        onUndo={undo}
+        onRedo={redo}
+        textScale={textScale}
+        onZoomIn={() => setTextScale(textScale + 0.1)}
+        onZoomOut={() => setTextScale(textScale - 0.1)}
       />
 
       {/* ── Search bar ── */}
@@ -634,7 +667,6 @@ export function CenterPanel() {
             onApply={(code) => {
               addSegments(autoCodeMatches.map(m => ({
                 documentId: doc.id,
-                projectId: activeProjectId,
                 start: m.start,
                 end: m.end,
                 text: m.text,
@@ -647,7 +679,6 @@ export function CenterPanel() {
               const newCode = createCode(activeProjectId, name);
               addSegments(autoCodeMatches.map(m => ({
                 documentId: doc.id,
-                projectId: activeProjectId,
                 start: m.start,
                 end: m.end,
                 text: m.text,
@@ -760,13 +791,13 @@ export function CenterPanel() {
                       outline: "none",
                       caretColor: "var(--accent)",
                       fontFamily: '"Inter", system-ui, sans-serif',
-                      fontSize: "14px",
+                      fontSize: `${14 * textScale}px`,
                       lineHeight: "1.75",
                     }}
                     spellCheck={false}
                   />
                 ) : (
-                  <div className="flex w-full min-h-full">
+                  <div className="flex w-full min-h-full" style={{ transform: `scale(${textScale})`, transformOrigin: "top left", width: `${100 / textScale}%` }}>
                     {showLineNumbers && format === "text" && (
                       <LineNumbers content={doc.content} every={5} />
                     )}
@@ -1184,6 +1215,11 @@ function DocHeader({
   onToggleChat,
   onToggleLineNumbers,
   onToggleSplitView,
+  onUndo,
+  onRedo,
+  textScale,
+  onZoomIn,
+  onZoomOut,
 }: {
   doc: import("@/types").Document;
   wordCount: number;
@@ -1201,6 +1237,11 @@ function DocHeader({
   onToggleChat: () => void;
   onToggleLineNumbers: () => void;
   onToggleSplitView: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  textScale: number;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
 }) {
   const t = useT();
   return (
@@ -1328,6 +1369,55 @@ function DocHeader({
             )}
           </Button>
         )}
+
+        <div className="w-px h-4 mx-1" style={{ background: "var(--border)" }} />
+
+        <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 w-6 p-0"
+            onClick={onUndo}
+            title={t('common.undo') || "Undo (Cmd+Z)"}
+          >
+            <RotateCcw className="h-3 w-3" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 w-6 p-0"
+            onClick={onRedo}
+            title={t('common.redo') || "Redo (Cmd+Shift+Z)"}
+          >
+            <RotateCw className="h-3 w-3" />
+          </Button>
+        </div>
+
+        <div className="w-px h-4 mx-1" style={{ background: "var(--border)" }} />
+
+        <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 w-6 p-0"
+            onClick={onZoomOut}
+            title={t('center.zoomOut') || "Zoom Out (Cmd+-)"}
+          >
+            <ZoomOut className="h-3 w-3" />
+          </Button>
+          <span className="text-[10px] tabular-nums w-8 text-center" style={{ color: "var(--text-muted)" }}>
+            {Math.round(textScale * 100)}%
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 w-6 p-0"
+            onClick={onZoomIn}
+            title={t('center.zoomIn') || "Zoom In (Cmd+=)"}
+          >
+            <ZoomIn className="h-3 w-3" />
+          </Button>
+        </div>
       </div>
     </div>
   );
