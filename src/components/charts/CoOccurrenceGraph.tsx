@@ -261,7 +261,7 @@ function CoOccurrenceGraphInner({ codes, segments }: CoOccurrenceGraphProps) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 text-[var(--text-muted)] italic">
         <Sparkles className="h-8 w-8 opacity-20" />
-        <p className="text-sm">{t("analysis.interactive")} için daha fazla kod gerekli.</p>
+        <p className="text-sm">{t("analysis.interactiveNodeAnalysis")} için daha fazla kod gerekli.</p>
       </div>
     );
   }
@@ -382,7 +382,7 @@ function CoOccurrenceGraphInner({ codes, segments }: CoOccurrenceGraphProps) {
                       {t("theory.anchor")}
                     </div>
                     <p className="text-[10px] text-[var(--text-muted)] leading-relaxed italic">
-                      Haritanın merkezine sabitlemek istediğiniz bir düğüme tıklayın. Bağlantılı kodlar çekim alanına girecektir.
+                      {t("theory.anchorHint")}
                     </p>
                     <div className="mt-2 flex items-center justify-between p-2 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border)]">
                       <span className="text-[11px] font-mono text-[var(--text-secondary)]">
@@ -413,7 +413,7 @@ function CoOccurrenceGraphInner({ codes, segments }: CoOccurrenceGraphProps) {
                         className="w-full flex items-center justify-between p-2 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border)] text-[11px] text-[var(--text-secondary)] hover:border-[var(--border-strong)] transition-all"
                       >
                         <span className="truncate">
-                          {selectedDocIds.length === 0 ? "Tüm belgeler..." : `${selectedDocIds.length} belge seçildi`}
+                          {selectedDocIds.length === 0 ? t("synthesis.allDocs") : `${selectedDocIds.length} ${t("analysis.docs")}`}
                         </span>
                         <ChevronDown className={cn("h-4 w-4 transition-transform", isDocSelectorOpen && "rotate-180")} />
                       </button>
@@ -453,7 +453,7 @@ function CoOccurrenceGraphInner({ codes, segments }: CoOccurrenceGraphProps) {
             </h4>
             <p className="text-[9px] text-[var(--text-muted)] font-medium leading-tight flex items-center gap-1.5">
               <Info className="h-3 w-3" />
-              Düğümlere çift tıklayarak alıntıları görün.
+              {t("analysis.nodeHint")}
             </p>
           </div>
         </Panel>

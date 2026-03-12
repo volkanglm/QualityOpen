@@ -48,6 +48,7 @@ export const en = {
     "right.clickHint": "Click: view segments · Double-click: rename",
     "right.subCodeModal": "Add Sub-Code",
     "right.subCodeOf": "Parent code:",
+    "right.changeParent": "Change parent code",
 
     // ── Center panel ────────────────────────────────────────────────────────────
     "center.edit": "Edit",
@@ -92,6 +93,8 @@ export const en = {
     "theory.solar": "Solar System",
     "theory.case": "Case Analysis",
     "theory.anchor": "Anchor Node",
+    "theory.anchorHint": "Click on a node you want to fix to the center of the map. Connected codes will be pulled towards it.",
+    "theory.noSelection": "No selection...",
     "theory.cases": "Selected Cases",
     "analysis.docs": "documents",
     "analysis.codes": "codes",
@@ -299,6 +302,8 @@ export const en = {
     "common.and": "AND",
     "common.or": "OR",
     "common.back": "Back",
+    "common.undo": "Undo",
+    "common.redo": "Redo",
     "retrieval.noSegs": "No coded segments yet.",
     "retrieval.unknown": "Unknown Document",
     "retrieval.none": "None",
@@ -444,6 +449,7 @@ export const en = {
     "center.addNoteHint": "Write your researcher note about this document here...",
     "center.comparisonPanel": "Comparison Panel",
     "center.comparisonNotSupported": "Comparison is not supported for this file type yet",
+    "center.selectDocToSeeInfo": "Select a document to see info.",
 
     // ── Extra Analysis ──
     "analysis.noVariables": "No Variables Yet",

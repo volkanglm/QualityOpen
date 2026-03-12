@@ -20,6 +20,17 @@ interface ProjectStore {
   // Settings
   graphSensitivity: number;
   setGraphSensitivity: (val: number) => void;
+  textScale: number;
+  setTextScale: (val: number) => void;
+
+  // History (Undo/Redo)
+  history: {
+    past: any[];
+    future: any[];
+  };
+  undo: () => void;
+  redo: () => void;
+  pushHistory: () => void;
 
   // Projects
   createProject: (name: string, description?: string) => Project;
@@ -42,8 +53,8 @@ interface ProjectStore {
   moveCode: (codeId: ID, newParentId: ID | undefined, targetId: ID | undefined, position: "before" | "after") => void;
 
   // Segments
-  addSegment: (seg: Omit<Segment, "id" | "createdAt">) => Segment;
-  addSegments: (segs: Omit<Segment, "id" | "createdAt">[]) => Segment[];
+  addSegment: (seg: Omit<Segment, "id" | "createdAt" | "projectId">) => Segment;
+  addSegments: (segs: Omit<Segment, "id" | "createdAt" | "projectId">[]) => Segment[];
   removeSegmentCode: (segId: ID, codeId: ID) => void;
   deleteSegment: (id: ID) => void;
 
@@ -60,6 +71,19 @@ interface ProjectStore {
   loadDemoProject: (payload: { project: Project; documents: Document[]; codes: Code[]; segments: Segment[]; memos: Memo[]; syntheses?: Synthesis[] }) => void;
 }
 
+const MAX_HISTORY = 5;
+
+function getStoreSnapshot(state: ProjectStore) {
+  return {
+    projects: state.projects,
+    documents: state.documents,
+    codes: state.codes,
+    segments: state.segments,
+    memos: state.memos,
+    syntheses: state.syntheses,
+  };
+}
+
 export const useProjectStore = create<ProjectStore>()(
   subscribeWithSelector(
     persist(
@@ -73,6 +97,52 @@ export const useProjectStore = create<ProjectStore>()(
 
         graphSensitivity: 1,
         setGraphSensitivity: (val) => set({ graphSensitivity: val }),
+        textScale: 1,
+        setTextScale: (val) => set({ textScale: Math.max(0.5, Math.min(2, val)) }),
+
+        history: {
+          past: [],
+          future: [],
+        },
+
+        pushHistory: () => {
+          const state = get();
+          const snapshot = getStoreSnapshot(state);
+          set((s) => ({
+            history: {
+              past: [snapshot, ...s.history.past].slice(0, MAX_HISTORY),
+              future: [],
+            },
+          }));
+        },
+
+        undo: () => {
+          const { history } = get();
+          if (history.past.length === 0) return;
+          const [prev, ...rest] = history.past;
+          const current = getStoreSnapshot(get());
+          set({
+            ...prev,
+            history: {
+              past: rest,
+              future: [current, ...history.future].slice(0, MAX_HISTORY),
+            },
+          });
+        },
+
+        redo: () => {
+          const { history } = get();
+          if (history.future.length === 0) return;
+          const [next, ...rest] = history.future;
+          const current = getStoreSnapshot(get());
+          set({
+            ...next,
+            history: {
+              past: [current, ...history.past].slice(0, MAX_HISTORY),
+              future: rest,
+            },
+          });
+        },
 
         createProject: (name, description) => {
           const project: Project = {
@@ -86,13 +156,16 @@ export const useProjectStore = create<ProjectStore>()(
           set((s) => ({ projects: [...s.projects, project] }));
           return project;
         },
-        updateProject: (id, patch) =>
+        updateProject: (id, patch) => {
+          get().pushHistory();
           set((s) => ({
             projects: s.projects.map((p) =>
               p.id === id ? { ...p, ...patch, updatedAt: Date.now() } : p
             ),
-          })),
-        deleteProject: (id) =>
+          }));
+        },
+        deleteProject: (id) => {
+          get().pushHistory();
           set((s) => ({
             projects: s.projects.filter((p) => p.id !== id),
             documents: s.documents.filter((d) => d.projectId !== id),
@@ -100,9 +173,11 @@ export const useProjectStore = create<ProjectStore>()(
             segments: s.segments.filter((sg) => sg.projectId !== id),
             memos: s.memos.filter((m) => m.projectId !== id),
             syntheses: s.syntheses.filter((sy) => sy.projectId !== id),
-          })),
+          }));
+        },
 
         createDocument: (projectId, name, type = "document") => {
+          get().pushHistory();
           const { isPro, openModal } = useLicenseStore.getState();
 
           if (!isPro) {
@@ -127,17 +202,26 @@ export const useProjectStore = create<ProjectStore>()(
           set((s) => ({ documents: [...s.documents, doc] }));
           return doc;
         },
-        updateDocument: (id, patch) =>
+        updateDocument: (id, patch) => {
+          // Don't push history for content updates to avoid spamming history with keystrokes
+          // unless it's a major change or we want to support undo for text
+          // For now, let's only push history for property changes or when specifically requested
+          const isContentOnly = Object.keys(patch).length === 1 && "content" in patch;
+          if (!isContentOnly) get().pushHistory();
+          
           set((s) => ({
             documents: s.documents.map((d) =>
               d.id === id ? { ...d, ...patch, updatedAt: Date.now() } : d
             ),
-          })),
-        deleteDocument: (id) =>
+          }));
+        },
+        deleteDocument: (id) => {
+          get().pushHistory();
           set((s) => ({
             documents: s.documents.filter((d) => d.id !== id),
             segments: s.segments.filter((sg) => sg.documentId !== id),
-          })),
+          }));
+        },
 
         createCode: (projectId, name, parentId) => {
           const allCodes = get().codes;
@@ -157,16 +241,20 @@ export const useProjectStore = create<ProjectStore>()(
           set((s) => ({ codes: [...s.codes, code] }));
           return code;
         },
-        updateCode: (id, patch) =>
-          set((s) => ({ codes: s.codes.map((c) => (c.id === id ? { ...c, ...patch } : c)) })),
-        deleteCode: (id) =>
+        updateCode: (id, patch) => {
+          get().pushHistory();
+          set((s) => ({ codes: s.codes.map((c) => (c.id === id ? { ...c, ...patch } : c)) }));
+        },
+        deleteCode: (id) => {
+          get().pushHistory();
           set((s) => ({
             codes: s.codes.filter((c) => c.id !== id),
             segments: s.segments.map((sg) => ({
               ...sg,
               codeIds: sg.codeIds.filter((cid) => cid !== id),
             })),
-          })),
+          }));
+        },
         reorderCodes: (projectId, activeId, overId) =>
           set((s) => {
             const proj = s.codes.filter((c) => c.projectId === projectId);
@@ -204,7 +292,9 @@ export const useProjectStore = create<ProjectStore>()(
           }),
 
         addSegment: (seg) => {
-          const newSeg: Segment = { ...seg, id: uuid(), createdAt: Date.now() };
+          get().pushHistory();
+          const { activeProjectId } = (window as any).useAppStore?.getState() || {};
+          const newSeg: Segment = { ...seg, id: uuid(), createdAt: Date.now(), projectId: activeProjectId || "" };
           set((s) => {
             const updatedCodes = s.codes.map((c) =>
               seg.codeIds.includes(c.id) ? { ...c, usageCount: (c.usageCount ?? 0) + 1 } : c
@@ -215,8 +305,10 @@ export const useProjectStore = create<ProjectStore>()(
         },
         addSegments: (segs) => {
           if (segs.length === 0) return [];
+          get().pushHistory();
+          const { activeProjectId } = (window as any).useAppStore?.getState() || {};
           const now = Date.now();
-          const newSegs: Segment[] = segs.map(seg => ({ ...seg, id: uuid(), createdAt: now }));
+          const newSegs: Segment[] = segs.map(seg => ({ ...seg, id: uuid(), createdAt: now, projectId: activeProjectId || "" }));
           set((s) => {
             const codeUsageCounts: Record<string, number> = {};
             for (const seg of segs) {
@@ -231,14 +323,18 @@ export const useProjectStore = create<ProjectStore>()(
           });
           return newSegs;
         },
-        removeSegmentCode: (segId, codeId) =>
+        removeSegmentCode: (segId, codeId) => {
+          get().pushHistory();
           set((s) => ({
             segments: s.segments.map((sg) =>
               sg.id === segId ? { ...sg, codeIds: sg.codeIds.filter((c) => c !== codeId) } : sg
             ),
-          })),
-        deleteSegment: (id) =>
-          set((s) => ({ segments: s.segments.filter((sg) => sg.id !== id) })),
+          }));
+        },
+        deleteSegment: (id) => {
+          get().pushHistory();
+          set((s) => ({ segments: s.segments.filter((sg) => sg.id !== id) }));
+        },
 
         createMemo: (projectId, title) => {
           const memo: Memo = {
@@ -258,7 +354,10 @@ export const useProjectStore = create<ProjectStore>()(
               m.id === id ? { ...m, ...patch, updatedAt: Date.now() } : m
             ),
           })),
-        deleteMemo: (id) => set((s) => ({ memos: s.memos.filter((m) => m.id !== id) })),
+        deleteMemo: (id) => {
+          get().pushHistory();
+          set((s) => ({ memos: s.memos.filter((m) => m.id !== id) }));
+        },
 
         upsertSynthesis: (synth) => {
           const syntheses = get().syntheses;

@@ -245,7 +245,7 @@ function CodeRow(props: CodeRowProps) {
             style={{ color: "var(--text-primary)", fontWeight: hasChildren ? 500 : 400 }}
             onDoubleClick={() => onStartEdit(code.id, code.name)}
             onClick={() => onFilterClick(code.id)}
-            title="Tıkla: segment görünümü · Çift tıkla: yeniden adlandır"
+            title={t('right.clickHint')}
           >
             {code.name}
           </span>
@@ -266,20 +266,20 @@ function CodeRow(props: CodeRowProps) {
         ) : (
           <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
             {depth < MAX_DEPTH && (
-              <Tooltip content={`Alt-kod ekle (L${depth + 2})`} side="top">
+              <Tooltip content={t("right.addSubCode", { level: depth + 2 })} side="top">
                 <button onClick={() => onAddSubCode(code.id)} style={{ color: "var(--text-muted)" }}
                   className="hover:text-[var(--text-primary)] transition-colors">
                   <Plus className="h-2.5 w-2.5" />
                 </button>
               </Tooltip>
             )}
-            <Tooltip content="Üst kodu değiştir" side="top">
+            <Tooltip content={t("right.changeParent")} side="top">
               <button onClick={() => onMoveCode(code.id)} style={{ color: "var(--text-muted)" }}
                 className="hover:text-[var(--text-primary)] transition-colors">
                 <ChevronRight className="h-3 w-3 -rotate-90" />
               </button>
             </Tooltip>
-            <Tooltip content="Yeniden adlandır" side="top">
+            <Tooltip content={t('right.dragHint')} side="top">
               <button onClick={() => onStartEdit(code.id, code.name)} style={{ color: "var(--text-muted)" }}
                 className="hover:text-[var(--text-primary)] transition-colors">
                 <Pencil className="h-3 w-3" />
@@ -928,10 +928,10 @@ export function RightPanel() {
                                 if (e.key === "Enter") handleUpdateProperty(key, editingProp.key, editingProp.value);
                                 if (e.key === "Escape") setEditingProp(null);
                               }}
-                              className="flex-1 bg-zinc-800 text-zinc-200 px-2 py-0.5 rounded outline-none"
+                              className="flex-1 bg-[var(--surface)] text-[var(--text-primary)] px-2 py-0.5 rounded outline-none border border-[var(--border)]"
                               placeholder={t("right.valPlaceholder")}
                             />
-                            <Button size="icon" variant="ghost" className="h-5 w-5 flex-shrink-0" onClick={() => handleUpdateProperty(key, editingProp.key, editingProp.value)}>
+                            <Button size="icon" variant="primary" className="h-5 w-5 flex-shrink-0" onClick={() => handleUpdateProperty(key, editingProp.key, editingProp.value)}>
                               <Check className="h-3.5 w-3.5" />
                             </Button>
                           </div>
@@ -984,10 +984,10 @@ export function RightPanel() {
                               setNewPropValue("");
                             }
                           }}
-                          className="flex-1 bg-zinc-800 text-zinc-200 px-2 py-0.5 rounded outline-none"
+                          className="flex-1 bg-[var(--surface)] text-[var(--text-primary)] px-2 py-0.5 rounded outline-none border border-[var(--border)]"
                           placeholder={t("right.valPlaceholder")}
                         />
-                        <Button size="icon" variant="ghost" className="h-5 w-5 flex-shrink-0" onClick={handleAddProperty}>
+                        <Button size="icon" variant="primary" className="h-5 w-5 flex-shrink-0" onClick={handleAddProperty}>
                           <Check className="h-3.5 w-3.5" />
                         </Button>
                       </div>
