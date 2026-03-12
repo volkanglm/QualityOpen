@@ -57,7 +57,6 @@ export function CodingPage() {
     if (!selectedText || !doc || !activeProjectId) return;
     addSegment({
       documentId: doc.id,
-      projectId: activeProjectId,
       start: selectedText.start,
       end: selectedText.end,
       text: selectedText.text,
