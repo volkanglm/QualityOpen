@@ -115,7 +115,7 @@
   ::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 
   ::selection {
-    background: var(--accent-subtle);
+    background: color-mix(in srgb, var(--accent) 25%, transparent);
     color: var(--text-primary);
   }
 }

@@ -316,6 +316,10 @@ export const en = {
     "settings.importDesc": "Load a JSON backup file",
     "settings.exportSuccess": "Backup saved successfully.",
     "settings.exportError": "Failed to save backup.",
+    "settings.restoreBackup": "Restore from Backup",
+    "settings.restoreDesc": "Restore your projects from a JSON backup file. This will overwrite all current data.",
+    "settings.restoreConfirm": "Restoring from a backup will overwrite all your current projects and data. This action cannot be undone. Are you sure?",
+    "settings.restoreSuccess": "Backup restored successfully.",
     "settings.aboutDesc": "Modern, minimalist QDA tool for researchers.",
 
     "app.renderError": "QualityOpen — Render Error",
