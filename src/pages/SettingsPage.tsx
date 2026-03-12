@@ -367,6 +367,14 @@ export function SettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
+      const { ask } = await import("@tauri-apps/plugin-dialog");
+      const confirm = await ask(t("settings.restoreConfirm"), {
+        title: t("settings.restoreBackup"),
+        kind: "warning",
+      });
+
+      if (!confirm) return;
+
       const { z } = await import("zod");
       const text = await file.text();
       const raw = JSON.parse(text);
@@ -389,6 +397,8 @@ export function SettingsPage() {
         memos: payload.memos ?? [],
       });
       setImportStatus("success");
+      const { useToastStore } = await import("@/store/toast.store");
+      useToastStore.getState().push(t("settings.restoreSuccess"), "success");
       setTimeout(() => setImportStatus("idle"), 3000);
     } catch (err) {
       console.error("Import validation failed:", err);
@@ -716,17 +726,17 @@ export function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>
-                    {t("settings.importFile")}
+                    {t("settings.restoreBackup")}
                   </h3>
                   <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-                    {t("settings.importDesc")}
+                    {t("settings.restoreDesc")}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
                   {importStatus === "success" && <Check className="h-3.5 w-3.5 text-[var(--code-2)]" />}
                   <Button size="sm" variant="outline" className="h-8 text-[11px]" onClick={() => importRef.current?.click()}>
                     <Upload className="h-3 w-3 mr-1.5" />
-                    {t("common.import")}
+                    {t("settings.restoreBackup")}
                   </Button>
                 </div>
                 <input ref={importRef} type="file" className="hidden" accept=".json" onChange={handleImportFile} />
