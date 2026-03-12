@@ -782,6 +782,7 @@ export function RightPanel() {
                           code={activeCode}
                           projDepth={projection?.depth ?? activeCode.depth}
                           isDragOverlay
+                          t={t}
                         />
                       </div>
                     )}
