@@ -227,15 +227,19 @@ export function CenterPanel() {
       ? getPdfOffsets(range)
       : getOffsets(range, readerRef.current);
 
+    const selectionText = format === "pdf" && doc
+      ? doc.content.slice(start, end)
+      : text;
+
     setFloatPos({
       centerX: rect.left + rect.width / 2,
       topY: rect.top,
-      text,
+      text: selectionText,
       start,
       end,
     });
 
-    if (doc) setActiveSelection({ text, start, end, documentId: doc.id });
+    if (doc) setActiveSelection({ text: selectionText, start, end, documentId: doc.id });
   }, [editMode, doc, setActiveSelection, ctxMenu, format]);
 
   // ── Right-click → context code menu ──────────────────────────────────────
@@ -253,13 +257,18 @@ export function CenterPanel() {
     const { start, end } = format === "pdf"
       ? getPdfOffsets(range)
       : getOffsets(range, readerRef.current);
+
+    const selectionText = format === "pdf" && doc
+      ? doc.content.slice(start, end)
+      : text;
+
     setCtxMenu({
       x: e.clientX,
       y: e.clientY,
-      pos: { centerX: e.clientX, topY: e.clientY, text, start, end },
+      pos: { centerX: e.clientX, topY: e.clientY, text: selectionText, start, end },
     });
 
-    if (doc) setActiveSelection({ text, start, end, documentId: doc.id });
+    if (doc) setActiveSelection({ text: selectionText, start, end, documentId: doc.id });
   }, [editMode, format, doc, activeProjectId, setActiveSelection]);
 
   // ── Floating menu actions ────────────────────────────────────────────────
@@ -1537,24 +1546,37 @@ function getPdfOffsets(range: Range): { start: number; end: number } {
     // Element node — localOffset is child node index, not char position.
     // This happens when selection boundary lands on the text layer div itself
     // or on a container element rather than inside a text node.
-    const el = node as Element;
-    const children = el.querySelectorAll
-      ? el.querySelectorAll<HTMLElement>("span[data-char-start]")
-      : null;
+    const container = node as Element;
+    const children = Array.from(container.childNodes);
 
-    if (children && children.length > 0) {
-      if (localOffset >= children.length) {
-        // Past the last child → end of last span
-        const last = children[children.length - 1];
+    if (localOffset >= children.length) {
+      // Past the last child → end of last span with offset data
+      const spans = container.querySelectorAll<HTMLElement>("span[data-char-end]");
+      if (spans.length > 0) {
+        const last = spans[spans.length - 1];
         return parseInt(last.getAttribute("data-char-end") ?? "0", 10);
       }
-      // At a specific child → start of that span
-      const target = children[localOffset];
-      return parseInt(target.getAttribute("data-char-start") ?? "0", 10);
+      return 0;
+    }
+
+    // Identify which span corresponds to the child node index 'localOffset'
+    const targetNode = children[localOffset];
+    if (targetNode.nodeType === Node.ELEMENT_NODE) {
+      const targetEl = targetNode as HTMLElement;
+      if (targetEl.hasAttribute("data-char-start")) {
+        return parseInt(targetEl.getAttribute("data-char-start") ?? "0", 10);
+      }
+      // If it's not a span with data, it might be an overlay; find the next span
+      for (let i = localOffset; i < children.length; i++) {
+        const n = children[i];
+        if (n.nodeType === Node.ELEMENT_NODE && (n as HTMLElement).hasAttribute("data-char-start")) {
+          return parseInt((n as HTMLElement).getAttribute("data-char-start") ?? "0", 10);
+        }
+      }
     }
 
     // Fallback: walk up to find a span with offset data
-    let parent: Element | null = el;
+    let parent: Element | null = container;
     while (parent && !parent.hasAttribute("data-char-start")) {
       parent = parent.parentElement;
     }
