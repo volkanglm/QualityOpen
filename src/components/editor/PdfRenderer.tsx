@@ -72,10 +72,16 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
           const textContent = await page.getTextContent();
-          const pageText = textContent.items.map((it: any) => (it as { str: string }).str).join(" ");
+          // Filter to items with actual text (matches the text layer building logic)
+          const strs = textContent.items
+            .map((it: any) => (it as { str?: string }).str)
+            .filter((s: any): s is string => !!s);
+          const pageText = strs.join(" ");
           if (pageText.trim()) anyText = true;
           extractedPages.push({ id: i, text: pageText, startOffset: totalLen });
-          totalLen += pageText.length + 1; // +1 for newline/space between pages
+          // Page text has N-1 separators (from join). The text layer loop also uses N-1 separators.
+          // Between pages we add +1 for the page boundary separator.
+          totalLen += pageText.length + (i < pdf.numPages ? 1 : 0);
         }
 
         if (cancelled) return;
@@ -257,7 +263,7 @@ const PdfPage = memo(function PdfPage({
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
-  const [rendered, setRendered] = useState(false);
+  const [renderVersion, setRenderVersion] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -286,22 +292,27 @@ const PdfPage = memo(function PdfPage({
 
       // Build spans with character offset attributes for selection → segment mapping
       let charOffset = pageStartOffset;
-      for (const item of textContent.items) {
-        const ti = item as { str?: string; transform?: number[]; height?: number; width?: number; fontName?: string };
-        if (!ti.str) continue;
+      const items = textContent.items.filter(
+        (it: any) => (it as { str?: string }).str
+      ) as { str: string; transform?: number[]; height?: number; width?: number; fontName?: string }[];
+
+      for (let idx = 0; idx < items.length; idx++) {
+        const ti = items[idx];
         const tx = ti.transform || [1, 0, 0, 1, 0, 0];
         const span = document.createElement("span");
         span.textContent = ti.str;
         // Track character positions so we can map selections ↔ segments
         span.dataset.charStart = String(charOffset);
         span.dataset.charEnd = String(charOffset + ti.str.length);
-        charOffset += ti.str.length + 1; // +1 matches the " " separator used during extraction
+        // +1 for the " " separator used during extraction — but NOT after the last item
+        charOffset += ti.str.length + (idx < items.length - 1 ? 1 : 0);
         span.style.position = "absolute";
         // Apply scale to coordinates! tx[4] is X, tx[5] is Y (from bottom).
         const x = tx[4] * scale;
         const y = tx[5] * scale;
         const height = (ti.height || tx[3]) * scale;
-        const width = (ti.width ?? 0) * scale;
+        // Fallback width: estimate from character count × average char width
+        const width = (ti.width && ti.width > 0) ? ti.width * scale : ti.str.length * height * 0.55;
 
         span.style.left = `${x}px`;
         span.style.top = `${viewport.height - y - height}px`;
@@ -316,24 +327,25 @@ const PdfPage = memo(function PdfPage({
         span.style.borderRadius = "2px";
         textLayer.appendChild(span);
       }
-      setRendered(true);
+      // Increment version to trigger highlight re-application (works even on re-render/zoom)
+      setRenderVersion(v => v + 1);
     }
     render();
     return () => { cancelled = true; };
   }, [pdf, pageNumber, scale, pageStartOffset]);
 
-  // Apply highlight backgrounds whenever segments/codes change
+  // Apply highlight backgrounds whenever render completes or segments/codes change
   useEffect(() => {
-    if (!rendered || !textLayerRef.current) return;
+    if (renderVersion === 0 || !textLayerRef.current) return;
     applyPdfHighlights(textLayerRef.current, segments ?? [], codes ?? []);
-  }, [rendered, segments, codes]);
+  }, [renderVersion, segments, codes]);
 
   return (
     <div className="relative shadow-xl mx-auto border transition-opacity duration-500"
       style={{
         borderColor: "var(--border-subtle)",
         background: "#fff",
-        opacity: rendered ? 1 : 0.6
+        opacity: renderVersion > 0 ? 1 : 0.6
       }}>
       <canvas ref={canvasRef} style={{ display: "block" }} />
       <div
@@ -353,19 +365,64 @@ const PdfPage = memo(function PdfPage({
 
 // ─── Helper: Apply highlight backgrounds to PDF text layer spans ──────────────
 function applyPdfHighlights(textLayer: HTMLDivElement, segments: Segment[], codes: Code[]) {
+  // Remove previously injected highlight overlay elements
+  textLayer.querySelectorAll<HTMLElement>(".pdf-highlight-overlay").forEach(el => el.remove());
+
   const spans = textLayer.querySelectorAll<HTMLElement>("span[data-char-start]");
-  // Reset all highlights first
+  // Reset all span highlights first
   for (const span of spans) {
     span.style.backgroundColor = "";
     span.style.borderBottom = "";
   }
   if (!segments.length) return;
 
+  // Build a lookup of text content by offset for validation
+  const spanList: { start: number; end: number; text: string }[] = [];
+  for (const span of spans) {
+    spanList.push({
+      start: parseInt(span.dataset.charStart ?? "0", 10),
+      end: parseInt(span.dataset.charEnd ?? "0", 10),
+      text: span.textContent ?? "",
+    });
+  }
+
+  // Pre-validate segments: skip those whose stored text doesn't match the text layer
+  const validSegments = segments.filter(seg => {
+    if (!seg.text) return true; // no stored text to compare — allow
+    // Reconstruct text at the segment's offset range from spans
+    let reconstructed = "";
+    for (const s of spanList) {
+      if (s.end <= seg.start || s.start >= seg.end) continue;
+      const overlapStart = Math.max(seg.start, s.start);
+      const overlapEnd = Math.min(seg.end, s.end);
+      const localStart = overlapStart - s.start;
+      const localEnd = overlapEnd - s.start;
+      reconstructed += s.text.slice(localStart, localEnd) + " ";
+    }
+    reconstructed = reconstructed.trim();
+    // Fuzzy match: compare normalized (whitespace-collapsed, lowered)
+    const normalize = (t: string) => t.replace(/\s+/g, " ").trim().toLowerCase();
+    const stored = normalize(seg.text);
+    const actual = normalize(reconstructed);
+    if (stored && actual && stored !== actual) {
+      // Allow if one contains the other (partial overlap is fine)
+      if (!stored.includes(actual) && !actual.includes(stored)) {
+        console.warn("[PDF Highlight] Text mismatch — segment may be misaligned:", {
+          segmentId: seg.id, stored: seg.text, actual: reconstructed, start: seg.start, end: seg.end,
+        });
+        return false; // skip this misaligned segment
+      }
+    }
+    return true;
+  });
+
   for (const span of spans) {
     const spanStart = parseInt(span.dataset.charStart ?? "0", 10);
     const spanEnd = parseInt(span.dataset.charEnd ?? "0", 10);
+    const spanLen = spanEnd - spanStart;
+    if (spanLen <= 0) continue;
 
-    for (const seg of segments) {
+    for (const seg of validSegments) {
       if (seg.end <= spanStart || seg.start >= spanEnd) continue; // no overlap
 
       // Determine color: code color > highlight color > default yellow
@@ -375,9 +432,34 @@ function applyPdfHighlights(textLayer: HTMLDivElement, segments: Segment[], code
         if (code?.color) color = code.color;
       }
 
-      // Semi-transparent background overlay (canvas renders the actual text beneath)
-      span.style.backgroundColor = `${color}55`;
-      span.style.borderBottom = `2px solid ${color}`;
+      // Check if segment fully covers the span
+      const overlapStart = Math.max(seg.start, spanStart);
+      const overlapEnd = Math.min(seg.end, spanEnd);
+      const isFullCoverage = overlapStart <= spanStart && overlapEnd >= spanEnd;
+
+      if (isFullCoverage) {
+        // Full span highlight — simple case
+        span.style.backgroundColor = `${color}55`;
+        span.style.borderBottom = `2px solid ${color}`;
+      } else {
+        // Partial span highlight — create an overlay div for just the covered portion
+        const spanWidth = parseFloat(span.style.width) || span.offsetWidth;
+        const charRatioStart = (overlapStart - spanStart) / spanLen;
+        const charRatioEnd = (overlapEnd - spanStart) / spanLen;
+
+        const overlay = document.createElement("span");
+        overlay.className = "pdf-highlight-overlay";
+        overlay.style.position = "absolute";
+        overlay.style.top = span.style.top;
+        overlay.style.left = `${parseFloat(span.style.left) + spanWidth * charRatioStart}px`;
+        overlay.style.width = `${spanWidth * (charRatioEnd - charRatioStart)}px`;
+        overlay.style.height = span.style.height;
+        overlay.style.backgroundColor = `${color}55`;
+        overlay.style.borderBottom = `2px solid ${color}`;
+        overlay.style.pointerEvents = "none";
+        overlay.style.borderRadius = "2px";
+        textLayer.appendChild(overlay);
+      }
       break; // first matching segment wins for overlapping cases
     }
   }
