@@ -460,7 +460,6 @@ function applyPdfHighlights(textLayer: HTMLDivElement, segments: Segment[], code
         overlay.style.borderRadius = "2px";
         textLayer.appendChild(overlay);
       }
-      break; // first matching segment wins for overlapping cases
     }
   }
 }
