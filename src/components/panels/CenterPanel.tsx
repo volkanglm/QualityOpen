@@ -1515,18 +1515,73 @@ function getOffsets(range: Range, container: HTMLElement | null): { start: numbe
 
 /** For PDF format: read character offsets from data-char-start/end attributes on text layer spans */
 function getPdfOffsets(range: Range): { start: number; end: number } {
-  function resolveOffset(node: Node, localOffset: number): number {
-    // Walk up to find the nearest span with data-char-start
+  /** Find the nearest text-layer ancestor of a node */
+  function findTextLayer(node: Node): Element | null {
     let el: Element | null = node.nodeType === Node.TEXT_NODE ? node.parentElement : node as Element;
-    while (el && !el.hasAttribute("data-char-start")) {
+    while (el && !el.hasAttribute("data-pdf-text-layer")) {
       el = el.parentElement;
     }
-    if (!el) return 0;
-    return parseInt(el.getAttribute("data-char-start") ?? "0", 10) + localOffset;
+    return el;
   }
+
+  function resolveOffset(node: Node, localOffset: number): number {
+    if (node.nodeType === Node.TEXT_NODE) {
+      // Text node inside a span — localOffset is char position within the text
+      let el: Element | null = node.parentElement;
+      while (el && !el.hasAttribute("data-char-start")) {
+        el = el.parentElement;
+      }
+      if (!el) return 0;
+      return parseInt(el.getAttribute("data-char-start") ?? "0", 10) + localOffset;
+    }
+    // Element node — localOffset is child node index, not char position.
+    // This happens when selection boundary lands on the text layer div itself
+    // or on a container element rather than inside a text node.
+    const el = node as Element;
+    const children = el.querySelectorAll
+      ? el.querySelectorAll<HTMLElement>("span[data-char-start]")
+      : null;
+
+    if (children && children.length > 0) {
+      if (localOffset >= children.length) {
+        // Past the last child → end of last span
+        const last = children[children.length - 1];
+        return parseInt(last.getAttribute("data-char-end") ?? "0", 10);
+      }
+      // At a specific child → start of that span
+      const target = children[localOffset];
+      return parseInt(target.getAttribute("data-char-start") ?? "0", 10);
+    }
+
+    // Fallback: walk up to find a span with offset data
+    let parent: Element | null = el;
+    while (parent && !parent.hasAttribute("data-char-start")) {
+      parent = parent.parentElement;
+    }
+    if (!parent) return 0;
+    return parseInt(parent.getAttribute("data-char-start") ?? "0", 10) + localOffset;
+  }
+
   try {
-    const start = resolveOffset(range.startContainer, range.startOffset);
-    const end = resolveOffset(range.endContainer, range.endOffset);
+    let start = resolveOffset(range.startContainer, range.startOffset);
+    let end = resolveOffset(range.endContainer, range.endOffset);
+
+    // Handle cross-page selections: if start and end are in different text layers
+    // and one resolved to 0 (fallback), try to use the other page's last/first span
+    const startLayer = findTextLayer(range.startContainer);
+    const endLayer = findTextLayer(range.endContainer);
+    if (startLayer && endLayer && startLayer !== endLayer) {
+      // Selection spans multiple pages — resolve each within its own text layer
+      if (start === 0 && startLayer) {
+        const firstSpan = startLayer.querySelector<HTMLElement>("span[data-char-start]");
+        if (firstSpan) start = parseInt(firstSpan.getAttribute("data-char-start") ?? "0", 10);
+      }
+      if (end === 0 && endLayer) {
+        const lastSpans = endLayer.querySelectorAll<HTMLElement>("span[data-char-end]");
+        if (lastSpans.length) end = parseInt(lastSpans[lastSpans.length - 1].getAttribute("data-char-end") ?? "0", 10);
+      }
+    }
+
     return { start: Math.min(start, end), end: Math.max(start, end) };
   } catch {
     return { start: 0, end: 0 };
