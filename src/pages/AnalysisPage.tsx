@@ -175,7 +175,7 @@ export function AnalysisPage() {
                     >
                       <div className="px-4 py-2 border-b border-[var(--border-subtle)] mb-1 flex items-center justify-between">
                         <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">
-                          {isProjectScope ? "Proje Seçin" : "Belge Seçin"}
+                          {isProjectScope ? t("analysis.scopeProject") : t("analysis.scopeDoc")}
                         </span>
                         <div className="flex items-center gap-1.5 bg-[var(--bg-tertiary)] rounded-full p-0.5 border border-[var(--border)]">
                           <button onClick={() => setIsProjectScope(false)} className={cn("px-2 py-0.5 rounded-full text-[9px] font-bold uppercase transition-colors", !isProjectScope ? "bg-zinc-700 text-white" : "text-zinc-500 hover:text-zinc-300")}>Doc</button>

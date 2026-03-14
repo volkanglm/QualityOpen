@@ -514,4 +514,8 @@ export const tr = {
     "segment.bulkAssign": "Seçilenlere Kod Ata",
     "segment.selectAll": "Tümünü Seç",
     "segment.clearSelection": "Seçimi Temizle",
+
+    "chat.sendLabel": "Gönder",
+    "pdf.loading": "PDF Hazırlanıyor…",
+    "pdf.pages": "{count} Sayfa",
 };
