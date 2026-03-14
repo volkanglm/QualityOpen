@@ -95,6 +95,9 @@ function SplashScreen() {
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
 
+// Shared no-op for unimplemented optional callbacks
+const noop = () => { /* intentionally empty */ };
+
 export default function App() {
   const t = useT();
   const { theme, commandPaletteOpen, activeProjectId, setActiveProject } = useAppStore();
@@ -108,8 +111,8 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
-    let unsubAuth: () => void = () => { };
-    let unsubNetwork: () => void = () => { };
+    let unsubAuth: () => void = noop;
+    let unsubNetwork: () => void = noop;
     // Load API keys from OS keychain (async, non-blocking)
     useSettingsStore.getState().loadKeys();
 
@@ -249,7 +252,7 @@ export default function App() {
       }
     };
 
-    void setup();
+    setup().catch(console.error);
     return () => {
       unlistenDrop?.();
       unlistenEnter?.();
@@ -306,7 +309,7 @@ export default function App() {
                       const p = createProject(name);
                       setActiveProject(p.id);
                     }}
-                    onOpenProject={() => { }}
+                    onOpenProject={noop}
                   />
                 ) : (
                   <motion.div

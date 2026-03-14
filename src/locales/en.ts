@@ -512,4 +512,8 @@ export const en = {
     "segment.bulkAssign": "Assign Code to Selected",
     "segment.selectAll": "Select All",
     "segment.clearSelection": "Clear Selection",
+
+    "chat.sendLabel": "Send",
+    "pdf.loading": "Loading PDF…",
+    "pdf.pages": "{count} Pages",
 };

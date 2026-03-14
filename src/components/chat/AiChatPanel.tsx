@@ -113,6 +113,8 @@ ${ctx.docContext ? `${t("chat.contextLabel")}\n${ctx.docContext}` : t("chat.noCo
     }
   }, [isPro, openModal, input, loading, buildContext, messages, t]);
 
+  const handleSend = useCallback(() => { sendMessage().catch(console.error); }, [sendMessage]);
+
   return (
     <AnimatePresence>
       {chatOpen && (
@@ -243,7 +245,7 @@ ${ctx.docContext ? `${t("chat.contextLabel")}\n${ctx.docContext}` : t("chat.noCo
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    void sendMessage();
+                    handleSend();
                   }
                 }}
                 placeholder={t("chat.placeholder")}
@@ -258,9 +260,9 @@ ${ctx.docContext ? `${t("chat.contextLabel")}\n${ctx.docContext}` : t("chat.noCo
                 }}
               />
               <button
-                onClick={() => void sendMessage()}
+                onClick={handleSend}
                 disabled={!input.trim() || loading}
-                aria-label="Gönder"
+                aria-label={t("chat.sendLabel")}
                 className="h-8 w-8 flex items-center justify-center rounded-[var(--radius-sm)] flex-shrink-0 disabled:opacity-40 transition-opacity"
                 style={{
                   background: "var(--text-primary)",
