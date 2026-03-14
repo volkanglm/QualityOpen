@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ZoomIn, ZoomOut, ScanLine, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import type { Segment, Code } from "@/types";
+import { useToastStore } from "@/store/toast.store";
 
 interface PdfRendererProps {
   /** base64-encoded PDF data */
@@ -127,10 +128,8 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
           offCanvas.toBlob((b) => resolve(b!), "image/png");
         });
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const tesseractPlugin = (window as any).Tesseract;
-        const Tesseract = tesseractPlugin ?? await loadTesseract();
-        const { data } = await Tesseract.recognize(blob, "tur+eng", {
+        const { createWorker } = await import("tesseract.js");
+        const worker = await createWorker(["tur", "eng"], 1, {
           logger: (m: { progress: number }) => {
             if (m.progress) {
               const pageProgress = ((i - 1) + m.progress) / pdf.numPages;
@@ -138,6 +137,8 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
             }
           },
         });
+        const { data } = await worker.recognize(blob);
+        await worker.terminate();
         allText.push(data.text.trim());
       }
 
@@ -148,6 +149,7 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
     } catch (e) {
       console.error("OCR error:", e);
       setOcrStatus("error");
+      useToastStore.getState().push("OCR işlemi başarısız oldu. Lütfen tekrar deneyin.", "error");
     }
   }, [ocrStatus, onOcrComplete]);
 
@@ -211,13 +213,13 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
 
         <div className="flex items-center justify-center gap-2 rounded-full border px-4 py-1.5 shadow-sm mx-auto"
           style={{ background: "var(--bg-secondary)", borderColor: "var(--border)" }}>
-          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setScale(s => Math.max(0.5, s - 0.2))}>
+          <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Uzaklaştır" onClick={() => setScale(s => Math.max(0.5, s - 0.2))}>
             <ZoomOut className="h-4 w-4" />
           </Button>
           <span className="text-[11px] tabular-nums font-medium w-12 text-center" style={{ color: "var(--text-secondary)" }}>
             {Math.round(scale * 100)}%
           </span>
-          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setScale(s => Math.min(3, s + 0.2))}>
+          <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Yakınlaştır" onClick={() => setScale(s => Math.min(3, s + 0.2))}>
             <ZoomIn className="h-4 w-4" />
           </Button>
           <div className="w-px h-4 mx-1" style={{ background: "var(--border)" }} />
@@ -464,15 +466,3 @@ function applyPdfHighlights(textLayer: HTMLDivElement, segments: Segment[], code
   }
 }
 
-// ─── Helper: Load Tesseract.js ───────────────────────────────────────────────
-async function loadTesseract() {
-  return new Promise<any>((resolve, reject) => {
-    const win = window as any;
-    if (win.Tesseract) return resolve(win.Tesseract);
-    const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
-    script.onload = () => resolve(win.Tesseract);
-    script.onerror = () => reject(new Error("Tesseract.js yüklenemedi"));
-    document.head.appendChild(script);
-  });
-}

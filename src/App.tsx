@@ -15,6 +15,7 @@ import { useAuthStore, initAuthListener, initNetworkWatcher } from "@/store/auth
 import { useLicenseStore } from "@/store/license.store";
 import { useSettingsStore } from "@/store/settings.store";
 import { LicenseModal } from "@/components/modals/LicenseModal";
+import { SyncConflictDialog } from "@/components/modals/SyncConflictDialog";
 import { AppLogo } from "@/components/ui/AppLogo";
 import { Upload } from "lucide-react";
 import { useSyncStore } from "@/store/sync.store";
@@ -377,6 +378,9 @@ export default function App() {
 
         {/* Auto Updater (Silent) */}
         <AutoUpdater />
+
+        {/* Sync Conflict Dialog */}
+        <SyncConflictDialog />
 
         {/* License Modal */}
         <LicenseModal />

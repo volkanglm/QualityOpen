@@ -4,6 +4,8 @@ import type { Project, Document, Code, Segment, Memo, Synthesis, ID } from "@/ty
 import { CODE_COLORS } from "@/lib/constants";
 import { writeSnapshotToDb } from "@/lib/db";
 import { useLicenseStore } from "@/store/license.store";
+import { t } from "@/lib/i18n";
+import { useAppStore } from "@/store/app.store";
 
 function uuid() {
   return crypto.randomUUID();
@@ -23,10 +25,11 @@ interface ProjectStore {
   textScale: number;
   setTextScale: (val: number) => void;
 
-  // History (Undo/Redo)
+  // History (Undo/Redo) — delta-based, lightweight
   history: {
-    past: any[];
-    future: any[];
+    past: StateDelta[];
+    future: StateDelta[];
+    _pendingBefore: ReturnType<typeof captureState> | null;
   };
   undo: () => void;
   redo: () => void;
@@ -71,16 +74,23 @@ interface ProjectStore {
   loadDemoProject: (payload: { project: Project; documents: Document[]; codes: Code[]; segments: Segment[]; memos: Memo[]; syntheses?: Synthesis[] }) => void;
 }
 
-const MAX_HISTORY = 5;
+const MAX_HISTORY = 30;
 
-function getStoreSnapshot(state: ProjectStore) {
+// Delta-based undo/redo: instead of full snapshots, store minimal diffs.
+// Each entry captures only the changed fields (before/after).
+interface StateDelta {
+  before: Partial<Pick<ProjectStore, "projects" | "documents" | "codes" | "segments" | "memos" | "syntheses">>;
+  after:  Partial<Pick<ProjectStore, "projects" | "documents" | "codes" | "segments" | "memos" | "syntheses">>;
+}
+
+function captureState(state: ProjectStore): StateDelta["before"] {
   return {
-    projects: state.projects,
-    documents: state.documents,
-    codes: state.codes,
-    segments: state.segments,
-    memos: state.memos,
-    syntheses: state.syntheses,
+    projects:   state.projects,
+    documents:  state.documents,
+    codes:      state.codes,
+    segments:   state.segments,
+    memos:      state.memos,
+    syntheses:  state.syntheses,
   };
 }
 
@@ -103,29 +113,51 @@ export const useProjectStore = create<ProjectStore>()(
         history: {
           past: [],
           future: [],
+          _pendingBefore: null,
         },
 
+        // pushHistory: call BEFORE mutating state (captures "before" snapshot).
+        // The actual delta is committed after the mutation via the next call.
+        // For simplicity: capture full before-state but only store if changed.
         pushHistory: () => {
           const state = get();
-          const snapshot = getStoreSnapshot(state);
+          const before = captureState(state);
+          // Store as pending; after the mutation we commit the delta
           set((s) => ({
             history: {
-              past: [snapshot, ...s.history.past].slice(0, MAX_HISTORY),
-              future: [],
+              ...s.history,
+              _pendingBefore: before,
+              future: [], // clear redo stack on new action
             },
           }));
+
+          // Use microtask to capture "after" state post-mutation
+          queueMicrotask(() => {
+            const { history } = get();
+            if (!history._pendingBefore) return;
+            const after = captureState(get());
+            const delta: StateDelta = { before: history._pendingBefore, after };
+            set((s) => ({
+              history: {
+                past: [delta, ...s.history.past].slice(0, MAX_HISTORY),
+                future: s.history.future,
+                _pendingBefore: null,
+              },
+            }));
+          });
         },
 
         undo: () => {
           const { history } = get();
           if (history.past.length === 0) return;
-          const [prev, ...rest] = history.past;
-          const current = getStoreSnapshot(get());
+          const [delta, ...rest] = history.past;
+          const currentAfter = captureState(get());
           set({
-            ...prev,
+            ...delta.before,
             history: {
               past: rest,
-              future: [current, ...history.future].slice(0, MAX_HISTORY),
+              future: [{ before: delta.before, after: currentAfter }, ...history.future].slice(0, MAX_HISTORY),
+              _pendingBefore: null,
             },
           });
         },
@@ -133,13 +165,14 @@ export const useProjectStore = create<ProjectStore>()(
         redo: () => {
           const { history } = get();
           if (history.future.length === 0) return;
-          const [next, ...rest] = history.future;
-          const current = getStoreSnapshot(get());
+          const [delta, ...rest] = history.future;
+          const currentBefore = captureState(get());
           set({
-            ...next,
+            ...delta.after,
             history: {
-              past: [current, ...history.past].slice(0, MAX_HISTORY),
+              past: [{ before: currentBefore, after: delta.after }, ...history.past].slice(0, MAX_HISTORY),
               future: rest,
+              _pendingBefore: null,
             },
           });
         },
@@ -184,7 +217,8 @@ export const useProjectStore = create<ProjectStore>()(
             const count = get().documents.filter((d) => d.projectId === projectId).length;
             if (count >= 3) {
               openModal();
-              throw new Error("Demo sürümünde proje başına en fazla 3 belge ekleyebilirsiniz. Sınırsız kullanım için QualityOpen Pro'ya yükseltin.");
+              const lang = useAppStore.getState().language;
+              throw new Error(t("project.limit.docCount", lang));
             }
           }
 

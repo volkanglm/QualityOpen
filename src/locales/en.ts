@@ -493,4 +493,21 @@ export const en = {
     "db.empty": "Database Empty",
     "db.emptyHint": "Add a new document to see the table.",
     "db.downloadSuccess": "Database Exported",
+
+    // ── Error messages (previously hardcoded) ────────────────────────────────
+    "ai.error.invalidGeminiFormat": "Unexpected Gemini response format",
+    "ai.error.invalidFormat": "AI response is not in the expected format.",
+    "ocr.error": "OCR processing failed. Please try again.",
+    "project.limit.docCount": "Demo version allows a maximum of 3 documents per project. Upgrade to QualityOpen Pro for unlimited use.",
+    "file.limit.size": "Demo version limits file size to 5MB. Please choose a smaller file or upgrade to QualityOpen Pro.",
+    "sync.conflictTitle": "Newer data exists remotely",
+    "sync.conflictDesc": "The version in Google Drive is newer. What would you like to do?",
+    "sync.conflictOverwrite": "Overwrite with local data",
+    "sync.conflictDownload": "Download remote version",
+    "segment.search.placeholder": "Search in segment text…",
+    "segment.search.noResults": "No matching segments found.",
+    "segment.search.title": "Segment Search",
+    "segment.bulkAssign": "Assign Code to Selected",
+    "segment.selectAll": "Select All",
+    "segment.clearSelection": "Clear Selection",
 };

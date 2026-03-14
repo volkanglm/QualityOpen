@@ -495,4 +495,21 @@ export const tr = {
     "db.empty": "Veritabanı Boş",
     "db.emptyHint": "Tabloyu görmek için yeni bir belge ekleyin.",
     "db.downloadSuccess": "Veritabanı İndirildi",
+
+    // ── Error messages (previously hardcoded) ────────────────────────────────
+    "ai.error.invalidGeminiFormat": "Beklenmeyen Gemini yanıt formatı",
+    "ai.error.invalidFormat": "AI yanıtı beklenen formatta değil.",
+    "ocr.error": "OCR işlemi başarısız oldu. Lütfen tekrar deneyin.",
+    "project.limit.docCount": "Demo sürümünde proje başına en fazla 3 belge ekleyebilirsiniz. Sınırsız kullanım için QualityOpen Pro'ya yükseltin.",
+    "file.limit.size": "Demo sürümünde dosya boyutu 5MB ile sınırlıdır. Lütfen daha küçük bir dosya seçin veya tam sürüm için QualityOpen Pro'ya yükseltin.",
+    "sync.conflictTitle": "Uzakta daha yeni veri var",
+    "sync.conflictDesc": "Google Drive'daki versiyon daha yeni. Ne yapmak istiyorsunuz?",
+    "sync.conflictOverwrite": "Yerel ile üzerine yaz",
+    "sync.conflictDownload": "Uzaktaki versiyonu indir",
+    "segment.search.placeholder": "Segment metni içinde ara…",
+    "segment.search.noResults": "Eşleşen segment bulunamadı.",
+    "segment.search.title": "Segment Arama",
+    "segment.bulkAssign": "Seçilenlere Kod Ata",
+    "segment.selectAll": "Tümünü Seç",
+    "segment.clearSelection": "Seçimi Temizle",
 };

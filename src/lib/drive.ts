@@ -218,6 +218,25 @@ export function scheduledBackupName(): string {
   return `QualityOpen_Data(${mm}.${dd}.${yyyy}).json`;
 }
 
+/** Returns the modifiedTime of the remote latest_backup.json, or null if it doesn't exist */
+export async function getLatestBackupModifiedTime(token: string): Promise<Date | null> {
+  try {
+    const folderId = await ensureRootFolder(token);
+    const q = encodeURIComponent(
+      `name='latest_backup.json' and '${folderId}' in parents and trashed=false`
+    );
+    const data = await driveRequest<{ files: { id: string; modifiedTime: string }[] }>(
+      `${API_BASE}/files?q=${q}&fields=files(id,modifiedTime)&spaces=drive`,
+      token
+    );
+    const file = data.files?.[0];
+    if (!file) return null;
+    return new Date(file.modifiedTime);
+  } catch {
+    return null;
+  }
+}
+
 export async function pushLatestBackup(
   token: string,
   payload: BackupPayload
