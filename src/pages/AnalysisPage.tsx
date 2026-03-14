@@ -20,6 +20,7 @@ import {
   BarChart2,
   Sparkles,
   Download,
+  Search,
 } from "lucide-react";
 import React from "react";
 import { useAppStore } from "@/store/app.store";
@@ -29,6 +30,7 @@ import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 import { PaletteSwitcher } from "@/components/analysis/PaletteSwitcher";
+import { SegmentSearchPanel } from "@/components/analysis/SegmentSearchPanel";
 import { useVisualThemeStore } from "@/store/visualTheme.store";
 
 // -- Components --
@@ -65,6 +67,7 @@ export function AnalysisPage() {
   const [maximizedCard, setMaximizedCard] = useState<{ title: string; component: React.ReactNode; zoom: number } | null>(null);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [tabZoom, setTabZoom] = useState(1.0);
+  const [segSearchOpen, setSegSearchOpen] = useState(false);
 
   const projectDocs = useMemo(() => documents.filter((d) => d.projectId === activeProjectId), [documents, activeProjectId]);
   const projectCodes = useMemo(() => codes.filter((c) => c.projectId === activeProjectId), [codes, activeProjectId]);
@@ -225,10 +228,23 @@ export function AnalysisPage() {
             </div>
           </div>
 
-          {/* Palette Switcher */}
-          <PaletteSwitcher />
+          {/* Segment Search + Palette Switcher */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSegSearchOpen(true)}
+              className="flex items-center gap-1.5 h-8 px-3 rounded-xl border text-[11px] font-semibold hover:bg-[var(--surface-hover)] transition-colors"
+              style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+              title={t("segment.search.title")}
+            >
+              <Search className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{t("segment.search.title")}</span>
+            </button>
+            <PaletteSwitcher />
+          </div>
         </div>
       </div>
+
+      <SegmentSearchPanel isOpen={segSearchOpen} onClose={() => setSegSearchOpen(false)} />
 
       {/* Row 2: Tabs */}
       <div className="px-8 pb-3 -mt-1 overflow-x-auto custom-scrollbar-hide">

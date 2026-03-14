@@ -34,17 +34,14 @@ Return ONLY valid JSON in this exact shape:
 { "codes": [{ "name": "Short Label", "rationale": "One concise sentence." }] }
 Requirements: code names must be 2–5 words in title case. No markdown, no commentary outside the JSON object.`;
 
-const CHAT_SYSTEM = `Sen nitel araştırma verisi analizi konusunda uzman bir yardımcısın.
-Aşağıda araştırmacının çalıştığı belge ve kodlanmış segmentler verilmiştir.
-Bu bağlamı kullanarak araştırmacının sorularını Türkçe olarak yanıtla.
-Kısa, analitik ve akademik bir dil kullan.`;
+// CHAT_SYSTEM removed — callers use t("chat.systemPrompt", lang) to get a localized prompt
 
 // ─── Unified AI Call ──────────────────────────────────────────────────────────
 
 export async function askAi(
   key: string,
   messages: Message[],
-  systemPrompt = CHAT_SYSTEM,
+  systemPrompt: string,
   retryCount = 0
 ): Promise<string> {
   const provider = detectProvider(key);
@@ -130,7 +127,8 @@ export async function askAi(
 
       const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!candidateText) {
-        throw new Error(`Beklenmeyen Gemini yanıt formatı: ${res.body.substring(0, 100)}...`);
+        const lang = useAppStore.getState().language;
+        throw new Error(`${t("ai.error.invalidGeminiFormat", lang)}: ${res.body.substring(0, 100)}...`);
       }
 
       return candidateText;
@@ -185,6 +183,7 @@ export async function analyzeThematicCodes(
     return JSON.parse(raw) as ThematicResult;
   } catch {
     console.error("Failed to parse thematic analysis result:", raw);
-    throw new Error("AI yanıtı beklenen formatta değil.");
+    const lang = useAppStore.getState().language;
+    throw new Error(t("ai.error.invalidFormat", lang));
   }
 }

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, Loader2, MessageSquare } from "lucide-react";
 import { useAppStore } from "@/store/app.store";
@@ -6,6 +6,8 @@ import { useProjectStore } from "@/store/project.store";
 import { useSettingsStore } from "@/store/settings.store";
 import { useLicenseStore } from "@/store/license.store";
 import { useT } from "@/hooks/useT";
+import { askAi } from "@/lib/ai";
+import { useToastStore } from "@/store/toast.store";
 
 interface Message {
   id: string;
@@ -40,16 +42,18 @@ export function AiChatPanel() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const buildContext = () => {
+  // Memoized context builder — only re-computes when docs/segments/codes/project changes
+  const buildContext = useMemo(() => {
     const key = getActiveKey();
     if (!key) return null;
 
-    // Build context from active document (or all project docs if no doc open)
     const docs = activeDocumentId
       ? documents.filter((d) => d.id === activeDocumentId)
       : documents.filter((d) => d.projectId === activeProjectId).slice(0, 3);
 
     const projectCodes = codes.filter((c) => c.projectId === activeProjectId);
+    // Build a Map for O(1) code lookups instead of repeated .filter()
+    const codeMap = new Map(projectCodes.map((c) => [c.id, c.name]));
 
     const docContext = docs
       .filter((d) => d.format === "text" || d.format === "html" || !d.format)
@@ -57,10 +61,7 @@ export function AiChatPanel() {
         const docSegs = segments
           .filter((s) => s.documentId === d.id && s.codeIds.length > 0)
           .map((s) => {
-            const codeNames = projectCodes
-              .filter((c) => s.codeIds.includes(c.id))
-              .map((c) => c.name)
-              .join(", ");
+            const codeNames = s.codeIds.map((id) => codeMap.get(id) ?? id).join(", ");
             return `  [${codeNames}]: "${s.text}"`;
           });
         return `### ${t("chat.docLabel")} ${d.name}\n${d.content.slice(0, 3000)}${d.content.length > 3000 ? "\n…" : ""}${docSegs.length > 0 ? `\n\n${t("chat.segsLabel")}\n${docSegs.join("\n")}` : ""}`;
@@ -68,9 +69,10 @@ export function AiChatPanel() {
       .join("\n\n---\n\n");
 
     return { key, docContext };
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [documents, segments, codes, activeDocumentId, activeProjectId]);
 
-  const sendMessage = async () => {
+  const sendMessage = useCallback(async () => {
     if (!isPro) {
       openModal();
       return;
@@ -79,7 +81,7 @@ export function AiChatPanel() {
     const text = input.trim();
     if (!text || loading) return;
 
-    const ctx = buildContext();
+    const ctx = buildContext;
     if (!ctx) {
       setError(t("chat.errorKey"));
       return;
@@ -97,9 +99,7 @@ export function AiChatPanel() {
 ${ctx.docContext ? `${t("chat.contextLabel")}\n${ctx.docContext}` : t("chat.noContext")}`;
 
     try {
-      const { askAi } = await import("@/lib/ai");
       const reply = await askAi(ctx.key, history, systemPrompt);
-
       setMessages((prev) => [
         ...prev,
         { id: uuid(), role: "assistant", content: reply },
@@ -107,13 +107,11 @@ ${ctx.docContext ? `${t("chat.contextLabel")}\n${ctx.docContext}` : t("chat.noCo
     } catch (err) {
       const msg = err instanceof Error ? err.message : t("chat.errorGeneric");
       setError(msg);
-      // Also show a toast for immediate visibility
-      const { useToastStore } = await import("@/store/toast.store");
       useToastStore.getState().push(msg, "error");
     } finally {
       setLoading(false);
     }
-  };
+  }, [isPro, openModal, input, loading, buildContext, messages, t]);
 
   return (
     <AnimatePresence>
@@ -166,6 +164,7 @@ ${ctx.docContext ? `${t("chat.contextLabel")}\n${ctx.docContext}` : t("chat.noCo
             </button>
             <button
               onClick={() => setChatOpen(false)}
+              aria-label={t("common.close")}
               style={{ color: "var(--text-muted)" }}
               className="hover:text-[var(--text-primary)] transition-colors"
             >
@@ -261,6 +260,7 @@ ${ctx.docContext ? `${t("chat.contextLabel")}\n${ctx.docContext}` : t("chat.noCo
               <button
                 onClick={() => void sendMessage()}
                 disabled={!input.trim() || loading}
+                aria-label="Gönder"
                 className="h-8 w-8 flex items-center justify-center rounded-[var(--radius-sm)] flex-shrink-0 disabled:opacity-40 transition-opacity"
                 style={{
                   background: "var(--text-primary)",
