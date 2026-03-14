@@ -26,6 +26,7 @@ import React from "react";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
 import { useT } from "@/lib/i18n";
+import type { Document, Code, Segment } from "@/types";
 
 import { cn } from "@/lib/utils";
 
@@ -638,7 +639,7 @@ function DashboardCard({ title, icon, children, className, onMaximize }: { title
   );
 }
 
-function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: any[]; codes: any[]; segments: any[]; codeFrequency: { code: any, count: number }[] }) {
+function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: Document[]; codes: Code[]; segments: Segment[]; codeFrequency: { code: Code; count: number }[] }) {
   const t = useT();
   const { getCodeColor } = useVisualThemeStore();
   
@@ -751,7 +752,7 @@ function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: any[]; co
   );
 }
 
-function TypologyTab({ docs, codes, segments }: { docs: any[]; codes: any[]; segments: any[] }) {
+function TypologyTab({ docs, codes, segments }: { docs: Document[]; codes: Code[]; segments: Segment[] }) {
   const t = useT();
   const { getCodeColor } = useVisualThemeStore();
 
@@ -759,7 +760,7 @@ function TypologyTab({ docs, codes, segments }: { docs: any[]; codes: any[]; seg
     const { nodes, edges } = computeGraphData(codes, segments, 800, 600);
     const clusteredNodes = assignClusters(nodes, edges);
 
-    const clusterMap = new Map<string, { clusterId: string, codes: any[] }>();
+    const clusterMap = new Map<string, { clusterId: string, codes: Code[] }>();
     clusteredNodes.forEach((node, idx) => {
       if (node.cluster) {
         let cluster = clusterMap.get(node.cluster);
@@ -845,7 +846,7 @@ function TypologyTab({ docs, codes, segments }: { docs: any[]; codes: any[]; seg
               </div>
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {cluster.codes.slice(0, 3).map(c => (
-                  <span key={c.id} className="text-[9px] font-semibold px-2 py-1 rounded-full border truncate max-w-[120px]" style={{ borderColor: c.color + '40', color: c.color, backgroundColor: c.color + '10' }}>
+                  <span key={c.id} className="text-[9px] font-semibold px-2 py-1 rounded-full border truncate max-w-[120px]" style={{ borderColor: `${c.color}40`, color: c.color, backgroundColor: `${c.color}10` }}>
                     {c.name}
                   </span>
                 ))}
@@ -865,7 +866,7 @@ function TypologyTab({ docs, codes, segments }: { docs: any[]; codes: any[]; seg
                   </div>
                   {Object.keys(doc.properties ?? {}).length > 0 && (
                     <div className="flex items-center gap-1.5 mt-2.5 overflow-hidden flex-wrap">
-                      {Object.entries(doc.properties).filter(([_, v]) => String(v).trim().length > 0).slice(0, 2).map(([k, v]) => (
+                      {Object.entries(doc.properties ?? {}).filter(([_, v]) => String(v).trim().length > 0).slice(0, 2).map(([k, v]) => (
                         <span key={k} className="text-[9px] bg-[var(--bg-secondary)] text-[var(--text-secondary)] px-1.5 py-0.5 rounded border border-[var(--border-subtle)] truncate max-w-[80px]" title={`${k}: ${v}`}>
                           {v as React.ReactNode}
                         </span>

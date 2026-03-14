@@ -410,7 +410,7 @@ function applyPdfHighlights(textLayer: HTMLDivElement, segments: Segment[], code
       const overlapEnd = Math.min(seg.end, s.end);
       const localStart = overlapStart - s.start;
       const localEnd = overlapEnd - s.start;
-      reconstructed += s.text.slice(localStart, localEnd) + " ";
+      reconstructed += `${s.text.slice(localStart, localEnd)} `;
     }
     reconstructed = reconstructed.trim();
     // Fuzzy match: compare normalized (whitespace-collapsed, lowered)
