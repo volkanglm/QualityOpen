@@ -4,6 +4,16 @@ import { ZoomIn, ZoomOut, ScanLine, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import type { Segment, Code } from "@/types";
 import { useToastStore } from "@/store/toast.store";
+import { useAppStore } from "@/store/app.store";
+import { t } from "@/lib/i18n";
+
+interface PdfTextItem {
+  str?: string;
+  transform?: number[];
+  height?: number;
+  width?: number;
+  fontName?: string;
+}
 
 interface PdfRendererProps {
   /** base64-encoded PDF data */
@@ -17,6 +27,123 @@ interface PdfRendererProps {
   /** Codes for segment colors */
   codes?: Code[];
 }
+
+/** Individual Page Component */
+const PdfPage = memo(function PdfPage({
+  pdf,
+  pageNumber,
+  scale,
+  pageStartOffset = 0,
+  segments,
+  codes,
+}: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  pdf: any;
+  pageNumber: number;
+  scale: number;
+  pageStartOffset?: number;
+  segments?: Segment[];
+  codes?: Code[];
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const textLayerRef = useRef<HTMLDivElement>(null);
+  const [renderVersion, setRenderVersion] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function render() {
+      if (!pdf) return;
+      const page = await pdf.getPage(pageNumber);
+      const viewport = page.getViewport({ scale });
+      const canvas = canvasRef.current;
+      const textLayer = textLayerRef.current;
+      if (!canvas || !textLayer || cancelled) return;
+
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      await page.render({ canvasContext: ctx, viewport }).promise;
+
+      // Text Layer
+      textLayer.innerHTML = "";
+      textLayer.style.width = `${viewport.width}px`;
+      textLayer.style.height = `${viewport.height}px`;
+
+      const textContent = await page.getTextContent();
+      if (cancelled) return;
+
+      // Build spans with character offset attributes for selection → segment mapping
+      let charOffset = pageStartOffset;
+      const items = (textContent.items as PdfTextItem[]).filter((it): it is PdfTextItem & { str: string } => Boolean(it.str));
+
+      for (let idx = 0; idx < items.length; idx++) {
+        const ti = items[idx];
+        const tx = ti.transform || [1, 0, 0, 1, 0, 0];
+        const span = document.createElement("span");
+        span.textContent = ti.str;
+        // Track character positions so we can map selections ↔ segments
+        span.dataset.charStart = String(charOffset);
+        span.dataset.charEnd = String(charOffset + ti.str.length);
+        // +1 for the " " separator used during extraction — but NOT after the last item
+        charOffset += ti.str.length + (idx < items.length - 1 ? 1 : 0);
+        span.style.position = "absolute";
+        // Apply scale to coordinates! tx[4] is X, tx[5] is Y (from bottom).
+        const x = tx[4] * scale;
+        const y = tx[5] * scale;
+        const height = (ti.height || tx[3]) * scale;
+        // Fallback width: estimate from character count × average char width
+        const width = (ti.width && ti.width > 0) ? ti.width * scale : ti.str.length * height * 0.55;
+
+        span.style.left = `${x}px`;
+        span.style.top = `${viewport.height - y - height}px`;
+        span.style.fontSize = `${height}px`;
+        span.style.width = `${width}px`;
+        span.style.height = `${height}px`;
+        span.style.fontFamily = ti.fontName || "sans-serif";
+        span.style.color = "transparent";
+        span.style.whiteSpace = "pre";
+        span.style.lineHeight = "1";
+        span.style.transformOrigin = "0% 0%";
+        span.style.borderRadius = "2px";
+        textLayer.appendChild(span);
+      }
+      // Increment version to trigger highlight re-application (works even on re-render/zoom)
+      setRenderVersion(v => v + 1);
+    }
+    render();
+    return () => { cancelled = true; };
+  }, [pdf, pageNumber, scale, pageStartOffset]);
+
+  // Apply highlight backgrounds whenever render completes or segments/codes change
+  useEffect(() => {
+    if (renderVersion === 0 || !textLayerRef.current) return;
+    applyPdfHighlights(textLayerRef.current, segments ?? [], codes ?? []);
+  }, [renderVersion, segments, codes]);
+
+  return (
+    <div className="relative shadow-xl mx-auto border transition-opacity duration-500"
+      style={{
+        borderColor: "var(--border-subtle)",
+        background: "#fff",
+        opacity: renderVersion > 0 ? 1 : 0.6
+      }}>
+      <canvas ref={canvasRef} style={{ display: "block" }} />
+      <div
+        ref={textLayerRef}
+        data-pdf-text-layer="true"
+        className="absolute inset-0 overflow-hidden"
+        style={{
+          userSelect: "text",
+          cursor: "text",
+          zIndex: 2,
+          pointerEvents: "auto",
+        }}
+      />
+    </div>
+  );
+});
 
 export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, onLoadComplete, segments, codes }: PdfRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -74,9 +201,9 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
           const page = await pdf.getPage(i);
           const textContent = await page.getTextContent();
           // Filter to items with actual text (matches the text layer building logic)
-          const strs = textContent.items
-            .map((it: any) => (it as { str?: string }).str)
-            .filter((s: any): s is string => !!s);
+          const strs = (textContent.items as PdfTextItem[])
+            .map((it) => it.str)
+            .filter((s): s is string => Boolean(s));
           const pageText = strs.join(" ");
           if (pageText.trim()) anyText = true;
           extractedPages.push({ id: i, text: pageText, startOffset: totalLen });
@@ -93,7 +220,8 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
       } catch (e) {
         console.error("PDF loading error:", e);
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "PDF dosyası yüklenemedi.");
+          const lang = useAppStore.getState().language;
+          setError(e instanceof Error ? e.message : t("pdf.loadError", lang));
           setLoading(false);
         }
       }
@@ -124,8 +252,8 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
         if (!ctx) continue;
         await page.render({ canvasContext: ctx, viewport }).promise;
 
-        const blob = await new Promise<Blob>((resolve) => {
-          offCanvas.toBlob((b) => resolve(b!), "image/png");
+        const blob = await new Promise<Blob>((resolve, reject) => {
+          offCanvas.toBlob((b) => b ? resolve(b) : reject(new Error("toBlob failed")), "image/png");
         });
 
         const { createWorker } = await import("tesseract.js");
@@ -149,7 +277,8 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
     } catch (e) {
       console.error("OCR error:", e);
       setOcrStatus("error");
-      useToastStore.getState().push("OCR işlemi başarısız oldu. Lütfen tekrar deneyin.", "error");
+      const lang = useAppStore.getState().language;
+      useToastStore.getState().push(t("ocr.error", lang), "error");
     }
   }, [ocrStatus, onOcrComplete]);
 
@@ -243,124 +372,6 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
           />
         ))}
       </div>
-    </div>
-  );
-});
-
-/** Individual Page Component */
-const PdfPage = memo(function PdfPage({
-  pdf,
-  pageNumber,
-  scale,
-  pageStartOffset = 0,
-  segments,
-  codes,
-}: {
-  pdf: any;
-  pageNumber: number;
-  scale: number;
-  pageStartOffset?: number;
-  segments?: Segment[];
-  codes?: Code[];
-}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const textLayerRef = useRef<HTMLDivElement>(null);
-  const [renderVersion, setRenderVersion] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function render() {
-      if (!pdf) return;
-      const page = await pdf.getPage(pageNumber);
-      const viewport = page.getViewport({ scale });
-      const canvas = canvasRef.current;
-      const textLayer = textLayerRef.current;
-      if (!canvas || !textLayer || cancelled) return;
-
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      await page.render({ canvasContext: ctx, viewport }).promise;
-
-      // Text Layer
-      textLayer.innerHTML = "";
-      textLayer.style.width = `${viewport.width}px`;
-      textLayer.style.height = `${viewport.height}px`;
-
-      const textContent = await page.getTextContent();
-      if (cancelled) return;
-
-      // Build spans with character offset attributes for selection → segment mapping
-      let charOffset = pageStartOffset;
-      const items = textContent.items.filter(
-        (it: any) => (it as { str?: string }).str
-      ) as { str: string; transform?: number[]; height?: number; width?: number; fontName?: string }[];
-
-      for (let idx = 0; idx < items.length; idx++) {
-        const ti = items[idx];
-        const tx = ti.transform || [1, 0, 0, 1, 0, 0];
-        const span = document.createElement("span");
-        span.textContent = ti.str;
-        // Track character positions so we can map selections ↔ segments
-        span.dataset.charStart = String(charOffset);
-        span.dataset.charEnd = String(charOffset + ti.str.length);
-        // +1 for the " " separator used during extraction — but NOT after the last item
-        charOffset += ti.str.length + (idx < items.length - 1 ? 1 : 0);
-        span.style.position = "absolute";
-        // Apply scale to coordinates! tx[4] is X, tx[5] is Y (from bottom).
-        const x = tx[4] * scale;
-        const y = tx[5] * scale;
-        const height = (ti.height || tx[3]) * scale;
-        // Fallback width: estimate from character count × average char width
-        const width = (ti.width && ti.width > 0) ? ti.width * scale : ti.str.length * height * 0.55;
-
-        span.style.left = `${x}px`;
-        span.style.top = `${viewport.height - y - height}px`;
-        span.style.fontSize = `${height}px`;
-        span.style.width = `${width}px`;
-        span.style.height = `${height}px`;
-        span.style.fontFamily = ti.fontName || "sans-serif";
-        span.style.color = "transparent";
-        span.style.whiteSpace = "pre";
-        span.style.lineHeight = "1";
-        span.style.transformOrigin = "0% 0%";
-        span.style.borderRadius = "2px";
-        textLayer.appendChild(span);
-      }
-      // Increment version to trigger highlight re-application (works even on re-render/zoom)
-      setRenderVersion(v => v + 1);
-    }
-    render();
-    return () => { cancelled = true; };
-  }, [pdf, pageNumber, scale, pageStartOffset]);
-
-  // Apply highlight backgrounds whenever render completes or segments/codes change
-  useEffect(() => {
-    if (renderVersion === 0 || !textLayerRef.current) return;
-    applyPdfHighlights(textLayerRef.current, segments ?? [], codes ?? []);
-  }, [renderVersion, segments, codes]);
-
-  return (
-    <div className="relative shadow-xl mx-auto border transition-opacity duration-500"
-      style={{
-        borderColor: "var(--border-subtle)",
-        background: "#fff",
-        opacity: renderVersion > 0 ? 1 : 0.6
-      }}>
-      <canvas ref={canvasRef} style={{ display: "block" }} />
-      <div
-        ref={textLayerRef}
-        data-pdf-text-layer="true"
-        className="absolute inset-0 overflow-hidden"
-        style={{
-          userSelect: "text",
-          cursor: "text",
-          zIndex: 2,
-          pointerEvents: "auto",
-        }}
-      />
     </div>
   );
 });
@@ -465,4 +476,3 @@ function applyPdfHighlights(textLayer: HTMLDivElement, segments: Segment[], code
     }
   }
 }
-
