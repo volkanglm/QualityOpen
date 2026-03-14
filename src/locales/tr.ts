@@ -506,6 +506,8 @@ export const tr = {
     "sync.conflictDesc": "Google Drive'daki versiyon daha yeni. Ne yapmak istiyorsunuz?",
     "sync.conflictOverwrite": "Yerel ile üzerine yaz",
     "sync.conflictDownload": "Uzaktaki versiyonu indir",
+    "sync.conflictOverwriteHint": "Yerel değişiklikler Drive'a yüklenir",
+    "sync.conflictDownloadHint": "Yerel değişiklikler üzerine yazılır",
     "segment.search.placeholder": "Segment metni içinde ara…",
     "segment.search.noResults": "Eşleşen segment bulunamadı.",
     "segment.search.title": "Segment Arama",

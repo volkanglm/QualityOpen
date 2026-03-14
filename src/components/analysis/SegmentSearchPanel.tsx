@@ -243,7 +243,7 @@ export function SegmentSearchPanel({ isOpen, onClose }: SegmentSearchPanelProps)
                                   className="text-[12px] leading-relaxed text-[var(--text-primary)] italic"
                                   style={{ fontFamily: '"Georgia", serif' }}
                                 >
-                                  "{seg.text}"
+                                  &quot;{seg.text}&quot;
                                 </p>
                               </div>
                               {segCodes.length > 0 && (
@@ -252,7 +252,7 @@ export function SegmentSearchPanel({ isOpen, onClose }: SegmentSearchPanelProps)
                                     <span
                                       key={c.id}
                                       className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full font-medium"
-                                      style={{ background: c.color + "22", color: c.color }}
+                                      style={{ background: `${c.color}22`, color: c.color }}
                                     >
                                       {c.name}
                                     </span>

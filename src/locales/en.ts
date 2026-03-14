@@ -504,6 +504,8 @@ export const en = {
     "sync.conflictDesc": "The version in Google Drive is newer. What would you like to do?",
     "sync.conflictOverwrite": "Overwrite with local data",
     "sync.conflictDownload": "Download remote version",
+    "sync.conflictOverwriteHint": "Local changes will be uploaded to Drive",
+    "sync.conflictDownloadHint": "Local changes will be overwritten",
     "segment.search.placeholder": "Search in segment text…",
     "segment.search.noResults": "No matching segments found.",
     "segment.search.title": "Segment Search",
