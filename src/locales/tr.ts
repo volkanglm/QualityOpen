@@ -518,4 +518,14 @@ export const tr = {
     "chat.sendLabel": "Gönder",
     "pdf.loading": "PDF Hazırlanıyor…",
     "pdf.pages": "{count} Sayfa",
+
+    // ── Zoom controls ────────────────────────────────────────────────────────────
+    // (center.zoomIn and center.zoomOut already exist above)
+
+    // ── Graph / Theory panel ─────────────────────────────────────────────────────
+    "retrieval.back": "Geri",
+    "analysis.nodes": "Düğümler",
+    "analysis.edges": "Bağlantılar",
+    "theory.title": "Teori & Şablonlar",
+    "theory.attraction": "Tematik Çekim",
 };

@@ -516,4 +516,15 @@ export const en = {
     "chat.sendLabel": "Send",
     "pdf.loading": "Loading PDF…",
     "pdf.pages": "{count} Pages",
+
+    // ── Zoom controls ────────────────────────────────────────────────────────────
+    "center.zoomIn": "Zoom In",
+    "center.zoomOut": "Zoom Out",
+
+    // ── Graph / Theory panel ─────────────────────────────────────────────────────
+    "retrieval.back": "Back",
+    "analysis.nodes": "Nodes",
+    "analysis.edges": "Edges",
+    "theory.title": "Theory & Templates",
+    "theory.attraction": "Thematic Attraction",
 };
