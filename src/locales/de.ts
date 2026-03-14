@@ -319,6 +319,8 @@ export const de = {
     "sync.conflictDesc": "Die Version in Google Drive ist neuer. Was möchten Sie tun?",
     "sync.conflictOverwrite": "Mit lokalen Daten überschreiben",
     "sync.conflictDownload": "Remote-Version herunterladen",
+    "sync.conflictOverwriteHint": "Lokale Änderungen werden auf Drive hochgeladen",
+    "sync.conflictDownloadHint": "Lokale Änderungen werden überschrieben",
     "segment.search.placeholder": "Im Segmenttext suchen…",
     "segment.search.noResults": "Keine passenden Segmente gefunden.",
     "segment.search.title": "Segmentsuche",

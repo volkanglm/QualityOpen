@@ -78,7 +78,7 @@ async function importDocx(file: File): Promise<ImportedFile> {
 
 // ─── PDF ──────────────────────────────────────────────────────────────────────
 
-async function importPdf(file: File): Promise<ImportedFile> {
+function importPdf(file: File): Promise<ImportedFile> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {

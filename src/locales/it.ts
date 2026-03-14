@@ -319,6 +319,8 @@ export const it = {
     "sync.conflictDesc": "La versione su Google Drive è più recente. Cosa vuoi fare?",
     "sync.conflictOverwrite": "Sovrascrivi con dati locali",
     "sync.conflictDownload": "Scarica versione remota",
+    "sync.conflictOverwriteHint": "Le modifiche locali verranno caricate su Drive",
+    "sync.conflictDownloadHint": "Le modifiche locali verranno sovrascritte",
     "segment.search.placeholder": "Cerca nel testo dei segmenti…",
     "segment.search.noResults": "Nessun segmento corrispondente trovato.",
     "segment.search.title": "Ricerca segmenti",

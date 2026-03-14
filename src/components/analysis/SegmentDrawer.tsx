@@ -132,7 +132,7 @@ export function SegmentDrawer({
                                                             className="text-[13px] leading-relaxed text-[var(--text-primary)] italic"
                                                             style={{ fontFamily: '"Georgia", serif' }}
                                                         >
-                                                            "{seg.text}"
+                                                            &quot;{seg.text}&quot;
                                                         </p>
                                                     </div>
 

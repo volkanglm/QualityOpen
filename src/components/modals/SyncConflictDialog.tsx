@@ -63,7 +63,7 @@ export function SyncConflictDialog() {
                     {t("sync.conflictOverwrite")}
                   </p>
                   <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-                    Yerel değişiklikler Drive'a yüklenir
+                    {t("sync.conflictOverwriteHint")}
                   </p>
                 </div>
               </button>
@@ -79,7 +79,7 @@ export function SyncConflictDialog() {
                     {t("sync.conflictDownload")}
                   </p>
                   <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-                    Yerel değişiklikler üzerine yazılır
+                    {t("sync.conflictDownloadHint")}
                   </p>
                 </div>
               </button>
