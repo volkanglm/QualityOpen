@@ -38,6 +38,8 @@ const extraStrings = {
   "welcome.dropFiles": { tr: "Dosyaları sürükleyip bırakın", en: "Drag and drop files" },
   "welcome.firstCode": { tr: "İlk Kodunu Yarat", en: "Create Your First Code" },
   "welcome.codeHint": { tr: "Metni seçip 'C' tuşuna basarak yeni bir kod oluşturabilirsiniz.", en: "Select text and press 'C' to create a new code." },
+  // ── PDF ─────────────────────────────────────────────────────────────────────
+  "pdf.loadError": { tr: "PDF dosyası yüklenemedi.", en: "Failed to load PDF file." },
 };
 
 // Flatten extra strings into dictionaries
