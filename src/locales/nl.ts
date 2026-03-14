@@ -327,4 +327,8 @@ export const nl = {
     "segment.bulkAssign": "Code toewijzen aan geselecteerde",
     "segment.selectAll": "Alles selecteren",
     "segment.clearSelection": "Selectie wissen",
+
+    "chat.sendLabel": "Verzenden",
+    "pdf.loading": "PDF laden…",
+    "pdf.pages": "{count} Pagina's",
 };

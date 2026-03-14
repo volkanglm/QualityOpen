@@ -327,4 +327,8 @@ export const de = {
     "segment.bulkAssign": "Code den Ausgewählten zuweisen",
     "segment.selectAll": "Alle auswählen",
     "segment.clearSelection": "Auswahl aufheben",
+
+    "chat.sendLabel": "Senden",
+    "pdf.loading": "PDF wird geladen…",
+    "pdf.pages": "{count} Seiten",
 };

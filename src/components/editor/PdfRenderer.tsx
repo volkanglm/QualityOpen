@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import type { Segment, Code } from "@/types";
 import { useToastStore } from "@/store/toast.store";
 import { useAppStore } from "@/store/app.store";
-import { t } from "@/lib/i18n";
+import { t, useT } from "@/lib/i18n";
 
 interface PdfTextItem {
   str?: string;
@@ -146,6 +146,7 @@ const PdfPage = memo(function PdfPage({
 });
 
 export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, onLoadComplete, segments, codes }: PdfRendererProps) {
+  const tr = useT();
   const containerRef = useRef<HTMLDivElement>(null);
   const [totalPages, setTotalPages] = useState(0);
   const [scale, setScale] = useState(1.2);
@@ -299,7 +300,7 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
           className="text-xs"
           style={{ color: "var(--text-muted)" }}
         >
-          PDF Hazırlanıyor…
+          {tr("pdf.loading")}
         </motion.div>
       </div>
     );
@@ -353,7 +354,7 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
           </Button>
           <div className="w-px h-4 mx-1" style={{ background: "var(--border)" }} />
           <span className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
-            {totalPages} Sayfa
+            {tr("pdf.pages").replace("{count}", String(totalPages))}
           </span>
         </div>
       </div>
