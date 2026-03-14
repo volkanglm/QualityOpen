@@ -319,6 +319,8 @@ export const nl = {
     "sync.conflictDesc": "De versie in Google Drive is nieuwer. Wat wilt u doen?",
     "sync.conflictOverwrite": "Overschrijven met lokale gegevens",
     "sync.conflictDownload": "Externe versie downloaden",
+    "sync.conflictOverwriteHint": "Lokale wijzigingen worden geüpload naar Drive",
+    "sync.conflictDownloadHint": "Lokale wijzigingen worden overschreven",
     "segment.search.placeholder": "Zoeken in segmenttekst…",
     "segment.search.noResults": "Geen overeenkomende segmenten gevonden.",
     "segment.search.title": "Segmenten zoeken",
