@@ -125,18 +125,12 @@ export async function uploadJson(
   data: unknown
 ): Promise<string> {
   const json = JSON.stringify(data, null, 2);
-  const boundary = "qo_boundary_" + Date.now();
+  const boundary = `qo_boundary_${Date.now()}`;
 
   const existingId = await findFileInFolder(token, folderId, fileName);
 
-  const body =
-    `--${boundary}\r\n` +
-    `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
-    JSON.stringify({ name: fileName, parents: existingId ? undefined : [folderId] }) +
-    `\r\n--${boundary}\r\n` +
-    `Content-Type: application/json\r\n\r\n` +
-    json +
-    `\r\n--${boundary}--`;
+  const metadata = JSON.stringify({ name: fileName, parents: existingId ? undefined : [folderId] });
+  const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${json}\r\n--${boundary}--`;
 
   let url: string;
   let method: string;
