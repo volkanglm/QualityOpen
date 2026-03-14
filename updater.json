@@ -1,19 +1,19 @@
 {
-  "version": "1.1.31",
-  "notes": "QualityOpen v1.1.31 update.",
-  "pub_date": "2026-03-13T21:42:53.879Z",
+  "version": "1.1.34",
+  "notes": "QualityOpen v1.1.34 update.",
+  "pub_date": "2026-03-14T07:42:03.479Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRczgrUVZRb01PbnZlMTJDWDZoQ2dJUjU2MGRZUzBBMEMrUWdyQVZlRlprZVBUeklIbU83S2RTUUFocEh4ektuSVJTRHBCUGlNenREVzJtZmQvMktGUTM0cHBrVE9pTVE4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzczNDM3NTI0CWZpbGU6UXVhbGl0eU9wZW4uYXBwLnRhci5negpjZmhJOFdHVTFLd05qanF0dzdFeDh4c0dqdnA2RXpGU1RYOVVxY1krUm1hd0M5Qk1jTm1QSVZ0eXNpVlFlditaN1N3MC82Mnd1Z0RXYWJjdVl1QytEZz09Cg==",
-      "url": "https://github.com/volkanglm/QualityOpen-Releases/releases/download/v1.1.31/QualityOpen.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRczgrUVZRb01Pbmh3NkRDbHhlQjBLZXp2eEREVGg4MmdwbEFCSnl4UkhjQmxwaWR6aVpJSFphMTFkWHZKVTFlU05mR3RlbEhweHFLRXRjb2wyTlFSUlFuUFQyQ1ZueFEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzczNDczNTQxCWZpbGU6UXVhbGl0eU9wZW4uYXBwLnRhci5negpub1ROUFpNbXJubFpYOGo3MEl1Z3N4NHI1b1M4My9rUWdRTlVVa21Rd1crV2szT00rOFBCSlBvOHl5VGJ0NHdBUW1DdEl5NUxacXhiMHZaNzV5UmtDUT09Cg==",
+      "url": "https://github.com/volkanglm/QualityOpen-Releases/releases/download/v1.1.34/QualityOpen.app.tar.gz"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRczgrUVZRb01PbnZlMTJDWDZoQ2dJUjU2MGRZUzBBMEMrUWdyQVZlRlprZVBUeklIbU83S2RTUUFocEh4ektuSVJTRHBCUGlNenREVzJtZmQvMktGUTM0cHBrVE9pTVE4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzczNDM3NTI0CWZpbGU6UXVhbGl0eU9wZW4uYXBwLnRhci5negpjZmhJOFdHVTFLd05qanF0dzdFeDh4c0dqdnA2RXpGU1RYOVVxY1krUm1hd0M5Qk1jTm1QSVZ0eXNpVlFlditaN1N3MC82Mnd1Z0RXYWJjdVl1QytEZz09Cg==",
-      "url": "https://github.com/volkanglm/QualityOpen-Releases/releases/download/v1.1.31/QualityOpen.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRczgrUVZRb01Pbmh3NkRDbHhlQjBLZXp2eEREVGg4MmdwbEFCSnl4UkhjQmxwaWR6aVpJSFphMTFkWHZKVTFlU05mR3RlbEhweHFLRXRjb2wyTlFSUlFuUFQyQ1ZueFEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzczNDczNTQxCWZpbGU6UXVhbGl0eU9wZW4uYXBwLnRhci5negpub1ROUFpNbXJubFpYOGo3MEl1Z3N4NHI1b1M4My9rUWdRTlVVa21Rd1crV2szT00rOFBCSlBvOHl5VGJ0NHdBUW1DdEl5NUxacXhiMHZaNzV5UmtDUT09Cg==",
+      "url": "https://github.com/volkanglm/QualityOpen-Releases/releases/download/v1.1.34/QualityOpen.app.tar.gz"
     },
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRczgrUVZRb01PbnBzVU9lNFFTRk5sRHdxWkFGSnN3YTZ5ZjVKNllJWG5FV0I2VGNCcU44UWdudW8rRWlnQms1cW45czNTaFNHcVcwYWFQNFVBWEU3emk1WHA1TmluOUFFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzczNDM4MTUzCWZpbGU6UXVhbGl0eU9wZW5fMS4xLjMxX3g2NC1zZXR1cC5uc2lzLnppcApHZ1VVNjEyQ01pOVpJb09HMU0zbll5QW9pd0pscXN1TVlhV0lqWVp1ZDFLTFZWOVBDWkV1clRWeDFTOXdwQnVIUTRNWTJ1VjFSdFVWYUcvRUd4Z1lEdz09Cg==",
-      "url": "https://github.com/volkanglm/QualityOpen-Releases/releases/download/v1.1.31/QualityOpen_1.1.31_x64-setup.nsis.zip"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRczgrUVZRb01PbnROUzl5Y05iYUtyb3NlTlRYUXBydEdJakRzRkVjWSt0RDVkYjh2SWthUi9xQ2VmMGcrT09PTGpLYVNYVzJlZDhwVVZSeVIwb3ZJeHozMWYrcXVlTkFjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzczNDc0MTAxCWZpbGU6UXVhbGl0eU9wZW5fMS4xLjM0X3g2NC1zZXR1cC5uc2lzLnppcApCYUk1VzgxV3NzNGd6WkxRWGw5Uy94TEd5VDkvTC96V3dNangrZ1R0SkdZbSszeHBQcjdxNXZUUEFUeWV4YVFNU0pMN25FdTZiamZVblV2SS9mZCtEdz09Cg==",
+      "url": "https://github.com/volkanglm/QualityOpen-Releases/releases/download/v1.1.34/QualityOpen_1.1.34_x64-setup.nsis.zip"
     }
   }
 }
