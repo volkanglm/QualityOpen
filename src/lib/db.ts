@@ -105,3 +105,8 @@ export async function dbMetaSet<T>(key: string, value: T): Promise<void> {
   const db = await getDb();
   await db.put("meta", { id: key, value } as never);
 }
+
+export async function dbMetaDel(key: string): Promise<void> {
+  const db = await getDb();
+  await db.delete("meta", key);
+}
