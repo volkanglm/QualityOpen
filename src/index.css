@@ -118,6 +118,11 @@
     background: color-mix(in srgb, var(--accent) 25%, transparent);
     color: var(--text-primary);
   }
+
+  /* Keep PDF text layer invisible even during selection to avoid ghosting */
+  [data-pdf-text-layer="true"] ::selection {
+    color: transparent !important;
+  }
 }
 
 /* ─── Utilities ───────────────────────────────────────────────────────────── */
