@@ -6,6 +6,7 @@ import { writeSnapshotToDb } from "@/lib/db";
 import { useLicenseStore } from "@/store/license.store";
 import { t } from "@/lib/i18n";
 import { useAppStore } from "@/store/app.store";
+import { idbStorage } from "@/lib/storage";
 
 function uuid() {
   return crypto.randomUUID();
@@ -556,7 +557,14 @@ export const useProjectStore = create<ProjectStore>()(
           });
         }
       }),
-      { name: "qo-project-data" }
+      {
+        name: "qo-project-data",
+        storage: idbStorage,
+        partialize: (state) => {
+          const { history, ...rest } = state;
+          return rest;
+        },
+      }
     )
   )
 );
