@@ -78,35 +78,47 @@ const PdfPage = memo(function PdfPage({
       let charOffset = pageStartOffset;
       const items = (textContent.items as PdfTextItem[]).filter((it): it is PdfTextItem & { str: string } => Boolean(it.str));
 
+      // Re-use a single canvas for measuring text widths to avoid overhead
+      const measureCtx = document.createElement("canvas").getContext("2d");
+
       for (let idx = 0; idx < items.length; idx++) {
         const ti = items[idx];
         const tx = ti.transform || [1, 0, 0, 1, 0, 0];
         const span = document.createElement("span");
         span.textContent = ti.str;
-        // Track character positions so we can map selections ↔ segments
         span.dataset.charStart = String(charOffset);
         span.dataset.charEnd = String(charOffset + ti.str.length);
-        // +1 for the " " separator used during extraction — but NOT after the last item
         charOffset += ti.str.length + (idx < items.length - 1 ? 1 : 0);
-        span.style.position = "absolute";
-        // Apply scale to coordinates! tx[4] is X, tx[5] is Y (from bottom).
-        const x = tx[4] * scale;
-        const y = tx[5] * scale;
-        const height = (ti.height || tx[3]) * scale;
-        // Fallback width: estimate from character count × average char width
-        const width = (ti.width && ti.width > 0) ? ti.width * scale : ti.str.length * height * 0.55;
 
+        // Native PDF.js viewport conversion for perfect alignment
+        const [x, y] = viewport.convertToViewportPoint(tx[4], tx[5]);
+        const fontSize = Math.sqrt(tx[0]*tx[0] + tx[1]*tx[1]) * scale;
+
+        span.style.position = "absolute";
         span.style.left = `${x}px`;
-        span.style.top = `${viewport.height - y - height}px`;
-        span.style.fontSize = `${height}px`;
-        span.style.width = `${width}px`;
-        span.style.height = `${height}px`;
+        span.style.top = `${y - fontSize}px`; // coordinate f is baseline, PDF.js viewport Y is from top
+        span.style.fontSize = `${fontSize}px`;
         span.style.fontFamily = ti.fontName || "sans-serif";
         span.style.color = "transparent";
         span.style.whiteSpace = "pre";
         span.style.lineHeight = "1";
         span.style.transformOrigin = "0% 0%";
-        span.style.borderRadius = "2px";
+
+        // Horizontal scaling to match PDF width exactly (fixes selection "vibration")
+        if (ti.width && measureCtx) {
+          const targetWidth = ti.width * scale;
+          measureCtx.font = `${fontSize}px ${ti.fontName || "sans-serif"}`;
+          const measuredWidth = measureCtx.measureText(ti.str).width;
+          if (measuredWidth > 0) {
+            span.style.transform = `scaleX(${targetWidth / measuredWidth})`;
+          }
+          span.style.width = `${targetWidth}px`;
+        } else {
+          const height = (ti.height || tx[3]) * scale;
+          span.style.width = `${ti.str.length * height * 0.55}px`;
+        }
+        
+        span.style.height = `${fontSize}px`;
         textLayer.appendChild(span);
       }
       // Increment version to trigger highlight re-application (works even on re-render/zoom)
