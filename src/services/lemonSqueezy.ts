@@ -76,6 +76,61 @@ export async function activateLicense(
     }
 }
 
+export async function validateLicense(
+    licenseKey: string,
+    instanceId: string
+): Promise<LemonSqueezyActivationResponse> {
+    try {
+        const body = new URLSearchParams({
+            license_key: licenseKey,
+            instance_id: instanceId,
+        }).toString();
+
+        const [, text] = await invoke<[number, string]>("native_http", {
+            method: "POST",
+            url: "https://api.lemonsqueezy.com/v1/licenses/validate",
+            headersJson: JSON.stringify({
+                "Accept": "application/json",
+                "Content-Type": "application/x-www-form-urlencoded"
+            }),
+            body: body
+        });
+
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch {
+            throw new Error(`Invalid JSON response: ${text.substring(0, 50)}...`);
+        }
+
+        if (data.valid) {
+            return {
+                activated: true,
+                instance: { id: data.instance?.id || instanceId },
+                error: null,
+                meta: data.meta,
+            };
+        } else {
+            console.error("License validation failed:", data);
+            return {
+                activated: false,
+                instance: null,
+                error: data.error || "Lisans doğrulama başarısız.",
+                meta: null,
+            };
+        }
+    } catch (error: unknown) {
+        const errMsg = error instanceof Error ? error.message : "Ağ hatası veya sunucu yanıt vermedi.";
+        console.error("Validation error detail:", error);
+        return {
+            activated: false,
+            instance: null,
+            error: errMsg,
+            meta: null,
+        };
+    }
+}
+
 export async function deactivateLicense(
     licenseKey: string,
     instanceId: string
