@@ -16,8 +16,11 @@ import {
   Download,
   Palette,
   FileUp,
+  BookOpen,
+  UserCheck,
 } from "lucide-react";
 import { useT } from "@/lib/i18n";
+import { exportMemberCheckHTML } from "@/lib/exportUtils";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
 import { useAuthStore } from "@/store/auth.store";
@@ -58,12 +61,13 @@ export function LeftPanel() {
   const t = useT();
   const { getProvider } = useSettingsStore();
 
-  const { projects, documents, segments, createProject, createDocument, deleteDocument, updateDocument, updateProject } =
+  const { projects, documents, segments, codes, createProject, createDocument, deleteDocument, updateDocument, updateProject } =
     useProjectStore();
 
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   const [newProjectModal, setNewProjectModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectType, setNewProjectType] = useState<"primary" | "meta-synthesis">("primary");
   const [newDocModal, setNewDocModal] = useState(false);
   const [newDocName, setNewDocName] = useState("");
   const [newDocType, setNewDocType] = useState<Document["type"]>("interview");
@@ -88,10 +92,11 @@ export function LeftPanel() {
 
   const handleCreateProject = () => {
     if (!newProjectName.trim()) return;
-    const p = createProject(newProjectName.trim());
+    const p = createProject(newProjectName.trim(), undefined, newProjectType);
     setExpandedProjects((s) => new Set(s).add(p.id));
     setActiveProject(p.id);
     setNewProjectName("");
+    setNewProjectType("primary");
     setNewProjectModal(false);
   };
 
@@ -473,6 +478,15 @@ export function LeftPanel() {
                                           setContextMenuPos(null);
                                         }}
                                       />
+                                      <ContextItem
+                                        icon={<UserCheck className="h-3 w-3 text-green-500" />}
+                                        label="Katılımcı Teyidi (Member Check Export)"
+                                        onClick={() => {
+                                          exportMemberCheckHTML(doc, codes, segments);
+                                          setContextMenu(null);
+                                          setContextMenuPos(null);
+                                        }}
+                                      />
                                       <div className="h-px my-1" style={{ background: "#333" }} />
                                       <ContextItem
                                         icon={<Palette className="h-3 w-3" />}
@@ -583,6 +597,12 @@ export function LeftPanel() {
         style={{ borderColor: "var(--border-subtle)" }}
       >
         <NavFooterItem
+          icon={<BookOpen className="h-3.5 w-3.5" style={{ color: "var(--code-4)" /* #fcd34d Gold color */ }} />}
+          label={t("nav.reflexivity") || "Reflexivity Journal"}
+          active={activeView === "reflexivity"}
+          onClick={() => setActiveView("reflexivity")}
+        />
+        <NavFooterItem
           icon={<BarChart2 className="h-3.5 w-3.5" />}
           label={t("nav.analysis")}
           active={activeView === "analysis"}
@@ -607,6 +627,27 @@ export function LeftPanel() {
             onKeyDown={(e) => e.key === "Enter" && handleCreateProject()}
             autoFocus
           />
+          
+          <div className="space-y-2">
+            <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+              Project Type
+            </label>
+            <div className="flex gap-2">
+              <button 
+                className={cn("px-3 py-1.5 rounded-lg border text-[11px] font-medium transition-all w-full", newProjectType === "primary" ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]" : "border-[var(--border)] text-[var(--text-muted)]")} 
+                onClick={() => setNewProjectType("primary")}
+              >
+                Primary Research
+              </button>
+              <button 
+                className={cn("px-3 py-1.5 rounded-lg border text-[11px] font-medium transition-all w-full", newProjectType === "meta-synthesis" ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]" : "border-[var(--border)] text-[var(--text-muted)]")} 
+                onClick={() => setNewProjectType("meta-synthesis")}
+              >
+                Meta-Synthesis (QMARS)
+              </button>
+            </div>
+          </div>
+
           <div className="flex justify-end gap-2 pt-1">
             <Button variant="ghost" onClick={() => setNewProjectModal(false)}>{t("common.cancel")}</Button>
             <Button variant="primary" onClick={handleCreateProject} disabled={!newProjectName.trim()}>
