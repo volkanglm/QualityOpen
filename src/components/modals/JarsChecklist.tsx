@@ -4,37 +4,39 @@ import { CheckCircle2, Circle, ShieldCheck, X } from "lucide-react";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
 import { Button } from "@/components/ui/Button";
+import { useT } from "@/lib/i18n";
 
 interface Props {
   open: boolean;
   onClose: () => void;
 }
 
-const CHECKLIST_ITEMS = [
-  {
-    id: "reflexivity",
-    title: "1. Researcher Characteristics & Reflexivity",
-    description: "Prior assumptions, experiences, and perspectives are recorded in the Reflexivity Journal.",
-  },
-  {
-    id: "contextualization",
-    title: "2. Contextualization & Demographics",
-    description: "Participant and setting demographics are thoroughly documented within the project metadata.",
-  },
-  {
-    id: "analysis",
-    title: "3. Data Collection & Analysis",
-    description: "The coding system is complete, and an Audit Trail (Code Evolution Log) exists.",
-  },
-  {
-    id: "integrity",
-    title: "4. Methodological Integrity",
-    description: "Member-checking or adequate thick description is utilized in the analysis.",
-  },
-];
-
 export function JarsChecklist({ open, onClose }: Props) {
+  const t = useT();
   const { activeProjectId } = useAppStore();
+  
+  const checklistItems = [
+    {
+      id: "reflexivity",
+      title: t("qc.item1.title"),
+      description: t("qc.item1.desc"),
+    },
+    {
+      id: "contextualization",
+      title: t("qc.item2.title"),
+      description: t("qc.item2.desc"),
+    },
+    {
+      id: "analysis",
+      title: t("qc.item3.title"),
+      description: t("qc.item3.desc"),
+    },
+    {
+      id: "integrity",
+      title: t("qc.item4.title"),
+      description: t("qc.item4.desc"),
+    },
+  ];
   const { jarsProgress, setJarsProgress } = useProjectStore();
 
   const [localProgress, setLocalProgress] = useState<Record<string, boolean>>({});
@@ -54,7 +56,7 @@ export function JarsChecklist({ open, onClose }: Props) {
     }
     
     // Check if fully completed
-    const allChecked = CHECKLIST_ITEMS.every(item => newProgress[item.id]);
+    const allChecked = checklistItems.every(item => newProgress[item.id]);
     if (allChecked && nextState) { // Only fire if we just checked the last one
       triggerConfetti();
     }
@@ -85,8 +87,8 @@ export function JarsChecklist({ open, onClose }: Props) {
     }
   };
 
-  const progressCount = CHECKLIST_ITEMS.filter(i => localProgress[i.id]).length;
-  const progressPercent = Math.round((progressCount / CHECKLIST_ITEMS.length) * 100);
+  const progressCount = checklistItems.filter(i => localProgress[i.id]).length;
+  const progressPercent = Math.round((progressCount / checklistItems.length) * 100);
 
   return (
     <AnimatePresence>
@@ -114,8 +116,8 @@ export function JarsChecklist({ open, onClose }: Props) {
                     <ShieldCheck className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>JARS-Qual Integrity Assistant</h2>
-                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>Ensure APA 7 compliance for your qualitative study.</p>
+                    <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>{t("qc.title")}</h2>
+                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>{t("qc.subtitle")}</p>
                   </div>
                 </div>
                 <Button size="icon" variant="ghost" className="h-8 w-8 -mr-2" onClick={onClose}>
@@ -142,7 +144,7 @@ export function JarsChecklist({ open, onClose }: Props) {
             {/* Checklist items */}
             <div className="p-4 overflow-y-auto max-h-[60vh]">
               <div className="space-y-2">
-                {CHECKLIST_ITEMS.map((item) => {
+                {checklistItems.map((item) => {
                   const isChecked = !!localProgress[item.id];
                   return (
                     <motion.div 
@@ -156,14 +158,14 @@ export function JarsChecklist({ open, onClose }: Props) {
                       }`}
                       onClick={() => toggleItem(item.id)}
                     >
-                      <button className="mt-0.5 flex-shrink-0 focus:outline-none">
+                      <div className="mt-0.5 flex-shrink-0 pointer-events-none">
                         {isChecked ? (
                           <CheckCircle2 className="h-5 w-5 text-green-500 transition-transform hover:scale-110" />
                         ) : (
                           <Circle className="h-5 w-5 text-zinc-400 transition-transform hover:scale-110 hover:text-zinc-300" />
                         )}
-                      </button>
-                      <div>
+                      </div>
+                      <div className="pointer-events-none selection:none">
                         <h3 className={`text-sm font-semibold mb-1 transition-colors ${isChecked ? "text-green-500" : "text-[var(--text-primary)]"}`}>
                           {item.title}
                         </h3>
@@ -178,7 +180,7 @@ export function JarsChecklist({ open, onClose }: Props) {
 
               {/* APA Citation Box */}
               <div className="mt-6 p-4 rounded-xl" style={{ background: "var(--surface-hover)", border: "1px dashed var(--border)" }}>
-                <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>Reference Citation</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>{t("qc.reference")}</p>
                 <p className="text-xs leading-relaxed pl-3 border-l-2" style={{ color: "var(--text-secondary)", borderColor: "var(--border)" }}>
                   Levitt, H. M., Bamberg, M., Creswell, J. W., Frost, D. M., Josselson, R., & Suárez-Orozco, C. (2018). 
                   Journal article reporting standards for qualitative primary, qualitative meta-analytic, and mixed methods research in psychology: 
@@ -193,7 +195,7 @@ export function JarsChecklist({ open, onClose }: Props) {
             
             <div className="px-6 py-4 flex justify-end border-t" style={{ borderColor: "var(--border-subtle)", background: "var(--bg-secondary)" }}>
                <Button variant="primary" onClick={onClose}>
-                 Done
+                 {t("qc.done")}
                </Button>
             </div>
           </motion.div>
