@@ -2,7 +2,8 @@ import { create } from "zustand";
 import { load } from "@tauri-apps/plugin-store";
 import { 
   activateLicense as apiActivateLicense,
-  deactivateLicense as apiDeactivateLicense
+  deactivateLicense as apiDeactivateLicense,
+  validateLicense as apiValidateLicense
 } from "@/services/lemonSqueezy";
 import { arch, platform, type, version } from '@tauri-apps/plugin-os';
 
@@ -98,6 +99,7 @@ export const useLicenseStore = create<LicenseStoreType>()((set, get) => {
         const store = await getLicenseStore();
         const key = await store.get<string>("licenseKey");
         const instanceId = await getDeviceHardwareId();
+        const storeInstanceId = await store.get<string>("instanceId");
         const lastVerifiedAt = await store.get<number>("lastVerifiedAt");
         const storedHash = await store.get<string>("integrity");
 
@@ -129,10 +131,16 @@ export const useLicenseStore = create<LicenseStoreType>()((set, get) => {
           if (shouldCheckOnline) {
              console.log("[License] Verifying license online...");
              try {
-               const res = await apiActivateLicense(key, instanceId);
+               const res = storeInstanceId 
+                 ? await apiValidateLicense(key, storeInstanceId)
+                 : await apiActivateLicense(key, instanceId);
+
                if (res.activated) {
                  const now = Date.now();
                  await store.set("lastVerifiedAt", now);
+                 if (res.instance && res.instance.id !== storeInstanceId) {
+                   await store.set("instanceId", res.instance.id);
+                 }
                  const integrity = await generateIntegrityHash({ key, verifiedAt: now });
                  await store.set("integrity", integrity);
                  await store.save();
