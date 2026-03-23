@@ -52,9 +52,13 @@ export const idbStorage: PersistStorage<any> = {
   },
   
   removeItem: async (name: string): Promise<void> => {
-    // Implementing delete via putting undefined or similar if dbMetaDel not available
-    // For now, using null is usually enough or we can add dbMetaDel to db.ts
-    await dbMetaSet(name, undefined);
-    localStorage.removeItem(name);
+    try {
+      // Implementing delete via putting undefined or similar if dbMetaDel not available
+      // For now, using null is usually enough or we can add dbMetaDel to db.ts
+      await dbMetaSet(name, undefined);
+      localStorage.removeItem(name);
+    } catch (err) {
+      console.error(`[Storage] Failed to remove ${name} from IndexedDB:`, err);
+    }
   },
 };
