@@ -1267,10 +1267,10 @@ function DocHeader({
         background: "var(--bg-primary)",
       }}
     >
-      <div className="flex items-center gap-3 min-w-0 pr-2">
+      <div className="flex items-center gap-3 min-w-0 pr-4 flex-1">
         <Tooltip content={doc.name} side="bottom">
           <h2
-            className="text-[13px] font-semibold tracking-wide truncate"
+            className="text-[13px] font-semibold tracking-wide truncate max-w-[300px]"
             style={{ color: "var(--text-primary)" }}
           >
             {doc.name}
@@ -1309,18 +1309,7 @@ function DocHeader({
         </Tooltip>
         
         <div className="w-px h-4 mx-1.5" style={{ background: "var(--border)" }} />
-        {!editMode && doc.format === "text" && (
-          <Button
-            size="sm"
-            variant={showLineNumbers ? "primary" : "ghost"}
-            className="h-6 gap-1 text-[11px]"
-            onClick={onToggleLineNumbers}
-            title={t('center.lineNumbers')}
-          >
-            <List className="h-3 w-3" />
-          </Button>
-        )}
-
+        {/* Search toggle */}
         <Button
           size="sm"
           variant={searchOpen ? "primary" : "ghost"}
