@@ -75,53 +75,27 @@ const PdfPage = memo(function PdfPage({
       if (cancelled) return;
 
       // Build spans with character offset attributes for selection → segment mapping
+      const pdfjs = await import("pdfjs-dist");
+      const renderTask = (pdfjs as any).renderTextLayer({
+        textContentSource: textContent,
+        container: textLayer,
+        viewport: viewport,
+      });
+      await renderTask.promise;
+
+      // Post-process the generated spans to attach character offsets for highlight matching
+      const spans = textLayer.querySelectorAll("span");
       let charOffset = pageStartOffset;
-      const items = (textContent.items as PdfTextItem[]).filter((it): it is PdfTextItem & { str: string } => Boolean(it.str));
+      const filteredItems = (textContent.items as PdfTextItem[]).filter((it): it is PdfTextItem & { str: string } => Boolean(it.str));
 
-      // Re-use a single canvas for measuring text widths to avoid overhead
-      const measureCtx = document.createElement("canvas").getContext("2d");
-
-      for (let idx = 0; idx < items.length; idx++) {
-        const ti = items[idx];
-        const tx = ti.transform || [1, 0, 0, 1, 0, 0];
-        const span = document.createElement("span");
-        span.textContent = ti.str;
+      for (let i = 0; i < Math.min(spans.length, filteredItems.length); i++) {
+        const span = spans[i];
+        const item = filteredItems[i];
         span.dataset.charStart = String(charOffset);
-        span.dataset.charEnd = String(charOffset + ti.str.length);
-        charOffset += ti.str.length + (idx < items.length - 1 ? 1 : 0);
-
-        // Native PDF.js viewport conversion for perfect alignment
-        const [x, y] = viewport.convertToViewportPoint(tx[4], tx[5]);
-        const fontSize = Math.sqrt(tx[0]*tx[0] + tx[1]*tx[1]) * scale;
-
-        span.style.position = "absolute";
-        span.style.left = `${x}px`;
-        span.style.top = `${y - fontSize}px`; // coordinate f is baseline, PDF.js viewport Y is from top
-        span.style.fontSize = `${fontSize}px`;
-        span.style.fontFamily = ti.fontName || "sans-serif";
-        span.style.color = "transparent";
-        span.style.whiteSpace = "pre";
-        span.style.lineHeight = "1";
-        span.style.transformOrigin = "0% 0%";
-
-        // Horizontal scaling to match PDF width exactly (fixes selection "vibration")
-        if (ti.width && measureCtx) {
-          const targetWidth = ti.width * scale;
-          measureCtx.font = `${fontSize}px ${ti.fontName || "sans-serif"}`;
-          const measuredWidth = measureCtx.measureText(ti.str).width;
-          if (measuredWidth > 0) {
-            span.style.transform = `scaleX(${targetWidth / measuredWidth})`;
-          }
-          span.style.width = `${targetWidth}px`;
-        } else {
-          const height = (ti.height || tx[3]) * scale;
-          span.style.width = `${ti.str.length * height * 0.55}px`;
-        }
-        
-        span.style.height = `${fontSize}px`;
-        textLayer.appendChild(span);
+        span.dataset.charEnd = String(charOffset + item.str.length);
+        charOffset += item.str.length + (i < filteredItems.length - 1 ? 1 : 0);
       }
-      // Increment version to trigger highlight re-application (works even on re-render/zoom)
+
       setRenderVersion(v => v + 1);
     }
     render();
