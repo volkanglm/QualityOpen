@@ -70,8 +70,9 @@ export function ShortcutEngine() {
 
                     // Trigger the ContextCodeMenu at the selection position
                     // We can do this by dispatching a custom DOM event caught by CenterPanel
-                    const rect = window.getSelection()?.getRangeAt(0).getBoundingClientRect();
-                    if (rect) {
+                    const sel = window.getSelection();
+                    if (sel && sel.rangeCount > 0) {
+                        const rect = sel.getRangeAt(0).getBoundingClientRect();
                         window.dispatchEvent(new CustomEvent("open-code-menu", {
                             detail: {
                                 x: rect.left + rect.width / 2,

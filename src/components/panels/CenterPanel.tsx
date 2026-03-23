@@ -215,7 +215,7 @@ export function CenterPanel() {
     if (editMode || format === "video" || format === "image") return;
     if (ctxMenu) return; // don't interfere with context menu
     const sel = window.getSelection();
-    if (!sel || sel.isCollapsed || !sel.rangeCount) {
+    if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
       setFloatPos(null);
       setActiveSelection(null);
       return;
@@ -249,7 +249,7 @@ export function CenterPanel() {
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     if (editMode || format === "video" || format === "image") return;
     const sel = window.getSelection();
-    if (!sel || sel.isCollapsed || !sel.rangeCount || !activeProjectId) return;
+    if (!sel || sel.isCollapsed || sel.rangeCount === 0 || !activeProjectId) return;
     const text = sel.toString().trim();
     if (!text || !doc) return;
 

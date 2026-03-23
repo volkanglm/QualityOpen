@@ -54,7 +54,7 @@ export function MediaWorkspace({ doc }: MediaWorkspaceProps) {
     const handleMouseUp = useCallback(() => {
         if (ctxMenu) return;
         const sel = window.getSelection();
-        if (!sel || sel.isCollapsed || !sel.rangeCount) {
+        if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
             setFloatPos(null);
             return;
         }
@@ -76,11 +76,12 @@ export function MediaWorkspace({ doc }: MediaWorkspaceProps) {
 
     const handleContextMenu = useCallback((e: React.MouseEvent) => {
         const sel = window.getSelection();
-        const text = sel?.toString().trim() ?? "";
+        if (!sel || sel.rangeCount === 0) return;
+        const text = sel.toString().trim();
         if (!text) return;
         e.preventDefault();
         setFloatPos(null);
-        const range = sel!.getRangeAt(0);
+        const range = sel.getRangeAt(0);
         const { start, end } = getOffsets(range, transcriptContainerRef.current);
         setCtxMenu({
             x: e.clientX,
