@@ -33,6 +33,9 @@ import {
   Info,
   FileText,
   Download,
+  History,
+  AlertTriangle,
+  Zap,
 } from "lucide-react";
 import { codesToCSV, codesToText, downloadFile } from "@/lib/exportUtils";
 import { useAppStore } from "@/store/app.store";
@@ -45,6 +48,7 @@ import { cn } from "@/lib/utils";
 import { CODE_COLORS } from "@/lib/constants";
 import type { Code, Segment } from "@/types";
 import { flattenCodes, FlatCode } from "@/lib/tree";
+import { CodeEvolutionDrawer } from "@/components/modals/CodeEvolutionDrawer";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const INDENT_W = 16; // px per depth level
@@ -165,6 +169,7 @@ interface CodeRowProps {
   isPotentialParent?: boolean;
   isFilterActive?: boolean;
   t: any;
+  toggleDisconfirming: (id: string, note?: string) => void;
 }
 
 function CodeRow(props: CodeRowProps) {
@@ -176,7 +181,7 @@ function CodeRow(props: CodeRowProps) {
     onStartEdit, onCommitEdit, onCancelEdit, onEditName,
     onDelete, onColorClick, onAddSubCode, onFilterClick, onMoveCode,
     isPotentialParent = false, isFilterActive = false,
-    t
+    t, toggleDisconfirming
   } = props;
   const colorBtnRef = useRef<HTMLButtonElement>(null);
   const depth = projDepth ?? code.depth;
@@ -311,11 +316,41 @@ function CodeRow(props: CodeRowProps) {
                   Bu belgede kullanılmadı
                 </p>
               ) : docUsage.map((seg) => (
-                <div key={seg.id} className="pr-2 py-1 mx-1 rounded-[var(--radius-sm)] hover:bg-[var(--surface-hover)] transition-colors"
+                <div key={seg.id} className={cn(
+                  "group/seg pr-2 py-1.5 mx-1 rounded-[var(--radius-sm)] hover:bg-[var(--surface-hover)] transition-all border-l-2",
+                  seg.isDisconfirming ? "border-orange-500 bg-orange-500/5" : "border-transparent"
+                )}
                   style={{ paddingLeft: `${depth * INDENT_W + 36}px` }}>
-                  <p className="text-[11px] leading-relaxed line-clamp-2" style={{ color: "var(--text-secondary)" }}>
-                    <span style={{ color: code.color }}>&quot;</span>{seg.text}<span style={{ color: code.color }}>&quot;</span>
-                  </p>
+                  <div className="flex items-start gap-2">
+                    <p className="flex-1 text-[11px] leading-relaxed line-clamp-3" style={{ color: "var(--text-secondary)" }}>
+                      <span style={{ color: code.color }}>&quot;</span>{seg.text}<span style={{ color: code.color }}>&quot;</span>
+                    </p>
+                    <div className="flex items-center gap-1 opacity-0 group-hover/seg:opacity-100 transition-opacity flex-shrink-0">
+                      <Tooltip content={seg.isDisconfirming ? "Normal Kanıt Olarak İşaretle" : "Zıt Kanıt (Disconfirming)"} side="top">
+                        <button 
+                          onClick={() => toggleDisconfirming(seg.id, seg.disconfirmingNote)}
+                          className={cn("p-1 rounded hover:bg-[var(--surface-dark)]", seg.isDisconfirming ? "text-orange-500" : "text-[var(--text-disabled)]")}
+                        >
+                          <Zap className="h-3 w-3" />
+                        </button>
+                      </Tooltip>
+                    </div>
+                  </div>
+                  {seg.isDisconfirming && (
+                    <div className="mt-1.5 flex flex-col gap-1">
+                      <div className="flex items-center gap-1 text-[9px] font-bold text-orange-500 uppercase tracking-tighter">
+                        <AlertTriangle className="h-2.5 w-2.5" />
+                        Zıt Kanıt Notu
+                      </div>
+                      <textarea
+                        className="w-full bg-black/20 border border-white/5 rounded p-1.5 text-[10px] text-[var(--text-secondary)] outline-none focus:border-orange-500/30 transition-colors resize-none"
+                        placeholder="Neden zıt kanıt? (Örn: Katılımcı burada genel eğilimin aksine...)"
+                        rows={2}
+                        value={seg.disconfirmingNote || ""}
+                        onChange={(e) => toggleDisconfirming(seg.id, e.target.value)}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -409,7 +444,7 @@ export function RightPanel() {
   const { activeProjectId, activeDocumentId, activeCodeFilters, toggleCodeFilter } = useAppStore();
   const t = useT();
   const { codes, segments, documents, createCode, updateCode, deleteCode, moveCode,
-    updateDocument
+    updateDocument, toggleDisconfirming
   } = useProjectStore();
 
   const projectCodes = codes.filter((c) => c.projectId === activeProjectId);
@@ -438,6 +473,7 @@ export function RightPanel() {
   const [moveCodeId, setMoveCodeId] = useState<string | null>(null);
   const [moveTargetId, setMoveTargetId] = useState<string | null>(null);
   const [colorPicker, setColorPicker] = useState<{ codeId: string; rect: DOMRect } | null>(null);
+  const [showEvolutionDrawer, setShowEvolutionDrawer] = useState(false);
 
   // ── DnD state ──
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -601,6 +637,7 @@ export function RightPanel() {
       setMoveCodeId(id);
       setMoveTargetId(projectCodes.find((c) => c.id === id)?.parentId ?? null);
     },
+    toggleDisconfirming,
   };
 
   const activeCode = activeId ? flatCodes.find((c) => c.id === activeId) : null;
@@ -699,6 +736,11 @@ export function RightPanel() {
                 </button>
               </div>
             </div>
+            <Tooltip content="Code Evolution Log" side="left">
+              <Button size="icon" variant="ghost" className="h-6 w-6" disabled={!activeProjectId} onClick={() => setShowEvolutionDrawer(true)}>
+                <History className="h-3.5 w-3.5" />
+              </Button>
+            </Tooltip>
             <Tooltip content="Yeni kod" side="left">
               <Button size="icon" variant="ghost" className="h-6 w-6"
                 disabled={!activeProjectId} onClick={() => setNewCodeModal(true)}>
@@ -1116,6 +1158,11 @@ export function RightPanel() {
           />
         )}
       </AnimatePresence>
+
+      <CodeEvolutionDrawer
+        open={showEvolutionDrawer}
+        onClose={() => setShowEvolutionDrawer(false)}
+      />
     </div >
   );
 }
