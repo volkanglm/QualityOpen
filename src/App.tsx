@@ -111,20 +111,38 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
-    let unsubAuth: () => void = noop;
-    let unsubNetwork: () => void = noop;
-    // Load API keys from OS keychain (async, non-blocking)
-    useSettingsStore.getState().loadKeys();
+    let unsubAuth: () => void = () => { };
+    let unsubNetwork: () => void = () => { };
 
-    try {
-      useLicenseStore.getState().checkLicense();
-      unsubAuth = initAuthListener();
-      unsubNetwork = initNetworkWatcher();
-    } catch (e) {
-      console.error("Critical error in initAuthListener:", e);
-      // If init itself crashes, force-complete boot so user sees LoginPage
-      useAuthStore.setState({ booting: false, initialized: true });
-    }
+    const setup = async () => {
+      console.log("[Boot] Starting initialization sequence...");
+      try {
+        // Phase 1: Authentication & Settings dependencies
+        console.log("[Boot] 1/4: Loading API keys...");
+        await useSettingsStore.getState().loadKeys();
+
+        console.log("[Boot] 2/4: Checking license...");
+        await useLicenseStore.getState().checkLicense();
+
+        console.log("[Boot] 3/4: Initializing Auth Listener...");
+        unsubAuth = initAuthListener();
+
+        console.log("[Boot] 4/4: Initializing Network Watcher...");
+        unsubNetwork = initNetworkWatcher();
+
+        console.log("[Boot] Core initialization complete.");
+      } catch (err) {
+        console.error("[Boot] CRITICAL: Initialization aborted:", err);
+        // If init itself crashes, force-complete boot so user sees something (at least error boundaries)
+        useAuthStore.setState({ booting: false, initialized: true });
+        // Re-throw so the browser/diagnostic listener catches it for the overlay
+        throw err;
+      }
+    };
+
+    setup().catch((e) => {
+      console.error("[Boot] Uncaught error in setup():", e);
+    });
 
     // Safety net: if boot is still stuck after 5s, force-complete it
     const safetyTimer = setTimeout(() => {

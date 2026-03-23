@@ -78,21 +78,29 @@ export const useSettingsStore = create<SettingsStore>()(
         }
 
         // ── Load from OS keychain into memory ──
+        console.log("[Settings] Loading keys from keychain...");
         try {
-          const [openai, anthropic, gemini] = await Promise.all([
-            invoke<string | null>("keyring_get", { service: SERVICE, key: "openai" }),
-            invoke<string | null>("keyring_get", { service: SERVICE, key: "anthropic" }),
-            invoke<string | null>("keyring_get", { service: SERVICE, key: "gemini" }),
-          ]);
-          set({
-            _openai: openai ?? "",
-            _anthropic: anthropic ?? "",
-            _gemini: gemini ?? "",
-            keysLoaded: true,
-          });
+          const providers: Array<"openai" | "anthropic" | "gemini"> = ["openai", "anthropic", "gemini"];
+          const newKeys: Partial<Record<"_openai" | "_anthropic" | "_gemini", string>> = {};
+
+          for (const p of providers) {
+            try {
+              const key = await invoke<string | null>("keyring_get", { service: SERVICE, key: p });
+              if (key) {
+                newKeys[`_${p}`] = key;
+                console.log(`[Settings] Loaded key for ${p}`);
+              }
+            } catch (err) {
+              // keyring_get might fail if item doesn't exist; that's fine
+              console.debug(`[Settings] No keychain entry for ${p}`);
+            }
+          }
+
+          set({ ...newKeys, keysLoaded: true });
+          console.log("[Settings] Keychain load complete.");
         } catch (e) {
-          console.error("[Settings] Failed to load keys from keychain:", e);
-          set({ keysLoaded: true });
+          console.error("[Settings] Critical error loading keys from keychain:", e);
+          set({ keysLoaded: true }); // Still mark as loaded so app can proceed
         }
       },
 
