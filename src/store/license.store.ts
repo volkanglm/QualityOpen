@@ -28,13 +28,25 @@ interface LicenseActions {
 
 type LicenseStoreType = LicenseState & LicenseActions;
 
-async function getDeviceHardwareId(): Promise<string> {
-  const rawString = `${arch()}-${platform()}-${type()}-${version()}`;
-  const data = new TextEncoder().encode(rawString);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
+const getDeviceHardwareId = async (): Promise<string> => {
+    try {
+        console.log("[License] Getting hardware ID...");
+        // Await these calls to ensure they return the value, not a promise, 
+        // especially on newer Tauri plugin versions where they might be async.
+        const [a, p, t, v] = await Promise.all([
+            arch(),
+            platform(),
+            type(),
+            version()
+        ]);
+        const id = `${a}-${p}-${t}-${v}`;
+        console.log(`[License] Hardware fingerprint: ${id}`);
+        return id;
+    } catch (e) {
+        console.error("[License] Failed to get hardware ID:", e);
+        return "unknown-hw-id";
+    }
+};
 
 
 /**
@@ -58,8 +70,10 @@ async function generateIntegrityHash(data: { key: string | null, verifiedAt: num
   return Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-export const useLicenseStore = create<LicenseStoreType>()((set) => {
-  const getStore = () => load("qo_license.bin", { autoSave: true, defaults: {} });
+
+
+export const useLicenseStore = create<LicenseStoreType>()((set, get) => {
+  const getLicenseStore = () => load("qo_license.bin", { autoSave: true, defaults: {} });
 
   return {
     status: "idle",
@@ -72,22 +86,23 @@ export const useLicenseStore = create<LicenseStoreType>()((set) => {
 
     checkLicense: async () => {
       // GÜVENLİK NOTU: Bu blok sadece 'npm run tauri dev' modunda çalışır. 
-      // Production build alındığında Vite bu kodu .exe/.dmg içinden tamamen silecektir (Dead code elimination).
       if (import.meta.env.DEV) {
-        // skipcq: JS-0002
         console.log("🛠️ DEV MODE: Pro özellikler test için kilitsiz.");
         set({ isPro: true, licenseKey: "DEV_MODE_ACTIVE", status: "active" });
         return;
       }
+
+      console.log("[License] Starting license check...");
       set({ status: "checking" });
       try {
-        const store = await getStore();
+        const store = await getLicenseStore();
         const key = await store.get<string>("licenseKey");
         const instanceId = await getDeviceHardwareId();
         const lastVerifiedAt = await store.get<number>("lastVerifiedAt");
         const storedHash = await store.get<string>("integrity");
 
-        // CRIT-01: Integrity check is MANDATORY if a key exists
+        console.log(`[License] Found key: ${!!key}, last verified: ${lastVerifiedAt}`);
+
         if (key) {
           if (!storedHash) {
             console.error("🛑 License integrity check FAILED: hash missing!");
@@ -107,33 +122,38 @@ export const useLicenseStore = create<LicenseStoreType>()((set) => {
         }
 
         if (key && instanceId) {
-          // Attempt online verification quietly
-          try {
-            const res = await apiActivateLicense(key, instanceId);
-            if (res.activated) {
-              const now = Date.now();
-              await store.set("lastVerifiedAt", now);
-              const integrity = await generateIntegrityHash({ key, verifiedAt: now });
-              await store.set("integrity", integrity);
-              await store.save();
-              set({
-                status: "active",
-                isPro: true,
-                licenseKey: key,
-                instanceId,
-                lastVerifiedAt: now
-              });
-              return;
-            }
-          } catch (apiErr) {
-            console.warn("Lemon Squeezy API unreachable, checking offline grace period...", apiErr);
+          // Attempt online verification quietly if it's been a while
+          const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+          const shouldCheckOnline = !lastVerifiedAt || (Date.now() - lastVerifiedAt > 24 * 60 * 60 * 1000);
+
+          if (shouldCheckOnline) {
+             console.log("[License] Verifying license online...");
+             try {
+               const res = await apiActivateLicense(key, instanceId);
+               if (res.activated) {
+                 const now = Date.now();
+                 await store.set("lastVerifiedAt", now);
+                 const integrity = await generateIntegrityHash({ key, verifiedAt: now });
+                 await store.set("integrity", integrity);
+                 await store.save();
+                 set({
+                   status: "active",
+                   isPro: true,
+                   licenseKey: key,
+                   instanceId,
+                   lastVerifiedAt: now
+                 });
+                 console.log("[License] Online verification successful.");
+                 return;
+               }
+             } catch (apiErr) {
+               console.warn("[License] Lemon Squeezy API unreachable, falling back to grace period.", apiErr);
+             }
           }
 
-          // Fallback to offline verification
-          const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+          // Fallback to offline verification (grace period)
           if (lastVerifiedAt && Date.now() - lastVerifiedAt < SEVEN_DAYS_MS) {
-            // skipcq: JS-0002
-            console.log("Offline Pro mode activated based on recent verification.");
+            console.log("[License] Offline Pro mode active (grace period).");
             set({
               status: "active",
               isPro: true,
@@ -144,13 +164,13 @@ export const useLicenseStore = create<LicenseStoreType>()((set) => {
             return;
           }
 
-          // If we reach here, either the key was deactivated upstream, or offline grace period expired
+          console.warn("[License] License expired or deactivated.");
           set({ status: "inactive", isPro: false, licenseKey: null, lastVerifiedAt: null });
         } else {
           set({ status: "inactive", isPro: false, licenseKey: null, lastVerifiedAt: null });
         }
       } catch (e) {
-        console.error("Failed to load license store", e);
+        console.error("[License] Critical error in checkLicense:", e);
         set({ status: "inactive", isPro: false });
       }
     },
@@ -162,7 +182,7 @@ export const useLicenseStore = create<LicenseStoreType>()((set) => {
         const res = await apiActivateLicense(key, hwId);
 
         if (res.activated && res.instance) {
-          const store = await getStore();
+          const store = await getLicenseStore();
           const now = Date.now();
           await store.set("licenseKey", key);
           await store.set("instanceId", res.instance.id);
@@ -197,11 +217,10 @@ export const useLicenseStore = create<LicenseStoreType>()((set) => {
     },
 
     deactivateLicense: async () => {
-      const { licenseKey, instanceId } = useLicenseStore.getState();
+      const { licenseKey, instanceId } = get();
       
-      // If no key or instance, just clear local (shouldn't happen if PRO is active)
       if (!licenseKey || !instanceId) {
-        const store = await getStore();
+        const store = await getLicenseStore();
         await store.delete("licenseKey");
         await store.delete("instanceId");
         await store.delete("lastVerifiedAt");
@@ -215,7 +234,7 @@ export const useLicenseStore = create<LicenseStoreType>()((set) => {
         const res = await apiDeactivateLicense(licenseKey, instanceId);
         
         if (res.success) {
-          const store = await getStore();
+          const store = await getLicenseStore();
           await store.delete("licenseKey");
           await store.delete("instanceId");
           await store.delete("lastVerifiedAt");

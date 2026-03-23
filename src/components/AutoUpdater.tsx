@@ -10,7 +10,9 @@ export function AutoUpdater() {
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            checkForUpdates();
+            checkForUpdates().catch((e) => {
+                console.error("[AutoUpdater] Check failed:", e);
+            });
         }, 3000);
         return () => clearTimeout(timer);
     }, []);
