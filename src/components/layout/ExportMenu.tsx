@@ -70,10 +70,11 @@ const MENU_ITEMS: {
 export function ExportMenu() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState<ExportFormat | null>(null);
+  const [includeContextPadding, setIncludeContextPadding] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const { activeProjectId, activeView } = useAppStore();
-  const { projects, documents, codes, segments, syntheses } = useProjectStore();
+  const { projects, documents, codes, segments, syntheses, auditLog } = useProjectStore();
   const { push } = useToastStore();
   const t = useT();
 
@@ -112,6 +113,8 @@ export function ExportMenu() {
       codes: codes.filter((c) => c.projectId === project.id),
       segments: segments.filter((s) => s.projectId === project.id),
       syntheses: syntheses.filter((s) => s.projectId === project.id),
+      auditLog: auditLog.filter((a) => a.projectId === project.id),
+      includeContextPadding,
     };
 
     try {
@@ -226,6 +229,24 @@ export function ExportMenu() {
 
             {/* Items */}
             <div className="py-1">
+              {/* Context Padding Toggle */}
+              <div className="px-3 py-2 flex items-center justify-between border-b" style={{ borderColor: "var(--border-subtle)" }}>
+                <div>
+                  <p className="text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>Thick Description Export</p>
+                  <p className="text-[10px]" style={{ color: "var(--text-disabled)" }}>Add 50-word context padding</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIncludeContextPadding(prev => !prev)}
+                  className="relative inline-flex h-4 w-7 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                  style={{ backgroundColor: includeContextPadding ? "var(--accent)" : "var(--surface-hover)" }}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${includeContextPadding ? "translate-x-3" : "translate-x-0"}`}
+                  />
+                </button>
+              </div>
+
               {MENU_ITEMS.map((item) => {
                 const Icon = item.icon;
                 const isLoading = loading === item.id;

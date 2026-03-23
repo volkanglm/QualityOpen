@@ -2,6 +2,14 @@
 
 export type ID = string;
 
+export interface ProtocolVersion {
+  id: ID;
+  projectId: ID;
+  date: number;
+  content: string;
+  changeLog: string;
+}
+
 export interface Project {
   id: ID;
   name: string;
@@ -9,6 +17,8 @@ export interface Project {
   createdAt: number;
   updatedAt: number;
   color?: string;
+  /** Qualitative Meta-Synthesis mode or Primary Research */
+  projectType?: "primary" | "meta-synthesis";
 }
 
 /** How the document content is stored / should be rendered */
@@ -40,6 +50,8 @@ export interface Document {
   regions?: { id: string; x: number; y: number; w: number; h: number }[];
   /** Timestamped transcripts for audio/video media */
   transcript?: { id: string; start: number; end: number; text: string }[];
+  /** Arbitrary metadata fields for contextualization / Demographics / QMARS */
+  metadata?: Record<string, string>;
 }
 
 export interface Code {
@@ -68,6 +80,10 @@ export interface Segment {
   highlightColor?: string;
   /** Used to link this segment to an image bounding-box region */
   regionId?: string;
+  /** APA JARS-Qual: Designates if this segment represents disconfirming/negative evidence */
+  isDisconfirming?: boolean;
+  /** Note explaining why this evidence is disconfirming */
+  disconfirmingNote?: string;
 }
 
 export interface Memo {
@@ -92,9 +108,26 @@ export interface Synthesis {
   updatedAt: number;
 }
 
+export interface ReflexivityEntry {
+  id: ID;
+  projectId: ID;
+  date: number;
+  content: string;
+  updatedAt: number;
+}
+
+export interface AuditLogEntry {
+  id: ID;
+  projectId: ID;
+  timestamp: number;
+  action: string;
+  targetId?: ID;
+  details?: string;
+}
+
 // ─── UI State Types ───────────────────────────────────────────────────────────
 
-export type ViewMode = "documents" | "coding" | "analysis" | "memos" | "settings" | "dashboard";
+export type ViewMode = "documents" | "coding" | "analysis" | "memos" | "settings" | "dashboard" | "reflexivity";
 
 export type Language = "tr" | "en" | "de" | "es" | "nl" | "fr" | "it" | "pt";
 

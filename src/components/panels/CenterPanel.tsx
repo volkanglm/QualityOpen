@@ -23,6 +23,7 @@ import {
   ZoomOut,
   RotateCcw,
   RotateCw,
+  UserCircle,
 } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { useAppStore } from "@/store/app.store";
@@ -31,6 +32,7 @@ import { Button } from "@/components/ui/Button";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { AnalysisPage } from "@/pages/AnalysisPage";
+import { ReflexivityPage } from "@/pages/ReflexivityPage";
 import { SearchHighlighter } from "@/components/editor/SearchHighlighter";
 import { FloatingMenu, type FloatingMenuPos } from "@/components/editor/FloatingMenu";
 import { ContextCodeMenu } from "@/components/editor/ContextCodeMenu";
@@ -42,6 +44,7 @@ import { PdfRenderer } from "@/components/editor/PdfRenderer";
 import { DatabaseView } from "@/components/panels/DatabaseView";
 import { MediaWorkspace } from "@/components/workspace/MediaWorkspace";
 import { ImageWorkspace } from "@/components/workspace/ImageWorkspace";
+import { DocumentContextDrawer } from "@/components/modals/DocumentContextDrawer";
 import { importFile, getFileCategory, ACCEPTED_EXTENSIONS } from "@/lib/fileImport";
 import { countWords, cn } from "@/lib/utils";
 
@@ -455,6 +458,7 @@ export function CenterPanel() {
   // ─────────────────────────────────────────────────────────────────────────
   if (activeView === "settings") return <SettingsPage />;
   if (activeView === "analysis" || activeView === "dashboard") return <AnalysisPage />;
+  if (activeView === "reflexivity") return <ReflexivityPage />;
 
   // ─────────────────────────────────────────────────────────────────────────
   // CODE FILTER / RETRIEVAL VIEW
@@ -1253,6 +1257,8 @@ function DocHeader({
   onZoomOut: () => void;
 }) {
   const t = useT();
+  const [contextOpen, setContextOpen] = useState(false);
+
   return (
     <div
       className="flex items-center justify-between px-4 py-2 border-b flex-shrink-0 z-10"
@@ -1296,6 +1302,13 @@ function DocHeader({
 
       {/* Actions */}
       <div className="flex items-center gap-2 min-w-max flex-shrink-0">
+        <Tooltip content="Participant Context" side="bottom">
+          <Button size="icon" variant="ghost" className="h-6 w-6 text-[var(--accent)]" onClick={() => setContextOpen(true)}>
+            <UserCircle className="h-4 w-4" />
+          </Button>
+        </Tooltip>
+        
+        <div className="w-px h-4 mx-1.5" style={{ background: "var(--border)" }} />
         {!editMode && doc.format === "text" && (
           <Button
             size="sm"
@@ -1428,6 +1441,8 @@ function DocHeader({
           </Button>
         </div>
       </div>
+
+      <DocumentContextDrawer open={contextOpen} onClose={() => setContextOpen(false)} documentId={doc.id} />
     </div>
   );
 }

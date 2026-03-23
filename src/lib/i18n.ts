@@ -40,6 +40,8 @@ const extraStrings = {
   "welcome.codeHint": { tr: "Metni seçip 'C' tuşuna basarak yeni bir kod oluşturabilirsiniz.", en: "Select text and press 'C' to create a new code." },
   // ── PDF ─────────────────────────────────────────────────────────────────────
   "pdf.loadError": { tr: "PDF dosyası yüklenemedi.", en: "Failed to load PDF file." },
+  // ── Navigation ──────────────────────────────────────────────────────────────
+  "nav.reflexivity": { tr: "Düşünümsellik Günlüğü", en: "Reflexivity Journal" },
 };
 
 // Flatten extra strings into dictionaries

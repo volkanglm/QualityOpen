@@ -9,6 +9,36 @@ export interface ExportPayload {
   codes: Code[];
   segments: Segment[];
   syntheses?: import("@/types").Synthesis[];
+  auditLog?: import("@/types").AuditLogEntry[];
+  includeContextPadding?: boolean;
+}
+
+// ─── Formatting helpers ───────────────────────────────────────────────────────
+
+export function getPaddedContext(content: string, start: number, end: number, originalText: string): string {
+  const before = content.slice(0, start);
+  const after = content.slice(end);
+  
+  const wordsBefore = before.split(/\s+/).filter(Boolean);
+  const wordsAfter = after.split(/\s+/).filter(Boolean);
+  
+  const prefix = wordsBefore.slice(-50).join(" ");
+  const suffix = wordsAfter.slice(0, 50).join(" ");
+  
+  const cleanPrefix = prefix ? `...${prefix.replace(/\n/g, " ")} ` : "";
+  const cleanSuffix = suffix ? ` ${suffix.replace(/\n/g, " ")}...` : "";
+  
+  return `${cleanPrefix}${originalText.replace(/\n/g, " ")}${cleanSuffix}`;
+}
+
+export function getCitation(doc: QDoc | undefined): string {
+  if (!doc) return "Bilinmeyen Kaynak";
+  const parts = [doc.name];
+  if (doc.metadata) {
+      const pid = doc.metadata["Participant ID"] || doc.metadata["Katılımcı ID"] || doc.metadata["Participant"] || doc.metadata["Katılımcı"];
+      if (pid) parts.push(pid);
+  }
+  return parts.join(" / ");
 }
 
 // ─── Download helper ──────────────────────────────────────────────────────────
@@ -97,6 +127,19 @@ export function exportExcel(payload: ExportPayload): void {
     autoWidth(ws4, synthRows);
     styleHeaderRow(ws4, Object.keys(synthRows[0]));
     XLSX.utils.book_append_sheet(wb, ws4, "AI Sentezleri");
+  }
+
+  // ── Sheet 5: Audit Log ──
+  if (payload.auditLog && payload.auditLog.length > 0) {
+    const auditRows = [...payload.auditLog].sort((a, b) => b.timestamp - a.timestamp).map((log) => ({
+      "Tarih/Saat": new Date(log.timestamp).toLocaleString("tr-TR"),
+      "İşlem (Action)": log.action,
+      "Detaylar": log.details,
+    }));
+    const ws5 = XLSX.utils.json_to_sheet(auditRows);
+    autoWidth(ws5, auditRows);
+    styleHeaderRow(ws5, Object.keys(auditRows[0]));
+    XLSX.utils.book_append_sheet(wb, ws5, "İşlem Geçmişi");
   }
 
   XLSX.writeFile(wb, `${sanitize(payload.project.name)}_export.xlsx`);
@@ -277,12 +320,20 @@ export async function exportWordAPA7(payload: ExportPayload): Promise<void> {
       );
     }
 
-    codeSegs.forEach((seg) => {
+    const normalSegs = codeSegs.filter(s => !s.isDisconfirming);
+    const disconfirmingSegs = codeSegs.filter(s => s.isDisconfirming);
+
+    const renderSeg = (seg: Segment) => {
       const srcDoc = documents.find((d) => d.id === seg.documentId);
-      const ref = srcDoc?.name ?? "Bilinmeyen Kaynak";
+      const ref = getCitation(srcDoc);
+
+      let text = seg.text;
+      if (payload.includeContextPadding && srcDoc) {
+          text = getPaddedContext(srcDoc.content, seg.start, seg.end, text);
+      }
 
       // APA 7 block quote: indented 0.5-inch both sides for quotes > 40 words
-      const wordCount = seg.text.trim().split(/\s+/).length;
+      const wordCount = text.trim().split(/\s+/).length;
       const isBlock = wordCount >= 40;
 
       if (isBlock) {
@@ -290,9 +341,10 @@ export async function exportWordAPA7(payload: ExportPayload): Promise<void> {
           new Paragraph({
             children: [
               new TextRun({
-                text: seg.text,
+                text: text,
                 size: 24,
                 font: "Times New Roman",
+                color: seg.isDisconfirming ? "e11d48" : undefined,
               }),
             ],
             indent: {
@@ -305,7 +357,7 @@ export async function exportWordAPA7(payload: ExportPayload): Promise<void> {
           new Paragraph({
             children: [
               new TextRun({
-                text: `(${ref})`,
+                text: `[${ref}]`,
                 italics: true,
                 size: 24,
                 font: "Times New Roman",
@@ -325,18 +377,37 @@ export async function exportWordAPA7(payload: ExportPayload): Promise<void> {
           new Paragraph({
             children: [
               new TextRun({
-                text: `"${seg.text}" `,
+                text: `"${text}" `,
                 size: 24,
                 font: "Times New Roman",
+                color: seg.isDisconfirming ? "e11d48" : undefined,
               }),
               new TextRun({
-                text: `(${ref})`,
+                text: `[${ref}]`,
                 italics: true,
                 size: 24,
                 font: "Times New Roman",
               }),
             ],
             spacing: SPACING,
+          }),
+        );
+      }
+
+      if (seg.isDisconfirming && seg.disconfirmingNote) {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `[Zıt Kanıt Notu: ${seg.disconfirmingNote}]`,
+                size: 22,
+                color: "be123c",
+                bold: true,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: SPACING,
+            indent: { left: isBlock ? convertInchesToTwip(0.5) : 0 },
           }),
         );
       }
@@ -354,10 +425,24 @@ export async function exportWordAPA7(payload: ExportPayload): Promise<void> {
               }),
             ],
             spacing: SPACING,
+            indent: { left: isBlock ? convertInchesToTwip(0.5) : 0 },
           }),
         );
       }
-    });
+    };
+
+    normalSegs.forEach(renderSeg);
+
+    if (disconfirmingSegs.length > 0) {
+      children.push(
+        new Paragraph({
+          text: "Zıt Kanıtlar (Disconfirming Instances)",
+          heading: HeadingLevel.HEADING_3,
+          spacing: { ...SPACING, before: 240 },
+        }),
+      );
+      disconfirmingSegs.forEach(renderSeg);
+    }
 
     // Spacer between codes
     children.push(new Paragraph({ children: [new TextRun({ text: "" })], spacing: SPACING }));
@@ -389,6 +474,38 @@ export async function exportWordAPA7(payload: ExportPayload): Promise<void> {
           spacing: SPACING,
         }),
         new Paragraph({ children: [new TextRun({ text: "" })], spacing: SPACING })
+      );
+    });
+  }
+
+  // ── Audit Log ──
+  if (payload.auditLog && payload.auditLog.length > 0) {
+    children.push(new Paragraph({ children: [new TextRun({ text: "", break: 1 })], pageBreakBefore: true }));
+    children.push(
+      new Paragraph({
+        text: "Kod Evrimi (Denetim İzi / Audit Trail)",
+        heading: HeadingLevel.HEADING_1,
+        spacing: SPACING,
+      }),
+    );
+    const sortedLog = [...payload.auditLog].sort((a, b) => b.timestamp - a.timestamp);
+    sortedLog.forEach((log) => {
+      const dateStr = new Date(log.timestamp).toLocaleString("tr-TR");
+      let actionLabel = log.action;
+      if (log.action === "CREATE_CODE") actionLabel = "Yeni Kod";
+      if (log.action === "UPDATE_CODE") actionLabel = "Güncelleme";
+      if (log.action === "DELETE_CODE") actionLabel = "Silme";
+      if (log.action === "MOVE_CODE") actionLabel = "Taşıma";
+
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({ text: `[${dateStr}] ${actionLabel}: `, bold: true, size: 24, font: "Times New Roman" }),
+            new TextRun({ text: log.details, size: 24, font: "Times New Roman" })
+          ],
+          indent: { left: convertInchesToTwip(0.3) },
+          spacing: SPACING,
+        })
       );
     });
   }
@@ -512,13 +629,21 @@ function buildCodeRows(payload: ExportPayload) {
     const parent = payload.codes.find((c) => c.id === code.parentId);
     const codeSegs = payload.segments.filter((s) => s.codeIds.includes(code.id));
 
-    // Produce "quote text (Document Name)" entries joined with " | "
+    // Produce "quote text [Document Name / Participant ID]" entries joined with " | "
     const quotes = codeSegs
       .map((seg) => {
         const doc = payload.documents.find((d) => d.id === seg.documentId);
-        const docName = doc?.name ?? "";
-        const text = seg.text.replace(/\n/g, " ").trim();
-        return docName ? `${text} (${docName})` : text;
+        const ref = getCitation(doc);
+        
+        let text = seg.text.replace(/\n/g, " ").trim();
+        if (payload.includeContextPadding && doc) {
+           text = getPaddedContext(doc.content, seg.start, seg.end, text);
+        }
+
+        const prefix = seg.isDisconfirming ? "(⚡ ZIT KANIT) " : "";
+        const note = (seg.isDisconfirming && seg.disconfirmingNote) ? ` {Not: ${seg.disconfirmingNote}}` : "";
+        
+        return ref !== "Bilinmeyen Kaynak" ? `${prefix}${text} [${ref}]${note}` : `${prefix}${text}${note}`;
       })
       .join(" | ");
 
