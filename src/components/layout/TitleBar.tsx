@@ -102,8 +102,8 @@ export function TitleBar() {
       <div className="no-drag flex items-center gap-0.5">
         {activeProjectId && (
           <>
-            {/* JARS-Qual button */}
-            <Tooltip content="JARS-Qual Integrity Assistant" side="bottom">
+            {/* QC button */}
+            <Tooltip content={t("qc.title")} side="bottom">
               <motion.button
                 whileTap={{ scale: 0.88 }}
                 onClick={() => setJarsOpen(true)}
@@ -117,12 +117,12 @@ export function TitleBar() {
                 }
               >
                 <ShieldCheck className="h-3.5 w-3.5 text-green-500" />
-                <span className="text-[10px] font-medium tracking-tight">JARS</span>
+                <span className="text-[10px] font-medium tracking-tight">QC</span>
               </motion.button>
             </Tooltip>
 
             {/* Protocol button */}
-            <Tooltip content="Dinamik Soru Kılavuzu (Protocol)" side="bottom">
+            <Tooltip content={t("protocol.title")} side="bottom">
               <motion.button
                 whileTap={{ scale: 0.88 }}
                 onClick={() => setProtocolOpen(true)}

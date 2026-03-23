@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 
 interface ProtocolManagerProps {
   open: boolean;
@@ -21,6 +22,7 @@ interface ProtocolManagerProps {
 }
 
 export function ProtocolManager({ open, onClose }: ProtocolManagerProps) {
+  const t = useT();
   const { activeProjectId } = useAppStore();
   const { protocolVersions, addProtocolVersion, deleteProtocolVersion } = useProjectStore();
 
@@ -45,7 +47,7 @@ export function ProtocolManager({ open, onClose }: ProtocolManagerProps) {
 
   const handleSave = () => {
     if (!activeProjectId || !content.trim()) return;
-    addProtocolVersion(activeProjectId, content, changeLog || "Versiyon güncellendi");
+    addProtocolVersion(activeProjectId, content, changeLog || t("protocol.saveVersion"));
     setChangeLog("");
     setShowSaveModal(false);
     setSelectedVersionId(null);
@@ -70,10 +72,10 @@ export function ProtocolManager({ open, onClose }: ProtocolManagerProps) {
           </div>
           <div>
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">
-              Dinamik Soru Kılavuzu (Protocol)
+              {t("protocol.title")}
             </h2>
             <p className="text-[11px] text-[var(--text-muted)]">
-              Görüşme protokolünüzü ve süreç içindeki değişimleri yönetin.
+              {t("protocol.subtitle")}
             </p>
           </div>
         </div>
@@ -87,7 +89,7 @@ export function ProtocolManager({ open, onClose }: ProtocolManagerProps) {
               className="gap-2 bg-blue-600 hover:bg-blue-500"
             >
               <Save className="h-3.5 w-3.5" />
-              Yeni Versiyon Olarak Kaydet
+              {t("protocol.saveVersion")}
             </Button>
           )}
           <Button variant="ghost" size="icon" onClick={onClose}>
@@ -101,13 +103,13 @@ export function ProtocolManager({ open, onClose }: ProtocolManagerProps) {
         <main className="flex-1 flex flex-col bg-[var(--bg-primary)] relative">
           <div className="absolute top-4 right-6 pointer-events-none opacity-40">
             <span className="text-[10px] font-mono tracking-widest uppercase text-[var(--text-disabled)]">
-              {selectedVersionId ? "Versiyon İzleme" : "Güncel Taslak"}
+              {selectedVersionId ? t("protocol.versionTracking") : t("protocol.currentDraft")}
             </span>
           </div>
           
           <textarea
             className="flex-1 w-full h-full p-12 bg-transparent text-[var(--text-primary)] text-sm leading-relaxed outline-none resize-none font-sans"
-            placeholder="# Görüşme Protokolü\n\n1. Giriş soruları...\n2. Temel sorular..."
+            placeholder={t("protocol.placeholder")}
             value={selectedVersionId ? selectedVersion?.content : content}
             onChange={(e) => !selectedVersionId && setContent(e.target.value)}
             readOnly={!!selectedVersionId}
@@ -121,12 +123,12 @@ export function ProtocolManager({ open, onClose }: ProtocolManagerProps) {
           {selectedVersionId && (
             <div className="absolute bottom-8 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-blue-500 text-white text-xs font-medium shadow-xl flex items-center gap-2">
               <History className="h-3.5 w-3.5" />
-              Eski bir versiyonu görüntülüyorsunuz. Düzenlemek için geçmişten çıkın.
+              {t("protocol.historyWarning")}
               <button 
                 onClick={() => setSelectedVersionId(null)}
                 className="ml-2 pl-2 border-l border-white/20 hover:text-white/80"
               >
-                Taslağa Dön
+                {t("protocol.backToDraft")}
               </button>
             </div>
           )}
@@ -137,7 +139,7 @@ export function ProtocolManager({ open, onClose }: ProtocolManagerProps) {
           <div className="p-4 border-b border-[var(--border-subtle)]">
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
               <History className="h-3 w-3" />
-              Versiyon Geçmişi
+              {t("protocol.history")}
             </h3>
           </div>
 
@@ -155,10 +157,10 @@ export function ProtocolManager({ open, onClose }: ProtocolManagerProps) {
                 )}
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-semibold text-[var(--text-primary)]">
-                    Mevcut Taslak
+                    {t("protocol.currentDraft")}
                   </span>
                   <span className="text-[10px] text-blue-500 font-bold uppercase px-1 rounded bg-blue-500/10">
-                    Aktif
+                    {t("protocol.active")}
                   </span>
                 </div>
                 <p className="text-[11px] text-[var(--text-muted)] line-clamp-1 italic">
@@ -204,7 +206,7 @@ export function ProtocolManager({ open, onClose }: ProtocolManagerProps) {
                 <div className="p-8 text-center">
                   <BookOpen className="h-8 w-8 mx-auto mb-3 text-[var(--border)]" />
                   <p className="text-xs text-[var(--text-muted)]">
-                    Henüz kaydedilmiş bir versiyon bulunmuyor.
+                    {t("protocol.noVersions")}
                   </p>
                 </div>
               )}
@@ -217,15 +219,15 @@ export function ProtocolManager({ open, onClose }: ProtocolManagerProps) {
       <Modal 
         open={showSaveModal} 
         onClose={() => setShowSaveModal(false)} 
-        title="Versiyonu Kaydet"
+        title={t("protocol.saveTitle")}
       >
         <div className="space-y-4">
           <p className="text-sm text-[var(--text-secondary)]">
-            Bu versiyonda neler değişti? Kısa bir özet yazarak takibini kolaylaştırabilirsiniz.
+            {t("protocol.saveDesc")}
           </p>
           <Input 
-            label="Değişim Günlüğü (Change Log)"
-            placeholder="Örn: 2. Soru daha açık hale getirildi, demografi bölümü eklendi."
+            label={t("protocol.changeLog")}
+            placeholder={t("protocol.changeLogPlaceholder")}
             value={changeLog}
             onChange={(e) => setChangeLog(e.target.value)}
             autoFocus
@@ -233,10 +235,10 @@ export function ProtocolManager({ open, onClose }: ProtocolManagerProps) {
           />
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="ghost" onClick={() => setShowSaveModal(false)}>
-              İptal
+              {t("common.cancel")}
             </Button>
             <Button variant="primary" onClick={handleSave} disabled={!changeLog.trim()}>
-              Kaydet
+              {t("common.save")}
             </Button>
           </div>
         </div>
