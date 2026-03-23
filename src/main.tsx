@@ -9,16 +9,23 @@ function showFatal(err: unknown) {
   document.body.style.cssText = "margin:0;padding:20px;background:#09090b;color:#ef4444;font-family:monospace;font-size:12px;white-space:pre-wrap;word-break:break-all;";
   document.body.textContent = "QualityOpen — Fatal Boot Error\n\n" + msg;
 }
-
 try {
   const rootEl = document.getElementById("root");
   if (!rootEl) throw new Error("#root element missing from DOM");
+
+  console.log("[Main] Root found. Env:", { dev: import.meta.env.DEV, v: "1.2.6" });
+
+  // Global Rejection Shield
+  window.addEventListener('unhandledrejection', (e) => {
+    console.error("[Main] GLOBAL UNHANDLED REJECTION:", e.reason);
+  });
+
   ReactDOM.createRoot(rootEl).render(
     <React.StrictMode>
       <App />
-    </React.StrictMode>,
+    </React.StrictMode>
   );
 } catch (err) {
-  console.error("[Boot] ReactDOM.createRoot failed:", err);
+  console.error("[Boot] Startup failed:", err);
   showFatal(err);
 }
