@@ -15,7 +15,8 @@
   };
   window.addEventListener('unhandledrejection', function(e) {
     var r = e.reason;
-    showError('[unhandledrejection] ' + (r && r.stack ? r.stack : String(r)));
+    var detail = (r && r.stack) ? r.stack : String(r);
+    showError('[unhandledrejection] ' + detail);
   });
   console.log('[DIAG] Error handlers installed');
 })();

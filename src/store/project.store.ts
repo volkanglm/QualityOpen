@@ -585,27 +585,31 @@ useProjectStore.subscribe(
   (snap) => {
     if (_dbTimer !== undefined) window.clearTimeout(_dbTimer);
     _dbTimer = window.setTimeout(async () => {
-      // 1. Write to IndexedDB (offline-first)
-      await writeSnapshotToDb(snap).catch(() => {/* silent */ });
+      try {
+        // 1. Write to IndexedDB (offline-first)
+        await writeSnapshotToDb(snap).catch(() => {/* silent */ });
 
-      // 2. Trigger Drive sync if user is authenticated
-      const { useAuthStore } = await import("@/store/auth.store");
-      const { useSyncStore } = await import("@/store/sync.store");
-      const { localFolderPath } = useAuthStore.getState();
-      const token = useAuthStore.getState().accessToken;
+        // 2. Trigger Drive sync if user is authenticated
+        const { useAuthStore } = await import("@/store/auth.store");
+        const { useSyncStore } = await import("@/store/sync.store");
+        const { localFolderPath } = useAuthStore.getState();
+        const token = useAuthStore.getState().accessToken;
 
-      if (token) {
-        useSyncStore.getState().syncNow(token).catch(() => {/* silent */ });
-      }
-
-      // 3. Trigger Local Folder sync if configured (Premium)
-      if (localFolderPath) {
-        try {
-          const { syncDataToLocal } = await import("@/lib/localSync");
-          await syncDataToLocal(localFolderPath, snap);
-        } catch (err) {
-          console.error("[LocalSync] Failed to sync to local folder:", err);
+        if (token) {
+          useSyncStore.getState().syncNow(token).catch(() => {/* silent */ });
         }
+
+        // 3. Trigger Local Folder sync if configured (Premium)
+        if (localFolderPath) {
+          try {
+            const { syncDataToLocal } = await import("@/lib/localSync");
+            await syncDataToLocal(localFolderPath, snap);
+          } catch (err) {
+            console.error("[LocalSync] Failed to sync to local folder:", err);
+          }
+        }
+      } catch (err) {
+        console.error("[ProjectStore] Background sync task failed:", err);
       }
     }, 1500) as unknown as number;
   },
