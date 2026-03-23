@@ -45,7 +45,9 @@ import { HeatmapMatrix } from "@/components/charts/HeatmapMatrix";
 import { CoOccurrenceGraph } from "@/components/charts/CoOccurrenceGraph";
 import { DemographicDistribution } from "@/components/charts/DemographicDistribution";
 import { SubCodeDistribution } from "@/components/charts/SubCodeDistribution";
+import { SaturationChart } from "@/components/analysis/SaturationChart";
 import { SynthesisGrid } from "@/components/analysis/SynthesisGrid";
+import { QmarsTable } from "@/components/analysis/QmarsTable";
 import { Counter } from "@/components/ui/Counter";
 import { assignClusters, computeGraphData } from "@/lib/graph.utils";
 import { flattenCodes } from "@/lib/tree";
@@ -56,7 +58,7 @@ const pageVariants: Variants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.18, ease: [0.2, 0, 0, 1] } },
 };
 
-type TabId = "dashboard" | "overview" | "cloud" | "matrix" | "network" | "synthesis" | "typology";
+type TabId = "dashboard" | "overview" | "cloud" | "matrix" | "network" | "synthesis" | "typology" | "qmars";
 
 export function AnalysisPage() {
   const t = useT();
@@ -114,6 +116,11 @@ export function AnalysisPage() {
     { id: "typology", label: t("analysis.typologyTab"), icon: <LayoutGrid className="h-3.5 w-3.5" /> },
     { id: "synthesis", label: t("synthesis.title"), icon: <Sparkles className="h-3.5 w-3.5" /> },
   ];
+
+  const activeProject = projects.find(p => p.id === activeProjectId);
+  if (activeProject?.projectType === "meta-synthesis") {
+    tabs.push({ id: "qmars", label: "QMARS Synthesis", icon: <FileText className="h-3.5 w-3.5" /> });
+  }
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)] relative">
@@ -414,6 +421,12 @@ export function AnalysisPage() {
           {activeTab === "typology" && (
             <motion.div key="typology" variants={pageVariants} initial="hidden" animate="show" className="h-full">
               <TypologyTab docs={projectDocs} codes={projectCodes} segments={projectSegments} />
+            </motion.div>
+          )}
+
+          {activeTab === "qmars" && (
+            <motion.div key="qmars" variants={pageVariants} initial="hidden" animate="show" className="h-full bg-[var(--bg-secondary)]/40 rounded-2xl border border-[var(--border)] p-8 relative overflow-hidden">
+              <QmarsTable codes={projectCodes} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -747,6 +760,10 @@ function OverviewTab({ docs, codes, segments, codeFrequency }: { docs: Document[
             </>
           )}
         </div>
+      </div>
+
+      <div className="bg-[var(--bg-secondary)]/40 border border-[var(--border)] p-8 rounded-2xl">
+        <SaturationChart />
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Minus, Square, X, Sun, Moon, PanelLeft, PanelRight, Sparkles } from "lucide-react";
+import { Minus, Square, X, Sun, Moon, PanelLeft, PanelRight, Sparkles, ShieldCheck, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { APP_NAME } from "@/lib/constants";
 import { useAppStore } from "@/store/app.store";
@@ -9,8 +10,12 @@ import { Tooltip } from "@/components/ui/Tooltip";
 import { ExportMenu } from "@/components/layout/ExportMenu";
 import { AppLogo } from "@/components/ui/AppLogo";
 import { useT } from "@/lib/i18n";
+import { JarsChecklist } from "@/components/modals/JarsChecklist";
+import { ProtocolManager } from "@/components/modals/ProtocolManager";
 
 export function TitleBar() {
+  const [jarsOpen, setJarsOpen] = useState(false);
+  const [protocolOpen, setProtocolOpen] = useState(false);
   const {
     activeProjectId,
     theme,
@@ -95,6 +100,50 @@ export function TitleBar() {
 
       {/* ── Right — Export + ⌘K + Theme + Window controls ── */}
       <div className="no-drag flex items-center gap-0.5">
+        {activeProjectId && (
+          <>
+            {/* JARS-Qual button */}
+            <Tooltip content="JARS-Qual Integrity Assistant" side="bottom">
+              <motion.button
+                whileTap={{ scale: 0.88 }}
+                onClick={() => setJarsOpen(true)}
+                className="flex h-6 items-center gap-1.5 px-2 rounded-[var(--radius-sm)] transition-colors"
+                style={{ color: "var(--text-secondary)" }}
+                onMouseEnter={(e) =>
+                  ((e.currentTarget as HTMLElement).style.background = "var(--surface-hover)")
+                }
+                onMouseLeave={(e) =>
+                  ((e.currentTarget as HTMLElement).style.background = "transparent")
+                }
+              >
+                <ShieldCheck className="h-3.5 w-3.5 text-green-500" />
+                <span className="text-[10px] font-medium tracking-tight">JARS</span>
+              </motion.button>
+            </Tooltip>
+
+            {/* Protocol button */}
+            <Tooltip content="Dinamik Soru Kılavuzu (Protocol)" side="bottom">
+              <motion.button
+                whileTap={{ scale: 0.88 }}
+                onClick={() => setProtocolOpen(true)}
+                className="flex h-6 items-center gap-1.5 px-2 rounded-[var(--radius-sm)] transition-colors"
+                style={{ color: "var(--text-secondary)" }}
+                onMouseEnter={(e) =>
+                  ((e.currentTarget as HTMLElement).style.background = "var(--surface-hover)")
+                }
+                onMouseLeave={(e) =>
+                  ((e.currentTarget as HTMLElement).style.background = "transparent")
+                }
+              >
+                <BookOpen className="h-3.5 w-3.5 text-blue-500" />
+                <span className="text-[10px] font-medium tracking-tight">PROTOCOL</span>
+              </motion.button>
+            </Tooltip>
+
+            <div className="w-px h-4 mx-0.5" style={{ background: "var(--border)" }} />
+          </>
+        )}
+
         {/* Export menu */}
         <ExportMenu />
 
@@ -161,6 +210,9 @@ export function TitleBar() {
           <X className="h-3 w-3" />
         </WinBtn>
       </div>
+
+      <JarsChecklist open={jarsOpen} onClose={() => setJarsOpen(false)} />
+      <ProtocolManager open={protocolOpen} onClose={() => setProtocolOpen(false)} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist, subscribeWithSelector } from "zustand/middleware";
-import type { Project, Document, Code, Segment, Memo, Synthesis, ID } from "@/types";
+import type { Project, Document, Code, Segment, Memo, Synthesis, ReflexivityEntry, AuditLogEntry, ProtocolVersion, ID } from "@/types";
 import { CODE_COLORS } from "@/lib/constants";
 import { writeSnapshotToDb } from "@/lib/db";
 import { useLicenseStore } from "@/store/license.store";
@@ -18,6 +18,25 @@ interface ProjectStore {
   segments: Segment[];
   memos: Memo[];
   syntheses: Synthesis[];
+  reflexivityEntries: ReflexivityEntry[];
+  auditLog: AuditLogEntry[];
+  jarsProgress: Record<string, boolean>;
+  protocolVersions: ProtocolVersion[];
+
+  // Reflexivity
+  addReflexivityEntry: (projectId: ID, content: string) => ReflexivityEntry;
+  updateReflexivityEntry: (id: ID, content: string) => void;
+  deleteReflexivityEntry: (id: ID) => void;
+
+  // Metadata
+  updateDocumentMetadata: (id: ID, keyOrPatch: string | Record<string, string>, value?: string) => void;
+
+  // JARS
+  setJarsProgress: (projectId: ID, questionId: string, completed: boolean) => void;
+
+  // Protocol
+  addProtocolVersion: (projectId: ID, content: string, changeLog: string) => ProtocolVersion;
+  deleteProtocolVersion: (id: ID) => void;
 
   // Settings
   graphSensitivity: number;
@@ -36,7 +55,7 @@ interface ProjectStore {
   pushHistory: () => void;
 
   // Projects
-  createProject: (name: string, description?: string) => Project;
+  createProject: (name: string, description?: string, projectType?: "primary" | "meta-synthesis") => Project;
   updateProject: (id: ID, patch: Partial<Project>) => void;
   deleteProject: (id: ID) => void;
 
@@ -60,6 +79,7 @@ interface ProjectStore {
   addSegments: (segs: Omit<Segment, "id" | "createdAt" | "projectId">[]) => Segment[];
   removeSegmentCode: (segId: ID, codeId: ID) => void;
   deleteSegment: (id: ID) => void;
+  toggleDisconfirming: (id: ID, note?: string) => void;
 
   // Memos
   createMemo: (projectId: ID, title: string) => Memo;
@@ -79,8 +99,8 @@ const MAX_HISTORY = 30;
 // Delta-based undo/redo: instead of full snapshots, store minimal diffs.
 // Each entry captures only the changed fields (before/after).
 interface StateDelta {
-  before: Partial<Pick<ProjectStore, "projects" | "documents" | "codes" | "segments" | "memos" | "syntheses">>;
-  after:  Partial<Pick<ProjectStore, "projects" | "documents" | "codes" | "segments" | "memos" | "syntheses">>;
+  before: Partial<Pick<ProjectStore, "projects" | "documents" | "codes" | "segments" | "memos" | "syntheses" | "reflexivityEntries" | "auditLog" | "jarsProgress" | "protocolVersions">>;
+  after:  Partial<Pick<ProjectStore, "projects" | "documents" | "codes" | "segments" | "memos" | "syntheses" | "reflexivityEntries" | "auditLog" | "jarsProgress" | "protocolVersions">>;
 }
 
 function captureState(state: ProjectStore): StateDelta["before"] {
@@ -91,6 +111,10 @@ function captureState(state: ProjectStore): StateDelta["before"] {
     segments:   state.segments,
     memos:      state.memos,
     syntheses:  state.syntheses,
+    reflexivityEntries: state.reflexivityEntries,
+    auditLog:   state.auditLog,
+    jarsProgress: state.jarsProgress,
+    protocolVersions: state.protocolVersions,
   };
 }
 
@@ -104,6 +128,10 @@ export const useProjectStore = create<ProjectStore>()(
         segments: [],
         memos: [],
         syntheses: [],
+        reflexivityEntries: [],
+        auditLog: [],
+        jarsProgress: {},
+        protocolVersions: [],
 
         graphSensitivity: 1,
         setGraphSensitivity: (val) => set({ graphSensitivity: val }),
@@ -177,11 +205,12 @@ export const useProjectStore = create<ProjectStore>()(
           });
         },
 
-        createProject: (name, description) => {
+        createProject: (name, description, projectType = "primary") => {
           const project: Project = {
             id: uuid(),
             name,
             description,
+            projectType,
             createdAt: Date.now(),
             updatedAt: Date.now(),
             color: CODE_COLORS[Math.floor(Math.random() * CODE_COLORS.length)],
@@ -206,6 +235,7 @@ export const useProjectStore = create<ProjectStore>()(
             segments: s.segments.filter((sg) => sg.projectId !== id),
             memos: s.memos.filter((m) => m.projectId !== id),
             syntheses: s.syntheses.filter((sy) => sy.projectId !== id),
+            protocolVersions: s.protocolVersions.filter((pv) => pv.projectId !== id),
           }));
         },
 
@@ -249,6 +279,38 @@ export const useProjectStore = create<ProjectStore>()(
             ),
           }));
         },
+        updateDocumentMetadata: (id, keyOrPatch, value) => {
+          get().pushHistory();
+          set((s) => ({
+            documents: s.documents.map((d) => {
+              if (d.id === id) {
+                const metadata = { ...(d.metadata || {}) };
+                if (typeof keyOrPatch === "string") {
+                  metadata[keyOrPatch] = value as string;
+                } else {
+                  Object.assign(metadata, keyOrPatch);
+                }
+                return { ...d, metadata, updatedAt: Date.now() };
+              }
+              return d;
+            })
+          }));
+        },
+
+        addProtocolVersion: (projectId, content, changeLog) => {
+          const newVersion: ProtocolVersion = {
+            id: uuid(),
+            projectId,
+            date: Date.now(),
+            content,
+            changeLog,
+          };
+          set((s) => ({ protocolVersions: [...s.protocolVersions, newVersion] }));
+          return newVersion;
+        },
+        deleteProtocolVersion: (id) => {
+          set((s) => ({ protocolVersions: s.protocolVersions.filter((pv) => pv.id !== id) }));
+        },
         deleteDocument: (id) => {
           get().pushHistory();
           set((s) => ({
@@ -272,22 +334,41 @@ export const useProjectStore = create<ProjectStore>()(
             createdAt: Date.now(),
             usageCount: 0,
           };
-          set((s) => ({ codes: [...s.codes, code] }));
+          const audit: AuditLogEntry = { id: uuid(), projectId, timestamp: Date.now(), action: "CREATE_CODE", targetId: code.id, details: `Created code '${name}'` };
+          set((s) => ({ codes: [...s.codes, code], auditLog: [...s.auditLog, audit] }));
           return code;
         },
         updateCode: (id, patch) => {
           get().pushHistory();
-          set((s) => ({ codes: s.codes.map((c) => (c.id === id ? { ...c, ...patch } : c)) }));
+          set((s) => {
+            const oldCode = s.codes.find(c => c.id === id);
+            let details = "";
+            if (oldCode && patch.name && oldCode.name !== patch.name) {
+              details = `Name changed from '${oldCode.name}' to '${patch.name}'`;
+            } else if (patch.description !== undefined) {
+              details = 'Description updated';
+            }
+            const audit: AuditLogEntry = { id: uuid(), projectId: oldCode?.projectId || "", timestamp: Date.now(), action: "UPDATE_CODE", targetId: id, details };
+            return {
+              codes: s.codes.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+              auditLog: oldCode && details ? [...s.auditLog, audit] : s.auditLog
+            };
+          });
         },
         deleteCode: (id) => {
           get().pushHistory();
-          set((s) => ({
-            codes: s.codes.filter((c) => c.id !== id),
-            segments: s.segments.map((sg) => ({
-              ...sg,
-              codeIds: sg.codeIds.filter((cid) => cid !== id),
-            })),
-          }));
+          set((s) => {
+            const oldCode = s.codes.find(c => c.id === id);
+            const audit: AuditLogEntry = { id: uuid(), projectId: oldCode?.projectId || "", timestamp: Date.now(), action: "DELETE_CODE", targetId: id, details: `Deleted code '${oldCode?.name}'` };
+            return {
+              codes: s.codes.filter((c) => c.id !== id),
+              segments: s.segments.map((sg) => ({
+                ...sg,
+                codeIds: sg.codeIds.filter((cid) => cid !== id),
+              })),
+              auditLog: oldCode ? [...s.auditLog, audit] : s.auditLog
+            };
+          });
         },
         reorderCodes: (projectId, activeId, overId) =>
           set((s) => {
@@ -310,6 +391,8 @@ export const useProjectStore = create<ProjectStore>()(
 
             const [code] = codes.splice(fromIdx, 1);
             const updated = { ...code, parentId: newParentId };
+            
+            const audit: AuditLogEntry = { id: uuid(), projectId: code.projectId, timestamp: Date.now(), action: "MOVE_CODE", targetId: code.id, details: `Moved under parent '${newParentId || "root"}'` };
 
             if (targetId) {
               const toIdx = codes.findIndex((c) => c.id === targetId);
@@ -322,7 +405,7 @@ export const useProjectStore = create<ProjectStore>()(
             } else {
               codes.push(updated);
             }
-            return { codes };
+            return { codes, auditLog: [...s.auditLog, audit] };
           }),
 
         addSegment: (seg) => {
@@ -369,6 +452,14 @@ export const useProjectStore = create<ProjectStore>()(
           get().pushHistory();
           set((s) => ({ segments: s.segments.filter((sg) => sg.id !== id) }));
         },
+        toggleDisconfirming: (id, note) => {
+          get().pushHistory();
+          set((s) => ({
+            segments: s.segments.map((sg) =>
+              sg.id === id ? { ...sg, isDisconfirming: !sg.isDisconfirming, disconfirmingNote: note } : sg
+            ),
+          }));
+        },
 
         createMemo: (projectId, title) => {
           const memo: Memo = {
@@ -414,6 +505,34 @@ export const useProjectStore = create<ProjectStore>()(
             set((s) => ({ syntheses: [...s.syntheses, newItem] }));
             return newItem;
           }
+        },
+
+        addReflexivityEntry: (projectId, content) => {
+          get().pushHistory();
+          const entry: ReflexivityEntry = {
+            id: uuid(),
+            projectId,
+            date: Date.now(),
+            content,
+            updatedAt: Date.now()
+          };
+          set((s) => ({ reflexivityEntries: [...s.reflexivityEntries, entry] }));
+          return entry;
+        },
+        updateReflexivityEntry: (id, content) => {
+          get().pushHistory();
+          set((s) => ({
+            reflexivityEntries: s.reflexivityEntries.map((e) => e.id === id ? { ...e, content, updatedAt: Date.now() } : e)
+          }));
+        },
+        deleteReflexivityEntry: (id) => {
+          get().pushHistory();
+          set((s) => ({ reflexivityEntries: s.reflexivityEntries.filter((e) => e.id !== id) }));
+        },
+        setJarsProgress: (projectId, questionId, completed) => {
+          set((s) => ({
+            jarsProgress: { ...s.jarsProgress, [`${projectId}_${questionId}`]: completed }
+          }));
         },
 
         importBackup: (payload) => {
