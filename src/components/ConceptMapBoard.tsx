@@ -23,7 +23,7 @@ import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
 import { useT } from "@/lib/i18n";
 import { Button } from "@/components/ui/Button";
-import { Plus, Database, Download, FileText, Image as ImageIcon } from "lucide-react";
+import { Plus, Database, FileText, Image as ImageIcon } from "lucide-react";
 import { Tooltip } from "@/components/ui/Tooltip";
 
 // Custom Nodes
