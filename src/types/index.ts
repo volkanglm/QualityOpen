@@ -9,6 +9,7 @@ export interface Project {
   createdAt: number;
   updatedAt: number;
   color?: string;
+  projectType?: "primary" | "meta-synthesis";
 }
 
 /** How the document content is stored / should be rendered */
@@ -40,6 +41,7 @@ export interface Document {
   regions?: { id: string; x: number; y: number; w: number; h: number }[];
   /** Timestamped transcripts for audio/video media */
   transcript?: { id: string; start: number; end: number; text: string }[];
+  metadata?: Record<string, string>;
 }
 
 export interface Code {
@@ -68,6 +70,7 @@ export interface Segment {
   highlightColor?: string;
   /** Used to link this segment to an image bounding-box region */
   regionId?: string;
+  isDisconfirming?: boolean;
 }
 
 export interface Memo {
@@ -85,16 +88,50 @@ export interface Synthesis {
   id: ID;
   projectId: ID;
   codeId: ID;
-  /** Optional filter for cross-synthesis (e.g. Variable: Age, Value: 18-24) */
   propertyKey?: string;
   propertyValue?: string;
   content: string;
   updatedAt: number;
 }
 
+export interface ReflexivityEntry {
+  id: ID;
+  projectId: ID;
+  content: string;
+  date: number;
+  updatedAt: number;
+}
+
+export interface AuditLogEntry {
+  id: ID;
+  projectId: ID;
+  action: string;
+  details: string;
+  timestamp: number;
+  targetId?: ID;
+}
+
+export interface ProtocolVersion {
+  id: ID;
+  projectId: ID;
+  content: string;
+  changeLog: string;
+  date: number;
+}
+
+export interface ConceptMap {
+  id: ID;
+  projectId: ID;
+  name: string;
+  nodes: any[];
+  edges: any[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 // ─── UI State Types ───────────────────────────────────────────────────────────
 
-export type ViewMode = "documents" | "coding" | "analysis" | "memos" | "settings" | "dashboard";
+export type ViewMode = "documents" | "coding" | "analysis" | "memos" | "settings" | "dashboard" | "conceptMap";
 
 export type Language = "tr" | "en" | "de" | "es" | "nl" | "fr" | "it" | "pt";
 

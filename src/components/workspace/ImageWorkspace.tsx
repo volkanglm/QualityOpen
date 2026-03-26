@@ -143,7 +143,6 @@ export function ImageWorkspace({ doc }: ImageWorkspaceProps) {
 
         addSegment({
             documentId: doc.id,
-            projectId: doc.projectId,
             start: 0, // unused for image
             end: 0,   // unused for image
             text: "Image Region",

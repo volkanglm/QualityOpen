@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist, subscribeWithSelector } from "zustand/middleware";
-import type { Project, Document, Code, Segment, Memo, Synthesis, ReflexivityEntry, AuditLogEntry, ProtocolVersion, ID } from "@/types";
+import type { Project, Document, Code, Segment, Memo, Synthesis, ReflexivityEntry, AuditLogEntry, ProtocolVersion, ConceptMap, ID } from "@/types";
 import { CODE_COLORS } from "@/lib/constants";
 import { writeSnapshotToDb } from "@/lib/db";
 import { useLicenseStore } from "@/store/license.store";
@@ -10,6 +10,31 @@ import { idbStorage } from "@/lib/storage";
 
 function uuid() {
   return crypto.randomUUID();
+}
+
+interface BackupPayload {
+  projects: Project[];
+  documents: Document[];
+  codes: Code[];
+  segments: Segment[];
+  memos: Memo[];
+  syntheses?: Synthesis[];
+  reflexivityEntries?: ReflexivityEntry[];
+  conceptMaps?: ConceptMap[];
+  jarsProgress?: Record<string, boolean>;
+  auditLog?: AuditLogEntry[];
+}
+
+interface DemoPayload {
+  project: Project;
+  documents: Document[];
+  codes: Code[];
+  segments: Segment[];
+  memos?: Memo[];
+  syntheses?: Synthesis[];
+  reflexivityEntries?: ReflexivityEntry[];
+  conceptMaps?: ConceptMap[];
+  jarsProgress?: Record<string, boolean>;
 }
 
 interface ProjectStore {
@@ -23,7 +48,7 @@ interface ProjectStore {
   auditLog: AuditLogEntry[];
   jarsProgress: Record<string, boolean>;
   protocolVersions: ProtocolVersion[];
-  conceptMaps: any[];
+  conceptMaps: ConceptMap[];
 
   // Concept Maps
   addConceptMap: (projectId: ID, name: string) => any;
@@ -100,8 +125,8 @@ interface ProjectStore {
   upsertSynthesis: (synth: Omit<Synthesis, "id" | "updatedAt">) => Synthesis;
 
   // Backup
-  importBackup: (payload: { projects: Project[]; documents: Document[]; codes: Code[]; segments: Segment[]; memos: Memo[]; syntheses?: Synthesis[] }) => void;
-  loadDemoProject: (payload: { project: Project; documents: Document[]; codes: Code[]; segments: Segment[]; memos: Memo[]; syntheses?: Synthesis[] }) => void;
+  importBackup: (payload: BackupPayload) => void;
+  loadDemoProject: (payload: DemoPayload) => void;
 }
 
 const MAX_HISTORY = 30;
@@ -624,7 +649,7 @@ export const useProjectStore = create<ProjectStore>()(
       {
         name: "qo-project-data",
         storage: idbStorage,
-        partialize: (state) => ({
+        partialize: (state: ProjectStore): any => ({
           projects: state.projects,
           documents: state.documents,
           codes: state.codes,
