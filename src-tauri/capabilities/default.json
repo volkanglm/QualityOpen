@@ -9,7 +9,10 @@
     "core:default",
     "core:event:allow-listen",
     "opener:default",
-    "fs:default",
+    {
+      "identifier": "fs:default",
+      "scope": ["**"]
+    },
     "dialog:default",
     "updater:default",
     "core:window:allow-minimize",

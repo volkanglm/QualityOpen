@@ -1,6 +1,6 @@
 [package]
 name = "qualityopen"
-version = "1.1.12"
+version = "1.2.11"
 description = "Research Tool for Thematic Analysis and Document Management"
 authors = ["Volkan Gulum <volkan@ivg.com>"]
 edition = "2021"

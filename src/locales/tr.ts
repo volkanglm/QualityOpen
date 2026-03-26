@@ -12,6 +12,7 @@ export const tr = {
     "nav.hideCodes": "Kod Sistemini Gizle",
     "nav.lightMode": "Açık Tema",
     "nav.darkMode": "Koyu Tema",
+    "nav.conceptMap": "Görselleştirici",
 
     // ── Left panel ──────────────────────────────────────────────────────────────
     "left.projects": "Projeler",
@@ -48,6 +49,7 @@ export const tr = {
     "right.clickHint": "Tıkla: segmentleri görüntüle · Çift tıkla: adlandır",
     "right.subCodeModal": "Alt Kod Ekle",
     "right.subCodeOf": "Üst kod:",
+    "right.changeParent": "Üst kodu değiştir",
 
     // ── Center panel ────────────────────────────────────────────────────────────
     "center.edit": "Düzenle",
@@ -66,6 +68,8 @@ export const tr = {
     "center.dropHint": "Dosyayı bırakın",
     "center.lineNumbers": "Satır Numaraları",
     "center.splitView": "Bölünmüş Görünüm",
+    "center.zoomIn": "Yakınlaştır",
+    "center.zoomOut": "Uzaklaştır",
     "center.lock": "Kilitle (Salt Okuma)",
     "center.unlock": "Kilidi Aç (Düzenle)",
     "center.importHint": "Belge olarak içe aktarılacak",
@@ -92,6 +96,8 @@ export const tr = {
     "theory.solar": "Güneş Sistemi",
     "theory.case": "Vaka Analizi",
     "theory.anchor": "Ankraj Düğümü",
+    "theory.anchorHint": "Haritanın merkezine sabitlemek istediğiniz bir düğüme tıklayın. Bağlantılı kodlar çekim alanına girecektir.",
+    "theory.noSelection": "Seçim yok...",
     "theory.cases": "Seçilen Vakalar",
     "analysis.docs": "belge",
     "analysis.codes": "kod",
@@ -166,6 +172,26 @@ export const tr = {
     "memos.noMemos": "Henüz not yok",
     "memos.placeholder": "Not içeriği…",
     "memos.delete": "Sil",
+
+    // ── Concept Map ──────────────────────────────────────────────────────────────
+    "canvas.untitled": "Adsız Harita",
+    "canvas.newIdea": "Yeni Fikir",
+    "canvas.edgeLabel": "İlişki Etiketi",
+    "canvas.exportPng": "PNG Olarak Dışa Aktar",
+    "canvas.exportPdf": "PDF Olarak Dışa Aktar",
+    "canvas.assets": "Varlıklar",
+    "canvas.codes": "Kodlar",
+    "canvas.quotes": "Alıntılar",
+    "canvas.deleteNode": "Düğümü Sil",
+    "canvas.editLabel": "Etiketi Düzenle",
+    "canvas.dropToCreate": "Düğüm oluşturmak için bırakın",
+    "canvas.sourceLabel": "Kaynak",
+    "canvas.search": "Ara...",
+    "canvas.unknownDoc": "Bilinmeyen Belge",
+    "canvas.memo": "Not",
+    "canvas.confirmReset": "Haritayı sıfırlamak istediğinize emin misiniz? Bu işlem tüm düğüm ve bağlantıları temizleyecektir.",
+    "canvas.addToMap": "Haritaya Ekle",
+    "canvas.reset": "Haritayı Sıfırla",
 
     // ── Command Palette ─────────────────────────────────────────────────────────
     "cmd.docGo": "Belgeye git",
@@ -299,6 +325,8 @@ export const tr = {
     "common.and": "VE",
     "common.or": "VEYA",
     "common.back": "Geri",
+    "common.undo": "Geri Al",
+    "common.redo": "Yinele",
     "retrieval.noSegs": "Henüz kodlanmış segment bulunmuyor.",
     "retrieval.unknown": "Bilinmeyen Belge",
     "retrieval.none": "Yok",
@@ -311,6 +339,10 @@ export const tr = {
     "settings.importDesc": "JSON yedek dosyasını yükle",
     "settings.exportSuccess": "Yedek başarıyla kaydedildi.",
     "settings.exportError": "Yedek kaydedilirken hata oluştu.",
+    "settings.restoreBackup": "Yedekten Geri Yükle",
+    "settings.restoreDesc": "Projelerinizi bir JSON yedek dosyasından geri yükleyin. Bu işlem tüm mevcut verilerin üzerine yazacaktır.",
+    "settings.restoreConfirm": "Yedek dosyasından geri yükleme yapmak tüm mevcut projelerinizin ve verilerinizin üzerine yazacaktır. Bu işlem geri alınamaz. Emin misiniz?",
+    "settings.restoreSuccess": "Yedek başarıyla geri yüklendi.",
     "settings.aboutDesc": "Araştırmacılar ve akademisyenler için modern, minimalist nitel veri analiz aracı.",
 
     "app.renderError": "QualityOpen — Render Hatası",
@@ -444,6 +476,7 @@ export const tr = {
     "center.addNoteHint": "Bu belge hakkında araştırmacı notunuzu buraya yazın…",
     "center.comparisonPanel": "Kıyaslama Paneli",
     "center.comparisonNotSupported": "Bu dosya türü için kıyaslama şu an desteklenmiyor",
+    "center.selectDocToSeeInfo": "Bilgileri görmek için bir belge seçin.",
 
     // ── Extra Analysis ──
     "analysis.noVariables": "Henüz Değişken Yok",
@@ -483,4 +516,69 @@ export const tr = {
     "db.empty": "Veritabanı Boş",
     "db.emptyHint": "Tabloyu görmek için yeni bir belge ekleyin.",
     "db.downloadSuccess": "Veritabanı İndirildi",
+
+    // ── Error messages (previously hardcoded) ────────────────────────────────
+    "ai.error.invalidGeminiFormat": "Beklenmeyen Gemini yanıt formatı",
+    "ai.error.invalidFormat": "AI yanıtı beklenen formatta değil.",
+    "ocr.error": "OCR işlemi başarısız oldu. Lütfen tekrar deneyin.",
+    "project.limit.docCount": "Demo sürümünde proje başına en fazla 3 belge ekleyebilirsiniz. Sınırsız kullanım için QualityOpen Pro'ya yükseltin.",
+    "project.limit.mapNodeCount": "Demo sürümünde haritaya en fazla 5 öge ekleyebilirsiniz. Sınırsız kullanım için QualityOpen Pro'ya yükseltin.",
+    "file.limit.size": "Demo sürümünde dosya boyutu 5MB ile sınırlıdır. Lütfen daha küçük bir dosya seçin veya tam sürüm için QualityOpen Pro'ya yükseltin.",
+    "sync.conflictTitle": "Uzakta daha yeni veri var",
+    "sync.conflictDesc": "Google Drive'daki versiyon daha yeni. Ne yapmak istiyorsunuz?",
+    "sync.conflictOverwrite": "Yerel ile üzerine yaz",
+    "sync.conflictDownload": "Uzaktaki versiyonu indir",
+    "sync.conflictOverwriteHint": "Yerel değişiklikler Drive'a yüklenir",
+    "sync.conflictDownloadHint": "Yerel değişiklikler üzerine yazılır",
+    "segment.search.placeholder": "Segment metni içinde ara…",
+    "segment.search.noResults": "Eşleşen segment bulunamadı.",
+    "segment.search.title": "Segment Arama",
+    "segment.bulkAssign": "Seçilenlere Kod Ata",
+    "segment.selectAll": "Tümünü Seç",
+    "segment.clearSelection": "Seçimi Temizle",
+
+    "chat.sendLabel": "Gönder",
+    "pdf.loading": "PDF Hazırlanıyor…",
+    "pdf.pages": "{count} Sayfa",
+
+    // ── Zoom controls ────────────────────────────────────────────────────────────
+    // (center.zoomIn and center.zoomOut already exist above)
+
+    // ── Graph / Theory panel ─────────────────────────────────────────────────────
+    "retrieval.back": "Geri",
+    "analysis.nodes": "Düğümler",
+    "analysis.edges": "Bağlantılar",
+    "theory.title": "Teori & Şablonlar",
+    "theory.attraction": "Tematik Çekim",
+
+    // ── QC Integrity Assistant ────────────────────────────────────────────────
+    "qc.title": "QC (Quality Check) - Kalite Denetim Uzmanı",
+    "qc.subtitle": "Nitel çalışmanız için APA 7 uyumluluğunu sağlayın.",
+    "qc.item1.title": "1. Araştırmacı Özellikleri ve Refleksivite",
+    "qc.item1.desc": "Ön varsayımlar, deneyimler ve bakış açıları Refleksivite Günlüğü'ne kaydedilir.",
+    "qc.item2.title": "2. Bağlamlandırma ve Demografi",
+    "qc.item2.desc": "Katılımcı ve ortam demografisi proje metadatasında ayrıntılı olarak belgelenmiştir.",
+    "qc.item3.title": "3. Veri Toplama ve Analiz",
+    "qc.item3.desc": "Kodlama sistemi eksiksizdir ve bir Denetim İzi (Kod Evrim Günlüğü) mevcuttur.",
+    "qc.item4.title": "4. Metodolojik Bütünlük",
+    "qc.item4.desc": "Analizde katılımcı teyidi veya yeterli yoğun betimleme (thick description) kullanılmıştır.",
+    "qc.reference": "Referans Bilgisi",
+    "qc.done": "Bitti",
+
+    // ── Protocol Manager ────────────────────────────────────────────────────────
+    "protocol.title": "Dinamik Soru Kılavuzu (Protocol)",
+    "protocol.subtitle": "Görüşme protokolünüzü ve süreç içindeki değişimleri yönetin.",
+    "protocol.saveVersion": "Yeni Versiyon Olarak Kaydet",
+    "protocol.versionTracking": "Versiyon İzleme",
+    "protocol.currentDraft": "Güncel Taslak",
+    "protocol.placeholder": "# Görüşme Protokolü\n\n1. Giriş soruları...\n2. Temel sorular...",
+    "protocol.historyWarning": "Eski bir versiyonu görüntülüyorsunuz. Düzenlemek için geçmişten çıkın.",
+    "protocol.backToDraft": "Taslağa Dön",
+    "protocol.history": "Versiyon Geçmişi",
+    "protocol.active": "Aktif",
+    "protocol.noVersions": "Henüz kaydedilmiş bir versiyon bulunmuyor.",
+    "protocol.saveTitle": "Versiyonu Kaydet",
+    "protocol.saveDesc": "Bu versiyonda neler değişti? Kısa bir özet yazarak takibini kolaylaştırabilirsiniz.",
+    "protocol.changeLog": "Değişim Günlüğü (Change Log)",
+    "protocol.changeLogPlaceholder": "Örn: 2. Soru daha açık hale getirildi, demografi bölümü eklendi.",
 };

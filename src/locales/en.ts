@@ -12,6 +12,7 @@ export const en = {
     "nav.hideCodes": "Hide Code System",
     "nav.lightMode": "Light Mode",
     "nav.darkMode": "Dark Mode",
+    "nav.conceptMap": "Visualizer",
 
     // ── Left panel ──────────────────────────────────────────────────────────────
     "left.projects": "Projects",
@@ -48,6 +49,7 @@ export const en = {
     "right.clickHint": "Click: view segments · Double-click: rename",
     "right.subCodeModal": "Add Sub-Code",
     "right.subCodeOf": "Parent code:",
+    "right.changeParent": "Change parent code",
 
     // ── Center panel ────────────────────────────────────────────────────────────
     "center.edit": "Edit",
@@ -92,6 +94,8 @@ export const en = {
     "theory.solar": "Solar System",
     "theory.case": "Case Analysis",
     "theory.anchor": "Anchor Node",
+    "theory.anchorHint": "Click on a node you want to fix to the center of the map. Connected codes will be pulled towards it.",
+    "theory.noSelection": "No selection...",
     "theory.cases": "Selected Cases",
     "analysis.docs": "documents",
     "analysis.codes": "codes",
@@ -166,6 +170,26 @@ export const en = {
     "memos.noMemos": "No memos yet",
     "memos.placeholder": "Memo content…",
     "memos.delete": "Delete",
+
+    // ── Concept Map ──────────────────────────────────────────────────────────────
+    "canvas.untitled": "Untitled Map",
+    "canvas.newIdea": "New Idea",
+    "canvas.edgeLabel": "Relationship Label",
+    "canvas.exportPng": "Export as PNG",
+    "canvas.exportPdf": "Export as PDF",
+    "canvas.assets": "Assets",
+    "canvas.codes": "Codes",
+    "canvas.quotes": "Quotes",
+    "canvas.deleteNode": "Delete Node",
+    "canvas.editLabel": "Edit Label",
+    "canvas.dropToCreate": "Drop to create node",
+    "canvas.sourceLabel": "Source",
+    "canvas.search": "Search...",
+    "canvas.unknownDoc": "Unknown Document",
+    "canvas.memo": "Memo",
+    "canvas.confirmReset": "Are you sure you want to reset the map? This will clear all nodes and edges.",
+    "canvas.addToMap": "Add to Map",
+    "canvas.reset": "Reset Map",
 
     // ── Command Palette ─────────────────────────────────────────────────────────
     "cmd.docGo": "Go to document",
@@ -299,6 +323,8 @@ export const en = {
     "common.and": "AND",
     "common.or": "OR",
     "common.back": "Back",
+    "common.undo": "Undo",
+    "common.redo": "Redo",
     "retrieval.noSegs": "No coded segments yet.",
     "retrieval.unknown": "Unknown Document",
     "retrieval.none": "None",
@@ -311,6 +337,10 @@ export const en = {
     "settings.importDesc": "Load a JSON backup file",
     "settings.exportSuccess": "Backup saved successfully.",
     "settings.exportError": "Failed to save backup.",
+    "settings.restoreBackup": "Restore from Backup",
+    "settings.restoreDesc": "Restore your projects from a JSON backup file. This will overwrite all current data.",
+    "settings.restoreConfirm": "Restoring from a backup will overwrite all your current projects and data. This action cannot be undone. Are you sure?",
+    "settings.restoreSuccess": "Backup restored successfully.",
     "settings.aboutDesc": "Modern, minimalist QDA tool for researchers.",
 
     "app.renderError": "QualityOpen — Render Error",
@@ -444,6 +474,7 @@ export const en = {
     "center.addNoteHint": "Write your researcher note about this document here...",
     "center.comparisonPanel": "Comparison Panel",
     "center.comparisonNotSupported": "Comparison is not supported for this file type yet",
+    "center.selectDocToSeeInfo": "Select a document to see info.",
 
     // ── Extra Analysis ──
     "analysis.noVariables": "No Variables Yet",
@@ -483,4 +514,70 @@ export const en = {
     "db.empty": "Database Empty",
     "db.emptyHint": "Add a new document to see the table.",
     "db.downloadSuccess": "Database Exported",
+
+    // ── Error messages (previously hardcoded) ────────────────────────────────
+    "ai.error.invalidGeminiFormat": "Unexpected Gemini response format",
+    "ai.error.invalidFormat": "AI response is not in the expected format.",
+    "ocr.error": "OCR processing failed. Please try again.",
+    "project.limit.docCount": "Demo version allows a maximum of 3 documents per project. Upgrade to QualityOpen Pro for unlimited use.",
+    "project.limit.mapNodeCount": "In the demo version, you can add at most 5 items to the map. Upgrade to QualityOpen Pro for unlimited usage.",
+    "file.limit.size": "Demo version limits file size to 5MB. Please choose a smaller file or upgrade to QualityOpen Pro.",
+    "sync.conflictTitle": "Newer data exists remotely",
+    "sync.conflictDesc": "The version in Google Drive is newer. What would you like to do?",
+    "sync.conflictOverwrite": "Overwrite with local data",
+    "sync.conflictDownload": "Download remote version",
+    "sync.conflictOverwriteHint": "Local changes will be uploaded to Drive",
+    "sync.conflictDownloadHint": "Local changes will be overwritten",
+    "segment.search.placeholder": "Search in segment text…",
+    "segment.search.noResults": "No matching segments found.",
+    "segment.search.title": "Segment Search",
+    "segment.bulkAssign": "Assign Code to Selected",
+    "segment.selectAll": "Select All",
+    "segment.clearSelection": "Clear Selection",
+
+    "chat.sendLabel": "Send",
+    "pdf.loading": "Loading PDF…",
+    "pdf.pages": "{count} Pages",
+
+    // ── Zoom controls ────────────────────────────────────────────────────────────
+    "center.zoomIn": "Zoom In",
+    "center.zoomOut": "Zoom Out",
+
+    // ── Graph / Theory panel ─────────────────────────────────────────────────────
+    "retrieval.back": "Back",
+    "analysis.nodes": "Nodes",
+    "analysis.edges": "Edges",
+    "theory.title": "Theory & Templates",
+    "theory.attraction": "Thematic Attraction",
+
+    // ── QC Integrity Assistant ────────────────────────────────────────────────
+    "qc.title": "QC (Quality Check) - Integrity Assistant",
+    "qc.subtitle": "Ensure APA 7 compliance for your qualitative study.",
+    "qc.item1.title": "1. Researcher Characteristics & Reflexivity",
+    "qc.item1.desc": "Prior assumptions, experiences, and perspectives are recorded in the Reflexivity Journal.",
+    "qc.item2.title": "2. Contextualization & Demographics",
+    "qc.item2.desc": "Participant and setting demographics are thoroughly documented within the project metadata.",
+    "qc.item3.title": "3. Data Collection & Analysis",
+    "qc.item3.desc": "The coding system is complete, and an Audit Trail (Code Evolution Log) exists.",
+    "qc.item4.title": "4. Methodological Integrity",
+    "qc.item4.desc": "Member-checking or adequate thick description is utilized in the analysis.",
+    "qc.reference": "Reference Citation",
+    "qc.done": "Done",
+
+    // ── Protocol Manager ────────────────────────────────────────────────────────
+    "protocol.title": "Dynamic Interview Protocol",
+    "protocol.subtitle": "Manage your interview protocol and its evolution.",
+    "protocol.saveVersion": "Save as New Version",
+    "protocol.versionTracking": "Version Tracking",
+    "protocol.currentDraft": "Current Draft",
+    "protocol.placeholder": "# Interview Protocol\n\n1. Opening questions...\n2. Primary themes...",
+    "protocol.historyWarning": "You are viewing an old version. Exit history to edit.",
+    "protocol.backToDraft": "Back to Draft",
+    "protocol.history": "Version History",
+    "protocol.active": "Active",
+    "protocol.noVersions": "No versions saved yet.",
+    "protocol.saveTitle": "Save Version",
+    "protocol.saveDesc": "What changed in this version? Write a brief summary.",
+    "protocol.changeLog": "Change Log",
+    "protocol.changeLogPlaceholder": "e.g. Added demographics section...",
 };
