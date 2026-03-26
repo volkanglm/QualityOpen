@@ -45,6 +45,8 @@ import { DatabaseView } from "@/components/panels/DatabaseView";
 import { MediaWorkspace } from "@/components/workspace/MediaWorkspace";
 import { ImageWorkspace } from "@/components/workspace/ImageWorkspace";
 import { DocumentContextDrawer } from "@/components/modals/DocumentContextDrawer";
+import { ConceptMapBoard } from "@/components/ConceptMapBoard";
+import { MemosPage } from "@/pages/MemosPage";
 import { importFile, getFileCategory, ACCEPTED_EXTENSIONS } from "@/lib/fileImport";
 import { countWords, cn } from "@/lib/utils";
 
@@ -459,6 +461,8 @@ export function CenterPanel() {
   if (activeView === "settings") return <SettingsPage />;
   if (activeView === "analysis" || activeView === "dashboard") return <AnalysisPage />;
   if (activeView === "reflexivity") return <ReflexivityPage />;
+  if (activeView === "conceptMap") return <ConceptMapBoard />;
+  if (activeView === "memos") return <MemosPage />;
 
   // ─────────────────────────────────────────────────────────────────────────
   // CODE FILTER / RETRIEVAL VIEW

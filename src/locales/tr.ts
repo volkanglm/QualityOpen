@@ -12,6 +12,7 @@ export const tr = {
     "nav.hideCodes": "Kod Sistemini Gizle",
     "nav.lightMode": "Açık Tema",
     "nav.darkMode": "Koyu Tema",
+    "nav.conceptMap": "Görselleştirici",
 
     // ── Left panel ──────────────────────────────────────────────────────────────
     "left.projects": "Projeler",
@@ -171,6 +172,26 @@ export const tr = {
     "memos.noMemos": "Henüz not yok",
     "memos.placeholder": "Not içeriği…",
     "memos.delete": "Sil",
+
+    // ── Concept Map ──────────────────────────────────────────────────────────────
+    "canvas.untitled": "Adsız Harita",
+    "canvas.newIdea": "Yeni Fikir",
+    "canvas.edgeLabel": "İlişki Etiketi",
+    "canvas.exportPng": "PNG Olarak Dışa Aktar",
+    "canvas.exportPdf": "PDF Olarak Dışa Aktar",
+    "canvas.assets": "Varlıklar",
+    "canvas.codes": "Kodlar",
+    "canvas.quotes": "Alıntılar",
+    "canvas.deleteNode": "Düğümü Sil",
+    "canvas.editLabel": "Etiketi Düzenle",
+    "canvas.dropToCreate": "Düğüm oluşturmak için bırakın",
+    "canvas.sourceLabel": "Kaynak",
+    "canvas.search": "Ara...",
+    "canvas.unknownDoc": "Bilinmeyen Belge",
+    "canvas.memo": "Not",
+    "canvas.confirmReset": "Haritayı sıfırlamak istediğinize emin misiniz? Bu işlem tüm düğüm ve bağlantıları temizleyecektir.",
+    "canvas.addToMap": "Haritaya Ekle",
+    "canvas.reset": "Haritayı Sıfırla",
 
     // ── Command Palette ─────────────────────────────────────────────────────────
     "cmd.docGo": "Belgeye git",
@@ -501,6 +522,7 @@ export const tr = {
     "ai.error.invalidFormat": "AI yanıtı beklenen formatta değil.",
     "ocr.error": "OCR işlemi başarısız oldu. Lütfen tekrar deneyin.",
     "project.limit.docCount": "Demo sürümünde proje başına en fazla 3 belge ekleyebilirsiniz. Sınırsız kullanım için QualityOpen Pro'ya yükseltin.",
+    "project.limit.mapNodeCount": "Demo sürümünde haritaya en fazla 5 öge ekleyebilirsiniz. Sınırsız kullanım için QualityOpen Pro'ya yükseltin.",
     "file.limit.size": "Demo sürümünde dosya boyutu 5MB ile sınırlıdır. Lütfen daha küçük bir dosya seçin veya tam sürüm için QualityOpen Pro'ya yükseltin.",
     "sync.conflictTitle": "Uzakta daha yeni veri var",
     "sync.conflictDesc": "Google Drive'daki versiyon daha yeni. Ne yapmak istiyorsunuz?",

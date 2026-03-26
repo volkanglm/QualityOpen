@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist, subscribeWithSelector } from "zustand/middleware";
-import type { Project, Document, Code, Segment, Memo, Synthesis, ReflexivityEntry, AuditLogEntry, ProtocolVersion, ID } from "@/types";
+import type { Project, Document, Code, Segment, Memo, Synthesis, ReflexivityEntry, AuditLogEntry, ProtocolVersion, ConceptMap, ID } from "@/types";
 import { CODE_COLORS } from "@/lib/constants";
 import { writeSnapshotToDb } from "@/lib/db";
 import { useLicenseStore } from "@/store/license.store";
@@ -10,6 +10,31 @@ import { idbStorage } from "@/lib/storage";
 
 function uuid() {
   return crypto.randomUUID();
+}
+
+interface BackupPayload {
+  projects: Project[];
+  documents: Document[];
+  codes: Code[];
+  segments: Segment[];
+  memos: Memo[];
+  syntheses?: Synthesis[];
+  reflexivityEntries?: ReflexivityEntry[];
+  conceptMaps?: ConceptMap[];
+  jarsProgress?: Record<string, boolean>;
+  auditLog?: AuditLogEntry[];
+}
+
+interface DemoPayload {
+  project: Project;
+  documents: Document[];
+  codes: Code[];
+  segments: Segment[];
+  memos?: Memo[];
+  syntheses?: Synthesis[];
+  reflexivityEntries?: ReflexivityEntry[];
+  conceptMaps?: ConceptMap[];
+  jarsProgress?: Record<string, boolean>;
 }
 
 interface ProjectStore {
@@ -23,6 +48,15 @@ interface ProjectStore {
   auditLog: AuditLogEntry[];
   jarsProgress: Record<string, boolean>;
   protocolVersions: ProtocolVersion[];
+  conceptMaps: ConceptMap[];
+
+  // Concept Maps
+  addConceptMap: (projectId: ID, name: string) => any;
+  updateConceptMapNodes: (id: ID, nodes: any[]) => void;
+  updateMapEdges: (id: ID, edges: any[]) => void;
+  renameConceptMap: (id: ID, name: string) => void;
+  resetConceptMap: (id: ID) => void;
+  deleteConceptMap: (id: ID) => void;
 
   // Reflexivity
   addReflexivityEntry: (projectId: ID, content: string) => ReflexivityEntry;
@@ -91,8 +125,8 @@ interface ProjectStore {
   upsertSynthesis: (synth: Omit<Synthesis, "id" | "updatedAt">) => Synthesis;
 
   // Backup
-  importBackup: (payload: { projects: Project[]; documents: Document[]; codes: Code[]; segments: Segment[]; memos: Memo[]; syntheses?: Synthesis[] }) => void;
-  loadDemoProject: (payload: { project: Project; documents: Document[]; codes: Code[]; segments: Segment[]; memos: Memo[]; syntheses?: Synthesis[] }) => void;
+  importBackup: (payload: BackupPayload) => void;
+  loadDemoProject: (payload: DemoPayload) => void;
 }
 
 const MAX_HISTORY = 30;
@@ -100,8 +134,8 @@ const MAX_HISTORY = 30;
 // Delta-based undo/redo: instead of full snapshots, store minimal diffs.
 // Each entry captures only the changed fields (before/after).
 interface StateDelta {
-  before: Partial<Pick<ProjectStore, "projects" | "documents" | "codes" | "segments" | "memos" | "syntheses" | "reflexivityEntries" | "auditLog" | "jarsProgress" | "protocolVersions">>;
-  after:  Partial<Pick<ProjectStore, "projects" | "documents" | "codes" | "segments" | "memos" | "syntheses" | "reflexivityEntries" | "auditLog" | "jarsProgress" | "protocolVersions">>;
+  before: Partial<Pick<ProjectStore, "projects" | "documents" | "codes" | "segments" | "memos" | "syntheses" | "reflexivityEntries" | "auditLog" | "jarsProgress" | "protocolVersions" | "conceptMaps">>;
+  after:  Partial<Pick<ProjectStore, "projects" | "documents" | "codes" | "segments" | "memos" | "syntheses" | "reflexivityEntries" | "auditLog" | "jarsProgress" | "protocolVersions" | "conceptMaps">>;
 }
 
 function captureState(state: ProjectStore): StateDelta["before"] {
@@ -116,6 +150,7 @@ function captureState(state: ProjectStore): StateDelta["before"] {
     auditLog:   state.auditLog,
     jarsProgress: state.jarsProgress,
     protocolVersions: state.protocolVersions,
+    conceptMaps: state.conceptMaps,
   };
 }
 
@@ -133,6 +168,7 @@ export const useProjectStore = create<ProjectStore>()(
         auditLog: [],
         jarsProgress: {},
         protocolVersions: [],
+        conceptMaps: [],
 
         graphSensitivity: 1,
         setGraphSensitivity: (val) => set({ graphSensitivity: val }),
@@ -544,6 +580,10 @@ export const useProjectStore = create<ProjectStore>()(
             segments: payload.segments,
             memos: payload.memos,
             syntheses: payload.syntheses ?? [],
+            reflexivityEntries: payload.reflexivityEntries ?? [],
+            conceptMaps: payload.conceptMaps ?? [],
+            jarsProgress: payload.jarsProgress ?? {},
+            auditLog: payload.auditLog ?? [],
           });
         },
         loadDemoProject: (payload) => {
@@ -554,16 +594,77 @@ export const useProjectStore = create<ProjectStore>()(
             segments: payload.segments,
             memos: payload.memos ?? [],
             syntheses: payload.syntheses ?? [],
+            reflexivityEntries: payload.reflexivityEntries ?? [],
+            conceptMaps: payload.conceptMaps ?? [],
+            jarsProgress: payload.jarsProgress ?? {},
           });
-        }
+        },
+
+        addConceptMap: (projectId, name) => {
+          const newMap = {
+            id: uuid(),
+            projectId,
+            name,
+            nodes: [],
+            edges: [],
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+          set((s) => ({ conceptMaps: [...s.conceptMaps, newMap] }));
+          return newMap;
+        },
+        updateConceptMapNodes: (id, nodes) => {
+          set((s) => ({
+            conceptMaps: s.conceptMaps.map((m) =>
+              m.id === id ? { ...m, nodes, updatedAt: Date.now() } : m
+            ),
+          }));
+        },
+        updateMapEdges: (id, edges) => {
+          set((s) => ({
+            conceptMaps: s.conceptMaps.map((m) =>
+              m.id === id ? { ...m, edges, updatedAt: Date.now() } : m
+            ),
+          }));
+        },
+        renameConceptMap: (id, name) => {
+          set((s) => ({
+            conceptMaps: s.conceptMaps.map((m) =>
+              m.id === id ? { ...m, name, updatedAt: Date.now() } : m
+            ),
+          }));
+        },
+        resetConceptMap: (id) => {
+          set((s) => ({
+            conceptMaps: s.conceptMaps.map((m) =>
+              m.id === id ? { ...m, nodes: [], edges: [], updatedAt: Date.now() } : m
+            ),
+          }));
+        },
+        deleteConceptMap: (id) => {
+          set((s) => ({
+            conceptMaps: s.conceptMaps.filter((m) => m.id !== id),
+          }));
+        },
       }),
       {
         name: "qo-project-data",
         storage: idbStorage,
-        partialize: (state) => {
-          const { history, ...rest } = state;
-          return rest;
-        },
+        partialize: (state: ProjectStore): any => ({
+          projects: state.projects,
+          documents: state.documents,
+          codes: state.codes,
+          segments: state.segments,
+          memos: state.memos,
+          syntheses: state.syntheses,
+          reflexivityEntries: state.reflexivityEntries,
+          auditLog: state.auditLog,
+          jarsProgress: state.jarsProgress,
+          protocolVersions: state.protocolVersions,
+          conceptMaps: state.conceptMaps,
+          graphSensitivity: state.graphSensitivity,
+          textScale: state.textScale,
+        }),
       }
     )
   )
@@ -581,6 +682,11 @@ useProjectStore.subscribe(
     codes: s.codes,
     segments: s.segments,
     memos: s.memos,
+    conceptMaps: s.conceptMaps,
+    reflexivityEntries: s.reflexivityEntries,
+    jarsProgress: s.jarsProgress,
+    syntheses: s.syntheses,
+    auditLog: s.auditLog,
   }),
   (snap) => {
     if (_dbTimer !== undefined) window.clearTimeout(_dbTimer);
@@ -620,7 +726,12 @@ useProjectStore.subscribe(
         a.documents === b.documents &&
         a.codes === b.codes &&
         a.segments === b.segments &&
-        a.memos === b.memos;
+        a.memos === b.memos &&
+        a.conceptMaps === b.conceptMaps &&
+        a.reflexivityEntries === b.reflexivityEntries &&
+        a.jarsProgress === b.jarsProgress &&
+        a.syntheses === b.syntheses &&
+        a.auditLog === b.auditLog;
     }
   }
 );

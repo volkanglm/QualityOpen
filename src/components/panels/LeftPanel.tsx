@@ -597,6 +597,12 @@ export function LeftPanel() {
         style={{ borderColor: "var(--border-subtle)" }}
       >
         <NavFooterItem
+          icon={<Palette className="h-3.5 w-3.5" />}
+          label={t("nav.conceptMap")}
+          active={activeView === "conceptMap"}
+          onClick={() => setActiveView("conceptMap")}
+        />
+        <NavFooterItem
           icon={<BookOpen className="h-3.5 w-3.5" style={{ color: "var(--code-4)" /* #fcd34d Gold color */ }} />}
           label={t("nav.reflexivity") || "Reflexivity Journal"}
           active={activeView === "reflexivity"}

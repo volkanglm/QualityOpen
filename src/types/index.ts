@@ -101,7 +101,6 @@ export interface Synthesis {
   id: ID;
   projectId: ID;
   codeId: ID;
-  /** Optional filter for cross-synthesis (e.g. Variable: Age, Value: 18-24) */
   propertyKey?: string;
   propertyValue?: string;
   content: string;
@@ -111,8 +110,8 @@ export interface Synthesis {
 export interface ReflexivityEntry {
   id: ID;
   projectId: ID;
-  date: number;
   content: string;
+  date: number;
   updatedAt: number;
 }
 
@@ -125,9 +124,27 @@ export interface AuditLogEntry {
   details?: string;
 }
 
+export interface ConceptMap {
+  id: ID;
+  projectId: ID;
+  name: string;
+  nodes: any[];
+  edges: any[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 // ─── UI State Types ───────────────────────────────────────────────────────────
 
-export type ViewMode = "documents" | "coding" | "analysis" | "memos" | "settings" | "dashboard" | "reflexivity";
+export type ViewMode = 
+  | "documents" 
+  | "coding" 
+  | "analysis" 
+  | "memos" 
+  | "settings" 
+  | "dashboard" 
+  | "reflexivity" 
+  | "conceptMap";
 
 export type Language = "tr" | "en" | "de" | "es" | "nl" | "fr" | "it" | "pt";
 

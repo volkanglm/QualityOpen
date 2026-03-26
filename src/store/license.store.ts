@@ -5,7 +5,7 @@ import {
   deactivateLicense as apiDeactivateLicense,
   validateLicense as apiValidateLicense
 } from "@/services/lemonSqueezy";
-import { arch, platform, type, version } from '@tauri-apps/plugin-os';
+import { arch, platform, type } from '@tauri-apps/plugin-os';
 
 export type LicenseStatus = "idle" | "checking" | "active" | "inactive";
 
@@ -29,25 +29,18 @@ interface LicenseActions {
 
 type LicenseStoreType = LicenseState & LicenseActions;
 
-const getDeviceHardwareId = async (): Promise<string> => {
-    try {
-        console.log("[License] Getting hardware ID...");
-        // Await these calls to ensure they return the value, not a promise, 
-        // especially on newer Tauri plugin versions where they might be async.
-        const [a, p, t, v] = await Promise.all([
-            arch(),
-            platform(),
-            type(),
-            version()
-        ]);
-        const id = `${a}-${p}-${t}-${v}`;
-        console.log(`[License] Hardware fingerprint: ${id}`);
-        return id;
-    } catch (e) {
-        console.error("[License] Failed to get hardware ID:", e);
-        return "unknown-hw-id";
-    }
-};
+async function getDeviceHardwareId(): Promise<string> {
+  try {
+    const rawString = `${arch()}-${platform()}-${type()}`;
+    const data = new TextEncoder().encode(rawString);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch (e) {
+    console.error("[License] Failed to get hardware ID:", e);
+    return "unknown-hw-id";
+  }
+}
 
 
 /**
@@ -115,11 +108,8 @@ export const useLicenseStore = create<LicenseStoreType>()((set, get) => {
           }
           const currentHash = await generateIntegrityHash({ key, verifiedAt: lastVerifiedAt ?? null });
           if (storedHash !== currentHash) {
-            console.error("🛑 License integrity check FAILED: hash mismatch!");
-            set({ status: "inactive", isPro: false, licenseKey: null, lastVerifiedAt: null });
-            await store.clear();
-            await store.save();
-            return;
+            console.warn("⚠️ License integrity mismatch (likely OS update). Attempting re-verification...");
+            // We don't clear immediately. We'll let the online/offline logic below decide.
           }
         }
 

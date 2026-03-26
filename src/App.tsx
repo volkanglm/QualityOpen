@@ -100,7 +100,7 @@ const noop = () => { /* intentionally empty */ };
 
 export default function App() {
   const t = useT();
-  const { theme, commandPaletteOpen, activeProjectId, setActiveProject } = useAppStore();
+  const { theme, commandPaletteOpen, activeProjectId, activeView, isDragOver, setActiveProject } = useAppStore();
   const { accessToken, booting, initialized } = useAuthStore();
   const { checkSchedule } = useSyncStore();
   const { projects, createProject } = useProjectStore();
@@ -204,6 +204,10 @@ export default function App() {
     let unlistenLeave: (() => void) | undefined;
 
     const setup = async () => {
+      // If we are in Concept Map, we want native browser D&D to work, 
+      // so we avoid Tauri's global listeners which might intercept events.
+      if (useAppStore.getState().activeView === "conceptMap") return;
+
       try {
         const { setIsDragOver } = useAppStore.getState();
 
@@ -272,11 +276,11 @@ export default function App() {
 
     setup().catch(console.error);
     return () => {
-      unlistenDrop?.();
-      unlistenEnter?.();
-      unlistenLeave?.();
+      if (unlistenDrop) unlistenDrop();
+      if (unlistenEnter) unlistenEnter();
+      if (unlistenLeave) unlistenLeave();
     };
-  }, []);
+  }, [useAppStore((s) => s.activeView)]);
 
   /* Scheduled backup check */
   useEffect(() => {
@@ -302,6 +306,7 @@ export default function App() {
       <div
         className="flex h-screen w-screen flex-col overflow-hidden"
         style={{ background: "var(--bg-primary)" }}
+        onDragOver={(e) => e.preventDefault()}
       >
         {/* ── Splash (covers everything while booting) ── */}
         {booting && <SplashScreen />}
@@ -349,7 +354,7 @@ export default function App() {
 
         {/* Drag over overlay (Tauri v2) */}
         <AnimatePresence>
-          {useAppStore((s) => s.isDragOver) && (
+          {isDragOver && activeView !== "conceptMap" && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

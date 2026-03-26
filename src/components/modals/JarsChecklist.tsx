@@ -42,10 +42,18 @@ export function JarsChecklist({ open, onClose }: Props) {
   const [localProgress, setLocalProgress] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    if (open) {
-      setLocalProgress(jarsProgress || {});
+    if (open && activeProjectId) {
+      const currentJarsProgress = jarsProgress || {};
+      const filtered: Record<string, boolean> = {};
+      Object.entries(currentJarsProgress).forEach(([key, val]) => {
+        if (typeof key === "string" && key.startsWith(`${activeProjectId}_`)) {
+          const id = key.replace(`${activeProjectId}_`, "");
+          filtered[id] = !!val;
+        }
+      });
+      setLocalProgress(filtered);
     }
-  }, [open, jarsProgress]);
+  }, [open, jarsProgress, activeProjectId]);
 
   const toggleItem = (id: string) => {
     const nextState = !localProgress[id];
@@ -156,16 +164,19 @@ export function JarsChecklist({ open, onClose }: Props) {
                           ? "bg-green-500/5 border-green-500/30" 
                           : "bg-[var(--surface)] border-[var(--border-subtle)] hover:border-[var(--accent)]"
                       }`}
-                      onClick={() => toggleItem(item.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleItem(item.id);
+                      }}
                     >
-                      <div className="mt-0.5 flex-shrink-0 pointer-events-none">
+                      <div className="mt-0.5 flex-shrink-0">
                         {isChecked ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-500 transition-transform hover:scale-110" />
+                          <CheckCircle2 className="h-5 w-5 text-green-500 transition-transform" />
                         ) : (
-                          <Circle className="h-5 w-5 text-zinc-400 transition-transform hover:scale-110 hover:text-zinc-300" />
+                          <Circle className="h-5 w-5 text-zinc-400 transition-transform" />
                         )}
                       </div>
-                      <div className="pointer-events-none selection:none">
+                      <div className="select-none">
                         <h3 className={`text-sm font-semibold mb-1 transition-colors ${isChecked ? "text-green-500" : "text-[var(--text-primary)]"}`}>
                           {item.title}
                         </h3>

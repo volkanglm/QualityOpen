@@ -56,6 +56,10 @@
   }
 
   window.onerror = function(msg, src, line, col, err) {
+    if (msg && (msg.indexOf('ResizeObserver') !== -1 || msg.indexOf('Script error') !== -1)) {
+        console.warn('[DIAG] Ignored non-critical error:', msg);
+        return false;
+    }
     showError('[onerror] ' + msg + '\n  at ' + src + ':' + line + ':' + col + '\n  ' + (err && err.stack ? err.stack : 'No stacktrace available'));
     return false;
   };

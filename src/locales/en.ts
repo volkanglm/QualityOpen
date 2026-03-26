@@ -12,6 +12,7 @@ export const en = {
     "nav.hideCodes": "Hide Code System",
     "nav.lightMode": "Light Mode",
     "nav.darkMode": "Dark Mode",
+    "nav.conceptMap": "Visualizer",
 
     // ── Left panel ──────────────────────────────────────────────────────────────
     "left.projects": "Projects",
@@ -169,6 +170,26 @@ export const en = {
     "memos.noMemos": "No memos yet",
     "memos.placeholder": "Memo content…",
     "memos.delete": "Delete",
+
+    // ── Concept Map ──────────────────────────────────────────────────────────────
+    "canvas.untitled": "Untitled Map",
+    "canvas.newIdea": "New Idea",
+    "canvas.edgeLabel": "Relationship Label",
+    "canvas.exportPng": "Export as PNG",
+    "canvas.exportPdf": "Export as PDF",
+    "canvas.assets": "Assets",
+    "canvas.codes": "Codes",
+    "canvas.quotes": "Quotes",
+    "canvas.deleteNode": "Delete Node",
+    "canvas.editLabel": "Edit Label",
+    "canvas.dropToCreate": "Drop to create node",
+    "canvas.sourceLabel": "Source",
+    "canvas.search": "Search...",
+    "canvas.unknownDoc": "Unknown Document",
+    "canvas.memo": "Memo",
+    "canvas.confirmReset": "Are you sure you want to reset the map? This will clear all nodes and edges.",
+    "canvas.addToMap": "Add to Map",
+    "canvas.reset": "Reset Map",
 
     // ── Command Palette ─────────────────────────────────────────────────────────
     "cmd.docGo": "Go to document",
@@ -499,6 +520,7 @@ export const en = {
     "ai.error.invalidFormat": "AI response is not in the expected format.",
     "ocr.error": "OCR processing failed. Please try again.",
     "project.limit.docCount": "Demo version allows a maximum of 3 documents per project. Upgrade to QualityOpen Pro for unlimited use.",
+    "project.limit.mapNodeCount": "In the demo version, you can add at most 5 items to the map. Upgrade to QualityOpen Pro for unlimited usage.",
     "file.limit.size": "Demo version limits file size to 5MB. Please choose a smaller file or upgrade to QualityOpen Pro.",
     "sync.conflictTitle": "Newer data exists remotely",
     "sync.conflictDesc": "The version in Google Drive is newer. What would you like to do?",
