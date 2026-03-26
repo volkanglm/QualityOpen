@@ -4,7 +4,7 @@ import {
   activateLicense as apiActivateLicense,
   deactivateLicense as apiDeactivateLicense
 } from "@/services/lemonSqueezy";
-import { arch, platform, type, version } from '@tauri-apps/plugin-os';
+import { arch, platform, type } from '@tauri-apps/plugin-os';
 
 export type LicenseStatus = "idle" | "checking" | "active" | "inactive";
 
@@ -29,7 +29,7 @@ interface LicenseActions {
 type LicenseStoreType = LicenseState & LicenseActions;
 
 async function getDeviceHardwareId(): Promise<string> {
-  const rawString = `${arch()}-${platform()}-${type()}-${version()}`;
+  const rawString = `${arch()}-${platform()}-${type()}`;
   const data = new TextEncoder().encode(rawString);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
@@ -98,11 +98,8 @@ export const useLicenseStore = create<LicenseStoreType>()((set) => {
           }
           const currentHash = await generateIntegrityHash({ key, verifiedAt: lastVerifiedAt ?? null });
           if (storedHash !== currentHash) {
-            console.error("🛑 License integrity check FAILED: hash mismatch!");
-            set({ status: "inactive", isPro: false, licenseKey: null, lastVerifiedAt: null });
-            await store.clear();
-            await store.save();
-            return;
+            console.warn("⚠️ License integrity mismatch (likely OS update). Attempting re-verification...");
+            // We don't clear immediately. We'll let the online/offline logic below decide.
           }
         }
 
