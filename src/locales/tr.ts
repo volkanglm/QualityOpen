@@ -12,6 +12,7 @@ export const tr = {
     "nav.hideCodes": "Kod Sistemini Gizle",
     "nav.lightMode": "Açık Tema",
     "nav.darkMode": "Koyu Tema",
+    "nav.conceptMap": "Görselleştirici",
 
     // ── Left panel ──────────────────────────────────────────────────────────────
     "left.projects": "Projeler",
@@ -171,6 +172,23 @@ export const tr = {
     "memos.noMemos": "Henüz not yok",
     "memos.placeholder": "Not içeriği…",
     "memos.delete": "Sil",
+
+    // ── Concept Map ──────────────────────────────────────────────────────────────
+    "canvas.untitled": "Adsız Harita",
+    "canvas.newIdea": "Yeni Fikir",
+    "canvas.edgeLabel": "İlişki Etiketi",
+    "canvas.exportPng": "PNG Olarak Dışa Aktar",
+    "canvas.exportPdf": "PDF Olarak Dışa Aktar",
+    "canvas.assets": "Varlıklar",
+    "canvas.codes": "Kodlar",
+    "canvas.quotes": "Alıntılar",
+    "canvas.deleteNode": "Düğümü Sil",
+    "canvas.editLabel": "Etiketi Düzenle",
+    "canvas.dropToCreate": "Düğüm oluşturmak için bırakın",
+    "canvas.sourceLabel": "Kaynak",
+    "canvas.search": "Ara...",
+    "canvas.unknownDoc": "Bilinmeyen Belge",
+    "canvas.memo": "Not",
 
     // ── Command Palette ─────────────────────────────────────────────────────────
     "cmd.docGo": "Belgeye git",

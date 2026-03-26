@@ -46,6 +46,16 @@ export function AutoUpdater() {
                     </span>
                 </div>
 
+                {step === "available" || step === "ready" || step === "error" ? (
+                    <button
+                        onClick={() => setDismissed(true)}
+                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center shadow-lg transition-all hover:scale-110 active:scale-95"
+                        title={t("update.close")}
+                    >
+                        <X className="w-3.5 h-3.5" />
+                    </button>
+                ) : null}
+
                 {step === "downloading" ? (
                     <div className="flex items-center gap-3">
                         <span className="text-white text-xs font-mono">{progress}%</span>
@@ -78,15 +88,6 @@ export function AutoUpdater() {
                         >
                             {step === "ready" ? "Restart" : t("update.now")}
                         </button>
-                        {step === "available" && (
-                            <button
-                                onClick={() => setDismissed(true)}
-                                className="p-1 rounded-full text-zinc-500 hover:text-white hover:bg-white/10 transition-colors"
-                                title={t("update.close")}
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                        )}
                     </div>
                 )}
             </motion.div>

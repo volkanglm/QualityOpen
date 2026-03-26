@@ -12,6 +12,7 @@ export const en = {
     "nav.hideCodes": "Hide Code System",
     "nav.lightMode": "Light Mode",
     "nav.darkMode": "Dark Mode",
+    "nav.conceptMap": "Visualizer",
 
     // ── Left panel ──────────────────────────────────────────────────────────────
     "left.projects": "Projects",
@@ -169,6 +170,23 @@ export const en = {
     "memos.noMemos": "No memos yet",
     "memos.placeholder": "Memo content…",
     "memos.delete": "Delete",
+
+    // ── Concept Map ──────────────────────────────────────────────────────────────
+    "canvas.untitled": "Untitled Map",
+    "canvas.newIdea": "New Idea",
+    "canvas.edgeLabel": "Relationship Label",
+    "canvas.exportPng": "Export as PNG",
+    "canvas.exportPdf": "Export as PDF",
+    "canvas.assets": "Assets",
+    "canvas.codes": "Codes",
+    "canvas.quotes": "Quotes",
+    "canvas.deleteNode": "Delete Node",
+    "canvas.editLabel": "Edit Label",
+    "canvas.dropToCreate": "Drop to create node",
+    "canvas.sourceLabel": "Source",
+    "canvas.search": "Search...",
+    "canvas.unknownDoc": "Unknown Document",
+    "canvas.memo": "Memo",
 
     // ── Command Palette ─────────────────────────────────────────────────────────
     "cmd.docGo": "Go to document",
