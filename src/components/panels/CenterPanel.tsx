@@ -267,7 +267,6 @@ export function CenterPanel() {
     if (!doc || !activeProjectId) return;
     addSegment({
       documentId: doc.id,
-      projectId: activeProjectId,
       start: pos.start,
       end: pos.end,
       text: pos.text,
@@ -292,7 +291,6 @@ export function CenterPanel() {
       // Add as a highlight segment with memo
       addSegment({
         documentId: doc.id,
-        projectId: activeProjectId,
         start: pos.start,
         end: pos.end,
         text: pos.text,
@@ -313,7 +311,6 @@ export function CenterPanel() {
     if (!codePanelSel || !doc || !activeProjectId) return;
     addSegment({
       documentId: doc.id,
-      projectId: activeProjectId,
       start: codePanelSel.start,
       end: codePanelSel.end,
       text: codePanelSel.text,
@@ -360,7 +357,6 @@ export function CenterPanel() {
     if (!ctxMenu || !doc || !activeProjectId) return;
     addSegment({
       documentId: doc.id,
-      projectId: activeProjectId,
       start: ctxMenu.pos.start,
       end: ctxMenu.pos.end,
       text: ctxMenu.pos.text,
@@ -634,7 +630,6 @@ export function CenterPanel() {
             onApply={(code) => {
               addSegments(autoCodeMatches.map(m => ({
                 documentId: doc.id,
-                projectId: activeProjectId,
                 start: m.start,
                 end: m.end,
                 text: m.text,
