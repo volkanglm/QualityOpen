@@ -23,6 +23,13 @@ interface ProjectStore {
   auditLog: AuditLogEntry[];
   jarsProgress: Record<string, boolean>;
   protocolVersions: ProtocolVersion[];
+  conceptMaps: any[];
+
+  // Concept Maps
+  addConceptMap: (projectId: ID, name: string) => any;
+  updateConceptMapNodes: (id: ID, nodes: any[]) => void;
+  updateMapEdges: (id: ID, edges: any[]) => void;
+  deleteConceptMap: (id: ID) => void;
 
   // Reflexivity
   addReflexivityEntry: (projectId: ID, content: string) => ReflexivityEntry;
@@ -133,6 +140,7 @@ export const useProjectStore = create<ProjectStore>()(
         auditLog: [],
         jarsProgress: {},
         protocolVersions: [],
+        conceptMaps: [],
 
         graphSensitivity: 1,
         setGraphSensitivity: (val) => set({ graphSensitivity: val }),
@@ -555,15 +563,59 @@ export const useProjectStore = create<ProjectStore>()(
             memos: payload.memos ?? [],
             syntheses: payload.syntheses ?? [],
           });
-        }
+        },
+
+        addConceptMap: (projectId, name) => {
+          const newMap = {
+            id: uuid(),
+            projectId,
+            name,
+            nodes: [],
+            edges: [],
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+          set((s) => ({ conceptMaps: [...s.conceptMaps, newMap] }));
+          return newMap;
+        },
+        updateConceptMapNodes: (id, nodes) => {
+          set((s) => ({
+            conceptMaps: s.conceptMaps.map((m) =>
+              m.id === id ? { ...m, nodes, updatedAt: Date.now() } : m
+            ),
+          }));
+        },
+        updateMapEdges: (id, edges) => {
+          set((s) => ({
+            conceptMaps: s.conceptMaps.map((m) =>
+              m.id === id ? { ...m, edges, updatedAt: Date.now() } : m
+            ),
+          }));
+        },
+        deleteConceptMap: (id) => {
+          set((s) => ({
+            conceptMaps: s.conceptMaps.filter((m) => m.id !== id),
+          }));
+        },
       }),
       {
         name: "qo-project-data",
         storage: idbStorage,
-        partialize: (state) => {
-          const { history, ...rest } = state;
-          return rest;
-        },
+        partialize: (state) => ({
+          projects: state.projects,
+          documents: state.documents,
+          codes: state.codes,
+          segments: state.segments,
+          memos: state.memos,
+          syntheses: state.syntheses,
+          reflexivityEntries: state.reflexivityEntries,
+          auditLog: state.auditLog,
+          jarsProgress: state.jarsProgress,
+          protocolVersions: state.protocolVersions,
+          conceptMaps: state.conceptMaps,
+          graphSensitivity: state.graphSensitivity,
+          textScale: state.textScale,
+        }),
       }
     )
   )

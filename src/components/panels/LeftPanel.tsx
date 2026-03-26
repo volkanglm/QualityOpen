@@ -18,6 +18,7 @@ import {
   FileUp,
   BookOpen,
   UserCheck,
+  Share2,
 } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { exportMemberCheckHTML } from "@/lib/exportUtils";
@@ -601,6 +602,12 @@ export function LeftPanel() {
           label={t("nav.reflexivity") || "Reflexivity Journal"}
           active={activeView === "reflexivity"}
           onClick={() => setActiveView("reflexivity")}
+        />
+        <NavFooterItem
+          icon={<Share2 className="h-3.5 w-3.5" />}
+          label={t("nav.conceptMap") || "Visualizer"}
+          active={activeView === "conceptMap"}
+          onClick={() => setActiveView("conceptMap")}
         />
         <NavFooterItem
           icon={<BarChart2 className="h-3.5 w-3.5" />}

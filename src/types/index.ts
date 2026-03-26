@@ -127,7 +127,7 @@ export interface AuditLogEntry {
 
 // ─── UI State Types ───────────────────────────────────────────────────────────
 
-export type ViewMode = "documents" | "coding" | "analysis" | "memos" | "settings" | "dashboard" | "reflexivity";
+export type ViewMode = "documents" | "coding" | "analysis" | "memos" | "settings" | "dashboard" | "reflexivity" | "conceptMap";
 
 export type Language = "tr" | "en" | "de" | "es" | "nl" | "fr" | "it" | "pt";
 

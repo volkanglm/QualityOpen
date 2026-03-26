@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Minus, Square, X, Sun, Moon, PanelLeft, PanelRight, Sparkles, ShieldCheck, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -32,7 +32,14 @@ export function TitleBar() {
   const { projects } = useProjectStore();
   const { isPro } = useLicenseStore();
   const activeProject = projects.find((p) => p.id === activeProjectId);
-  const win = getCurrentWindow();
+  
+  // Safe window access for web preview
+  const [win, setWin] = useState<any>(null);
+  useEffect(() => {
+    if (typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__) {
+      setWin(getCurrentWindow());
+    }
+  }, []);
 
   return (
     <div
@@ -192,19 +199,19 @@ export function TitleBar() {
 
         {/* Window buttons */}
         <WinBtn
-          onClick={() => win.minimize()}
+          onClick={() => win?.minimize()}
           hoverClass="hover-surface"
         >
           <Minus className="h-3 w-3" />
         </WinBtn>
         <WinBtn
-          onClick={() => win.toggleMaximize()}
+          onClick={() => win?.toggleMaximize()}
           hoverClass="hover-surface"
         >
           <Square className="h-3 w-3" />
         </WinBtn>
         <WinBtn
-          onClick={() => win.close()}
+          onClick={() => win?.close()}
           hoverClass="hover-danger"
         >
           <X className="h-3 w-3" />
