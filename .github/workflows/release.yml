@@ -7,11 +7,16 @@ on:
     tags:
       - 'v*'
 
+# Top-level permissions for the whole workflow
+permissions:
+  contents: write
+
 jobs:
   release:
     if: startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
+      discussions: write
 
     strategy:
       fail-fast: false
@@ -140,4 +145,3 @@ jobs:
           append_body: true
         env:
           GITHUB_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
-
