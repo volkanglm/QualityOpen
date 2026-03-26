@@ -76,15 +76,13 @@ export function AutoUpdater() {
                         >
                             {step === "ready" ? "Restart" : t("update.now")}
                         </button>
-                        {step === "available" && (
-                            <button
-                                onClick={() => setDismissed(true)}
-                                className="p-1 rounded-full text-zinc-500 hover:text-white hover:bg-white/10 transition-colors"
-                                title={t("update.close")}
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                        )}
+                        <button
+                            onClick={() => setDismissed(true)}
+                            className="p-1 rounded-full text-zinc-500 hover:text-white hover:bg-white/10 transition-colors"
+                            title={t("update.close")}
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
                     </div>
                 )}
             </motion.div>

@@ -38,6 +38,7 @@ import { PdfRenderer } from "@/components/editor/PdfRenderer";
 import { DatabaseView } from "@/components/panels/DatabaseView";
 import { MediaWorkspace } from "@/components/workspace/MediaWorkspace";
 import { ImageWorkspace } from "@/components/workspace/ImageWorkspace";
+import { ConceptMapBoard } from "@/components/ConceptMapBoard";
 import { importFile, getFileCategory, ACCEPTED_EXTENSIONS } from "@/lib/fileImport";
 import { countWords, cn } from "@/lib/utils";
 
@@ -414,6 +415,7 @@ export function CenterPanel() {
   // ─────────────────────────────────────────────────────────────────────────
   if (activeView === "settings") return <SettingsPage />;
   if (activeView === "analysis" || activeView === "dashboard") return <AnalysisPage />;
+  if (activeView === "conceptMap") return <ConceptMapBoard />;
 
   // ─────────────────────────────────────────────────────────────────────────
   // CODE FILTER / RETRIEVAL VIEW
