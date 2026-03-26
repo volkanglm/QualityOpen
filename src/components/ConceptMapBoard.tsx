@@ -310,7 +310,7 @@ function ConceptMapInner() {
       }
     );
 
-    if (confirmed) {
+    if (confirmed === true) {
       resetConceptMap(currentMap.id);
       setNodes([]);
       setEdges([]);
