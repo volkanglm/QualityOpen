@@ -13,7 +13,12 @@
       "identifier": "fs:default",
       "scope": ["**"]
     },
+    "fs:allow-write-file",
+    "fs:allow-read-file",
+    "fs:allow-exists",
     "dialog:default",
+    "dialog:allow-save",
+    "dialog:allow-open",
     "updater:default",
     "core:window:allow-minimize",
     "core:window:allow-toggle-maximize",

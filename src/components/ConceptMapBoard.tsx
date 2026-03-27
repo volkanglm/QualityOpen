@@ -186,6 +186,8 @@ function ConceptMapInner() {
               y: position.y + (Math.random() * 20 - 10),
             },
             data: {
+              content: "",
+              colorIndex: 0,
               ...data,
             },
           };
@@ -261,7 +263,11 @@ function ConceptMapInner() {
             x: position.x + (Math.random() * 20 - 10),
             y: position.y + (Math.random() * 20 - 10),
           },
-          data: { ...data },
+          data: { 
+            content: "",
+            colorIndex: 0,
+            ...data 
+          },
         };
         setNodes((nds) => nds.concat(newNode));
         import("@/store/toast.store").then(m => m.useToastStore.getState().push(`${nodeType.toUpperCase()} added`, "info"));
@@ -288,11 +294,14 @@ function ConceptMapInner() {
 
     const id = uuid();
     const offset = Math.floor(Math.random() * 60) - 30;
+    const colorIndex = Math.floor(Math.random() * 5); // Random color to start
     const newNode = {
       id,
       position: { x: window.innerWidth / 4 + offset, y: window.innerHeight / 4 + offset },
       data: { 
-        label: "",
+        label: t("canvas.newIdea"),
+        content: "",
+        colorIndex,
       },
       type: "memo",
     };

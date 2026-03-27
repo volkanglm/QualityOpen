@@ -44,6 +44,12 @@ export function LabeledEdgeComponent({
     );
   };
 
+  const onThicknessChange = (width: number) => {
+    setEdges((eds) =>
+      eds.map((e) => (e.id === id ? { ...e, style: { ...e.style, strokeWidth: width }, data: { ...e.data, strokeWidth: width } } : e))
+    );
+  };
+
   const onDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     setEdges((eds) => eds.filter((edge) => edge.id !== id));
@@ -51,7 +57,14 @@ export function LabeledEdgeComponent({
 
   return (
     <>
-      <BaseEdge path={edgePath} markerEnd={markerEnd} style={style} />
+      <BaseEdge 
+        path={edgePath} 
+        markerEnd={markerEnd} 
+        style={{ 
+          ...style, 
+          strokeWidth: (data?.strokeWidth as number) || 1 
+        }} 
+      />
       <EdgeLabelRenderer>
         <div
           style={{
@@ -69,7 +82,7 @@ export function LabeledEdgeComponent({
           )}
 
           {selected && (
-            <div className="flex flex-col items-center gap-1.5 p-1.5 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl scale-90 origin-top">
+            <div className="flex flex-col items-center gap-1.5 p-1.5 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl scale-90 origin-top z-[1001]">
               <div className="flex items-center gap-1">
                 {EDGE_COLORS.map((c) => (
                   <button
@@ -85,6 +98,10 @@ export function LabeledEdgeComponent({
                  <button onClick={() => onStyleChange("")} className="w-4 h-1 bg-zinc-400 rounded-full" title="Solid" />
                  <button onClick={() => onStyleChange("4 4")} className="w-4 h-1 border-b border-dashed border-zinc-400" title="Dashed" />
                  <button onClick={() => onStyleChange("1 2")} className="w-4 h-1 border-b border-dotted border-zinc-400" title="Dotted" />
+                 <div className="w-px h-3 bg-zinc-700 mx-1" />
+                 <button onClick={() => onThicknessChange(1)} className="text-[9px] text-zinc-400 hover:text-white" title="Thin">1x</button>
+                 <button onClick={() => onThicknessChange(2)} className="text-[9px] text-zinc-400 hover:text-white font-bold" title="Medium">2x</button>
+                 <button onClick={() => onThicknessChange(4)} className="text-[9px] text-zinc-400 hover:text-white font-black" title="Thick">4x</button>
                  <div className="w-px h-3 bg-zinc-700 mx-1" />
                  <button 
                   onClick={onDelete}

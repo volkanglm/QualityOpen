@@ -30,21 +30,25 @@ export const CodeNodeComponent = memo(({ id, data, selected }: NodeProps<CodeNod
   return (
     <div
       className={cn(
-        "flex h-full w-full items-center gap-2 rounded-full border px-4 py-2 shadow-md transition-all group relative min-h-[38px] min-w-[120px] bg-white dark:bg-zinc-900",
-        selected ? "border-[var(--accent)] ring-1 ring-[var(--accent)]" : "border-zinc-200 dark:border-zinc-800"
+        "flex h-full w-full items-center gap-2 rounded-full border px-4 py-2 shadow-sm transition-all group relative min-h-[40px] min-w-[140px]",
+        selected ? "ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-background" : ""
       )}
-      style={{ borderLeftWidth: '6px', borderLeftColor: data.color || "var(--accent)" }}
+      style={{ 
+        backgroundColor: data.color ? `${data.color}15` : 'var(--bg-secondary)', 
+        borderColor: data.color || "var(--border)",
+        borderWidth: '2px'
+      }}
     >
       <NodeResizer
         minWidth={120}
-        minHeight={38}
+        minHeight={40}
         isVisible={selected}
         lineClassName="border-[var(--accent)]"
         handleClassName="!h-2 !w-2 !bg-[var(--accent)] !rounded-full"
       />
       
       <div className="flex items-center gap-2 overflow-hidden flex-1">
-        <Hash size={12} className="text-zinc-500 flex-shrink-0" />
+        <Hash size={12} style={{ color: data.color }} className="flex-shrink-0" />
         <span className="text-[13px] font-bold text-foreground truncate">
           {data.label}
         </span>
@@ -56,7 +60,7 @@ export const CodeNodeComponent = memo(({ id, data, selected }: NodeProps<CodeNod
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
         <button
           onClick={() => setShowPalette(!showPalette)}
-          className="rounded-full p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600 transition-colors"
+          className="rounded-full p-1 hover:bg-black/10 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-600 transition-colors"
         >
           <Palette className="h-3 w-3" />
         </button>
@@ -69,7 +73,7 @@ export const CodeNodeComponent = memo(({ id, data, selected }: NodeProps<CodeNod
       </div>
 
       {showPalette && (
-        <div className="absolute top-full mt-2 left-0 z-[100] flex flex-wrap gap-1 w-[120px] rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-2 shadow-xl">
+        <div className="absolute top-full mt-2 left-0 z-[1001] flex flex-wrap gap-1 w-[120px] rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-2 shadow-xl">
           {CODE_COLORS.map((c) => (
             <button
               key={c}
@@ -81,17 +85,24 @@ export const CodeNodeComponent = memo(({ id, data, selected }: NodeProps<CodeNod
         </div>
       )}
 
-      {/* 4-Way Universal Handles */}
+      {/* 4-Way Universal Handles — Both Source and Target at each position */}
       <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-zinc-400 !border-white/20" />
-      <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-zinc-400 !border-white/20" />
-      <Handle type="source" position={Position.Left} className="!w-2 !h-2 !bg-zinc-400 !border-white/20" />
-      <Handle type="target" position={Position.Right} className="!w-2 !h-2 !bg-zinc-400 !border-white/20" />
+      <Handle type="source" position={Position.Top} className="!w-2 !h-2 !bg-zinc-400 !border-white/20 !opacity-0" />
       
-      {/* Invisible complementary handles for flexibility */}
-      <Handle type="source" position={Position.Top} className="!opacity-0" />
-      <Handle type="target" position={Position.Bottom} className="!opacity-0" />
-      <Handle type="target" position={Position.Left} className="!opacity-0" />
-      <Handle type="source" position={Position.Right} className="!opacity-0" />
+      <Handle type="target" position={Position.Bottom} className="!w-2 !h-2 !bg-zinc-400 !border-white/20" />
+      <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-zinc-400 !border-white/20 !opacity-0" />
+      
+      <Handle type="target" position={Position.Left} className="!w-2 !h-2 !bg-zinc-400 !border-white/20" />
+      <Handle type="source" position={Position.Left} className="!w-2 !h-2 !bg-zinc-400 !border-white/20 !opacity-0" />
+      
+      <Handle type="target" position={Position.Right} className="!w-2 !h-2 !bg-zinc-400 !border-white/20" />
+      <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-zinc-400 !border-white/20 !opacity-0" />
+
+      {/* Actual functional source handles on top of targets */}
+      <Handle type="source" position={Position.Top} style={{ background: 'transparent', border: 'none' }} />
+      <Handle type="source" position={Position.Bottom} style={{ background: 'transparent', border: 'none' }} />
+      <Handle type="source" position={Position.Left} style={{ background: 'transparent', border: 'none' }} />
+      <Handle type="source" position={Position.Right} style={{ background: 'transparent', border: 'none' }} />
     </div>
   );
 });

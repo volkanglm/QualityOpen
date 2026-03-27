@@ -35,8 +35,8 @@ export const QuoteNodeComponent = memo(({ id, data, selected }: NodeProps<QuoteN
   return (
     <div
       className={cn(
-        "flex h-full w-full flex-col gap-2 rounded-lg border bg-zinc-50 dark:bg-zinc-900 px-4 py-3 shadow-md transition-all group relative min-h-[100px] min-w-[200px]",
-        selected ? "border-[var(--accent)] ring-1 ring-[var(--accent)]" : "border-zinc-200 dark:border-zinc-800"
+        "flex h-full w-full flex-col gap-2 rounded-xl border bg-[var(--bg-secondary)] px-4 py-3 shadow-lg transition-all group relative min-h-[120px] min-w-[220px]",
+        selected ? "border-[var(--accent)] ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-background" : "border-[var(--border)]"
       )}
     >
       <NodeResizer
@@ -75,14 +75,16 @@ export const QuoteNodeComponent = memo(({ id, data, selected }: NodeProps<QuoteN
 
       {/* 4-Way Universal Handles */}
       <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-zinc-400 !border-white/20" />
-      <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-zinc-400 !border-white/20" />
-      <Handle type="source" position={Position.Left} className="!w-2 !h-2 !bg-zinc-400 !border-white/20" />
+      <Handle type="source" position={Position.Top} style={{ background: 'transparent', border: 'none' }} />
+
+      <Handle type="target" position={Position.Bottom} className="!w-2 !h-2 !bg-zinc-400 !border-white/20" />
+      <Handle type="source" position={Position.Bottom} style={{ background: 'transparent', border: 'none' }} />
+
+      <Handle type="target" position={Position.Left} className="!w-2 !h-2 !bg-zinc-400 !border-white/20" />
+      <Handle type="source" position={Position.Left} style={{ background: 'transparent', border: 'none' }} />
+
       <Handle type="target" position={Position.Right} className="!w-2 !h-2 !bg-zinc-400 !border-white/20" />
-      
-      <Handle type="source" position={Position.Top} className="!opacity-0" />
-      <Handle type="target" position={Position.Bottom} className="!opacity-0" />
-      <Handle type="target" position={Position.Left} className="!opacity-0" />
-      <Handle type="source" position={Position.Right} className="!opacity-0" />
+      <Handle type="source" position={Position.Right} style={{ background: 'transparent', border: 'none' }} />
     </div>
   );
 });

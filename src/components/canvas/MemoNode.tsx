@@ -21,40 +21,57 @@ export const MemoNodeComponent = memo(({ id, data, selected }: NodeProps) => {
     setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, colorIndex } } : n));
   };
 
+  const onTextChange = (content: string) => {
+    setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, content } } : n));
+  };
+
+  const onTitleChange = (label: string) => {
+    setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, label } } : n));
+  };
+
   const scheme = MEMO_COLORS[data.colorIndex as number ?? 0];
+  const title = String(memoObj?.title || data.label || "Memo");
+  const content = String(memoObj?.content || data.content || "");
 
   return (
     <div className={cn(
-        "group relative min-w-[200px] min-h-[120px] border-2 rounded-lg shadow-sm flex flex-col p-3 text-sm text-foreground",
+        "group relative min-w-[200px] min-h-[140px] border-2 rounded-lg shadow-sm flex flex-col p-3 text-sm text-foreground transition-all duration-300",
         scheme.bg,
-        scheme.border
+        scheme.border,
+        selected && "ring-2 ring-accent ring-offset-2 ring-offset-background"
     )}>
        <NodeResizer 
         color="#eab308" 
         isVisible={!!selected} 
         minWidth={150} 
-        minHeight={100} 
+        minHeight={120} 
       />
       
-      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/10">
+      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-black/10 dark:border-white/10">
         <StickyNote size={14} className="opacity-70" />
-        <span className="font-semibold truncate">
-          {String(memoObj?.title || data.label || "Memo")}
-        </span>
+        <input 
+          className="bg-transparent border-none outline-none font-semibold truncate w-full p-0 h-auto focus:ring-0"
+          value={title}
+          onChange={(e) => onTitleChange(e.target.value)}
+          placeholder="Memo Title"
+        />
       </div>
 
-      <div className="flex-1 overflow-auto opacity-80 whitespace-pre-wrap line-clamp-4">
-        {memoObj?.content || "No content"}
-      </div>
+      <textarea 
+        className="flex-1 bg-transparent border-none outline-none resize-none opacity-90 text-[13px] leading-relaxed p-0 h-auto focus:ring-0 scrollbar-thin overflow-y-auto"
+        value={content}
+        onChange={(e) => onTextChange(e.target.value)}
+        placeholder="Type something..."
+      />
 
       {selected && (
-        <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 p-1.5 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-50">
+        <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-1.5 p-1.5 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-[1001]">
             {MEMO_COLORS.map((c, i) => (
                 <button
                     key={i}
                     onClick={() => onColorChange(i)}
                     className={cn(
-                        "w-4 h-4 rounded-full border border-white/10 hover:scale-110 transition-transform",
+                        "w-4 h-4 rounded-full border border-white/20 hover:scale-125 transition-transform",
                         c.bg
                     )}
                 />
@@ -64,13 +81,16 @@ export const MemoNodeComponent = memo(({ id, data, selected }: NodeProps) => {
 
       {/* 4-Way Universal Handles */}
       <Handle type="target" position={Position.Top} className={cn("!w-2.5 !h-2.5 !border-white/20", scheme.dot)} />
-      <Handle type="source" position={Position.Bottom} className={cn("!w-2.5 !h-2.5 !border-white/20", scheme.dot)} />
-      <Handle type="source" position={Position.Left} className={cn("!w-2.5 !h-2.5 !border-white/20", scheme.dot)} />
-      <Handle type="source" position={Position.Right} className={cn("!w-2.5 !h-2.5 !border-white/20", scheme.dot)} />
-      
-      <Handle type="target" position={Position.Bottom} className="!opacity-0" />
-      <Handle type="target" position={Position.Left} className="!opacity-0" />
-      <Handle type="target" position={Position.Right} className="!opacity-0" />
+      <Handle type="source" position={Position.Top} style={{ background: 'transparent', border: 'none' }} />
+
+      <Handle type="target" position={Position.Bottom} className={cn("!w-2.5 !h-2.5 !border-white/20", scheme.dot)} />
+      <Handle type="source" position={Position.Bottom} style={{ background: 'transparent', border: 'none' }} />
+
+      <Handle type="target" position={Position.Left} className={cn("!w-2.5 !h-2.5 !border-white/20", scheme.dot)} />
+      <Handle type="source" position={Position.Left} style={{ background: 'transparent', border: 'none' }} />
+
+      <Handle type="target" position={Position.Right} className={cn("!w-2.5 !h-2.5 !border-white/20", scheme.dot)} />
+      <Handle type="source" position={Position.Right} style={{ background: 'transparent', border: 'none' }} />
     </div>
   );
 });
