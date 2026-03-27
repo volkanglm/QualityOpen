@@ -11,6 +11,7 @@ import {
   ReactFlowProvider,
   BackgroundVariant,
   useReactFlow,
+  ConnectionMode,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import html2canvas from "html2canvas";
@@ -473,6 +474,7 @@ function ConceptMapInner() {
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             proOptions={{ hideAttribution: true }}
+            connectionMode={ConnectionMode.Loose}
             colorMode={theme as any}
             fitView
           >

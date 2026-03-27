@@ -79,18 +79,11 @@ export const MemoNodeComponent = memo(({ id, data, selected }: NodeProps) => {
         </div>
       )}
 
-      {/* 4-Way Universal Handles */}
-      <Handle type="target" position={Position.Top} className={cn("!w-2.5 !h-2.5 !border-white/20", scheme.dot)} />
-      <Handle type="source" position={Position.Top} style={{ background: 'transparent', border: 'none' }} />
-
-      <Handle type="target" position={Position.Bottom} className={cn("!w-2.5 !h-2.5 !border-white/20", scheme.dot)} />
-      <Handle type="source" position={Position.Bottom} style={{ background: 'transparent', border: 'none' }} />
-
-      <Handle type="target" position={Position.Left} className={cn("!w-2.5 !h-2.5 !border-white/20", scheme.dot)} />
-      <Handle type="source" position={Position.Left} style={{ background: 'transparent', border: 'none' }} />
-
-      <Handle type="target" position={Position.Right} className={cn("!w-2.5 !h-2.5 !border-white/20", scheme.dot)} />
-      <Handle type="source" position={Position.Right} style={{ background: 'transparent', border: 'none' }} />
+      {/* 4-Way Universal Handles — Loose Mode enabled in Board */}
+      <Handle type="source" position={Position.Top} className={cn("!w-3 !h-3 !border-white/20", scheme.dot)} />
+      <Handle type="source" position={Position.Bottom} className={cn("!w-3 !h-3 !border-white/20", scheme.dot)} />
+      <Handle type="source" position={Position.Left} className={cn("!w-3 !h-3 !border-white/20", scheme.dot)} />
+      <Handle type="source" position={Position.Right} className={cn("!w-3 !h-3 !border-white/20", scheme.dot)} />
     </div>
   );
 });

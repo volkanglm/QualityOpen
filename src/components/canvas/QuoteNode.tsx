@@ -73,18 +73,11 @@ export const QuoteNodeComponent = memo(({ id, data, selected }: NodeProps<QuoteN
          </button>
       </div>
 
-      {/* 4-Way Universal Handles */}
-      <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-zinc-400 !border-white/20" />
-      <Handle type="source" position={Position.Top} style={{ background: 'transparent', border: 'none' }} />
-
-      <Handle type="target" position={Position.Bottom} className="!w-2 !h-2 !bg-zinc-400 !border-white/20" />
-      <Handle type="source" position={Position.Bottom} style={{ background: 'transparent', border: 'none' }} />
-
-      <Handle type="target" position={Position.Left} className="!w-2 !h-2 !bg-zinc-400 !border-white/20" />
-      <Handle type="source" position={Position.Left} style={{ background: 'transparent', border: 'none' }} />
-
-      <Handle type="target" position={Position.Right} className="!w-2 !h-2 !bg-zinc-400 !border-white/20" />
-      <Handle type="source" position={Position.Right} style={{ background: 'transparent', border: 'none' }} />
+      {/* 4-Way Universal Handles — Loose Mode enabled in Board */}
+      <Handle type="source" position={Position.Top} className="!w-2.5 !h-2.5 !bg-zinc-400 !border-white/20" />
+      <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-zinc-400 !border-white/20" />
+      <Handle type="source" position={Position.Left} className="!w-2.5 !h-2.5 !bg-zinc-400 !border-white/20" />
+      <Handle type="source" position={Position.Right} className="!w-2.5 !h-2.5 !bg-zinc-400 !border-white/20" />
     </div>
   );
 });
