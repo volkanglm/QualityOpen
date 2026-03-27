@@ -88,17 +88,17 @@ export const useLicenseStore = create<LicenseStoreType>()((set, get) => {
         // 2. Migration Logic (one-time move from qo_license.bin to Keychain)
         if (!key) {
            try {
-             const store = await load("qo_license.bin", { autoSave: false });
+             const store = await load("qo_license.bin");
              const oldKey = await store.get<string>("licenseKey");
              if (oldKey) {
                 console.log("[License] Migrating old license from file to Keychain...");
-                key = oldKey;
-                instanceId = await store.get<string>("instanceId");
-                lastVerifiedAt = await store.get<number>("lastVerifiedAt");
+                key = oldKey ?? null;
+                instanceId = (await store.get<string>("instanceId")) ?? null;
+                lastVerifiedAt = (await store.get<number>("lastVerifiedAt")) ?? null;
                 
                 if (key) await kwSet("license_key", key);
                 if (instanceId) await kwSet("instance_id", instanceId);
-                if (lastVerifiedAt) await kwSet("last_verified_at", lastVerifiedAt.toString());
+                if (lastVerifiedAt !== null) await kwSet("last_verified_at", lastVerifiedAt.toString());
                 
                 // Clear old store to avoid redundant migration
                 await store.clear();
