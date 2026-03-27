@@ -65,7 +65,7 @@ export const MemoNodeComponent = memo(({ id, data, selected }: NodeProps) => {
       />
 
       {selected && (
-        <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-1.5 p-1.5 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-[1001]">
+        <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-1.5 p-1.5 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-[var(--float-shadow)] z-[1001]">
             {MEMO_COLORS.map((c, i) => (
                 <button
                     key={i}

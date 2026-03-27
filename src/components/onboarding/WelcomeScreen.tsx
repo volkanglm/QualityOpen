@@ -78,7 +78,7 @@ export function WelcomeScreen({ onNewProject, onOpenProject }: WelcomeScreenProp
                             onClick={() => setCommandPaletteOpen(true)}
                         >
                             <BookOpen className="mr-2 h-4 w-4" />
-                            {t('welcome.openProject')}
+                            {t('welcome.browseProjects')}
                         </Button>
                     )}
                 </div>

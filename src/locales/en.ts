@@ -357,8 +357,9 @@ export const en = {
     "settings.exportError": "Failed to save backup.",
     "settings.restoreBackup": "Restore from Backup",
     "settings.restoreDesc": "Restore your projects from a JSON backup file. This will overwrite all current data.",
-    "settings.restoreConfirm": "Restoring from a backup will overwrite all your current projects and data. This action cannot be undone. Are you sure?",
     "settings.restoreSuccess": "Backup restored successfully.",
+    "settings.restoreError": "An error occurred during restore.",
+    "settings.restoreConfirm": "Restoring from a backup will overwrite all your current projects and data. This action cannot be undone. Are you sure?",
     "settings.aboutDesc": "Modern, minimalist QDA tool for researchers.",
 
     "app.renderError": "QualityOpen — Render Error",
@@ -474,6 +475,7 @@ export const en = {
     "welcome.subtitle": "Modern and secure workspace for qualitative data analysis.",
     "welcome.newProject": "New Project",
     "welcome.openProject": "Open Project",
+    "welcome.browseProjects": "Browse Projects",
     "welcome.hint": "Use Cmd+K or Ctrl+K for command palette",
     "welcome.startReading": "Start Reading",
     "welcome.selectDoc": "Select a document from the left panel or upload a new file.",

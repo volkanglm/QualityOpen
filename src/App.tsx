@@ -96,14 +96,48 @@ function SplashScreen() {
 // ─── Main App ─────────────────────────────────────────────────────────────────
 
 // Shared no-op for unimplemented optional callbacks
-const noop = () => { /* intentionally empty */ };
 
 export default function App() {
   const t = useT();
   const { theme, commandPaletteOpen, activeProjectId, activeView, isDragOver, setActiveProject } = useAppStore();
   const { accessToken, booting, initialized } = useAuthStore();
   const { checkSchedule } = useSyncStore();
-  const { projects, createProject } = useProjectStore();
+  const { projects, createProject, importBackup } = useProjectStore();
+
+  const handleOpenProjectFile = async () => {
+    try {
+      const { open } = await import("@tauri-apps/plugin-dialog");
+      const { readTextFile } = await import("@tauri-apps/plugin-fs");
+      const { useToastStore } = await import("@/store/toast.store");
+
+      const selected = await open({
+        multiple: false,
+        filters: [{ name: "Project Backup", extensions: ["json", "qo"] }],
+        title: t("settings.restoreBackup"),
+      });
+
+      if (!selected || typeof selected !== "string") return;
+
+      const content = await readTextFile(selected);
+      const data = JSON.parse(content);
+
+      if (!data.projects || !Array.isArray(data.projects)) {
+        throw new Error("Invalid project file");
+      }
+
+      importBackup(data);
+      useToastStore.getState().push(t("settings.restoreSuccess"), "success");
+
+      // If there's at least one project, activate the first one
+      if (data.projects.length > 0) {
+        setActiveProject(data.projects[0].id);
+      }
+    } catch (err) {
+      console.error("Failed to open project file:", err);
+      const { useToastStore } = await import("@/store/toast.store");
+      useToastStore.getState().push(t("settings.restoreError") || "Failed to import project", "error");
+    }
+  };
 
   /* Sync theme token to <html> */
   useEffect(() => {
@@ -333,7 +367,7 @@ export default function App() {
                       const p = createProject(name);
                       setActiveProject(p.id);
                     }}
-                    onOpenProject={noop}
+                    onOpenProject={handleOpenProjectFile}
                   />
                 ) : (
                   <motion.div

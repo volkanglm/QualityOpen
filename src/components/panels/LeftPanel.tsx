@@ -317,9 +317,9 @@ export function LeftPanel() {
                       style={{
                         left: contextMenuPos.x,
                         top: contextMenuPos.y,
-                        background: "#1c1c1e",
-                        borderColor: "#333",
-                        boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
+                        background: "var(--bg-secondary)",
+                        borderColor: "var(--border)",
+                        boxShadow: "var(--float-shadow)",
                       }}
                     >
                       <ContextItem
@@ -332,7 +332,7 @@ export function LeftPanel() {
                           setContextMenuPos(null);
                         }}
                       />
-                      <div className="h-px my-1" style={{ background: "#333" }} />
+                      <div className="h-px my-1" style={{ background: "var(--border-subtle)" }} />
                       <ContextItem
                         icon={<Trash2 className="h-3 w-3" />}
                         label={t('left.deleteProject')}
@@ -451,9 +451,9 @@ export function LeftPanel() {
                                       style={{
                                         left: contextMenuPos.x,
                                         top: contextMenuPos.y,
-                                        background: "#1c1c1e",
-                                        borderColor: "#333",
-                                        boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
+                                        background: "var(--bg-secondary)",
+                                        borderColor: "var(--border)",
+                                        boxShadow: "var(--float-shadow)",
                                       }}
                                     >
                                       <ContextItem
@@ -498,7 +498,7 @@ export function LeftPanel() {
                                           setContextMenuPos(null);
                                         }}
                                       />
-                                      <div className="h-px my-1" style={{ background: "#333" }} />
+                                      <div className="h-px my-1" style={{ background: "var(--border-subtle)" }} />
                                       <ContextItem
                                         icon={<Palette className="h-3 w-3" />}
                                         label={t('left.assignColor')}
@@ -508,7 +508,7 @@ export function LeftPanel() {
                                           setContextMenuPos(null);
                                         }}
                                       />
-                                      <div className="h-px my-1" style={{ background: "#333" }} />
+                                      <div className="h-px my-1" style={{ background: "var(--border-subtle)" }} />
                                       <ContextItem
                                         icon={<Trash2 className="h-3 w-3" />}
                                         label={t('left.deleteDocument')}
@@ -946,21 +946,21 @@ function DocumentInfoModal({ docId, onClose }: { docId: string | null; onClose: 
     <Modal open={!!docId} onClose={onClose} title={t("left.docInfo")}>
       <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
         <div className="grid grid-cols-2 gap-4">
-          <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800">
+          <div className="p-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border)]">
             <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-1">{t("right.docName")}</p>
-            <p className="text-xs font-medium text-white truncate">{doc.name}</p>
+            <p className="text-xs font-medium text-[var(--text-primary)] truncate">{doc.name}</p>
           </div>
-          <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800">
+          <div className="p-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border)]">
             <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-1">{t("right.type")}</p>
-            <p className="text-xs font-medium text-white capitalize">{t(`left.type.${doc.type}`)}</p>
+            <p className="text-xs font-medium text-[var(--text-primary)] capitalize">{t(`left.type.${doc.type}`)}</p>
           </div>
-          <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800">
+          <div className="p-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border)]">
             <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-1">{t("right.wordCount")}</p>
-            <p className="text-xs font-medium text-white">{doc.wordCount || 0}</p>
+            <p className="text-xs font-medium text-[var(--text-primary)]">{doc.wordCount || 0}</p>
           </div>
-          <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800">
+          <div className="p-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border)]">
             <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-1">{t("right.createdAt")}</p>
-            <p className="text-xs font-medium text-white">{new Date(doc.createdAt).toLocaleDateString()}</p>
+            <p className="text-xs font-medium text-[var(--text-primary)]">{new Date(doc.createdAt).toLocaleDateString()}</p>
           </div>
         </div>
 
@@ -975,15 +975,15 @@ function DocumentInfoModal({ docId, onClose }: { docId: string | null; onClose: 
           
           <div className="space-y-2">
             {Object.entries(doc.properties || {}).length === 0 ? (
-              <p className="text-[11px] text-zinc-600 italic py-4 text-center bg-zinc-900/30 rounded-xl border border-dashed border-zinc-800">
+              <p className="text-[11px] text-[var(--text-disabled)] italic py-4 text-center bg-[var(--bg-tertiary)] rounded-xl border border-dashed border-[var(--border)]">
                 {t("analysis.noVariables")}
               </p>
             ) : (
               Object.entries(doc.properties || {}).map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 group">
+                <div key={key} className="flex items-center justify-between p-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border)] group">
                   <div>
-                    <span className="text-[10px] font-bold text-blue-400 uppercase tracking-tight mr-2">{key}:</span>
-                    <span className="text-xs text-white">{value}</span>
+                    <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-tight mr-2">{key}:</span>
+                    <span className="text-xs text-[var(--text-primary)]">{value}</span>
                   </div>
                   <button 
                     onClick={() => removeProperty(key)}
@@ -997,7 +997,7 @@ function DocumentInfoModal({ docId, onClose }: { docId: string | null; onClose: 
           </div>
         </div>
       </div>
-      <div className="flex justify-end mt-6 pt-4 border-t border-zinc-800">
+      <div className="flex justify-end mt-6 pt-4 border-t border-[var(--border-subtle)]">
         <Button variant="primary" onClick={onClose}>{t("common.close")}</Button>
       </div>
     </Modal>

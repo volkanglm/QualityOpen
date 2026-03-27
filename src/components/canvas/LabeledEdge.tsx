@@ -82,30 +82,30 @@ export function LabeledEdgeComponent({
           )}
 
           {selected && (
-            <div className="flex flex-col items-center gap-1.5 p-1.5 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl scale-90 origin-top z-[1001]">
+            <div className="flex flex-col items-center gap-1.5 p-1.5 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-[var(--float-shadow)] scale-90 origin-top z-[1001]">
               <div className="flex items-center gap-1">
                 {EDGE_COLORS.map((c) => (
                   <button
                     key={c}
                     onClick={() => onColorChange(c)}
-                    className="w-3.5 h-3.5 rounded-full border border-white/10 hover:scale-110 transition-transform"
+                    className="w-3.5 h-3.5 rounded-full border border-[var(--border-subtle)] hover:scale-110 transition-transform"
                     style={{ backgroundColor: c }}
                   />
                 ))}
               </div>
               
-              <div className="flex items-center gap-2 border-t border-zinc-700/50 pt-1.5 w-full justify-center">
-                 <button onClick={() => onStyleChange("")} className="w-4 h-1 bg-zinc-400 rounded-full" title="Solid" />
-                 <button onClick={() => onStyleChange("4 4")} className="w-4 h-1 border-b border-dashed border-zinc-400" title="Dashed" />
-                 <button onClick={() => onStyleChange("1 2")} className="w-4 h-1 border-b border-dotted border-zinc-400" title="Dotted" />
-                 <div className="w-px h-3 bg-zinc-700 mx-1" />
-                 <button onClick={() => onThicknessChange(1)} className="text-[9px] text-zinc-400 hover:text-white" title="Thin">1x</button>
-                 <button onClick={() => onThicknessChange(2)} className="text-[9px] text-zinc-400 hover:text-white font-bold" title="Medium">2x</button>
-                 <button onClick={() => onThicknessChange(4)} className="text-[9px] text-zinc-400 hover:text-white font-black" title="Thick">4x</button>
-                 <div className="w-px h-3 bg-zinc-700 mx-1" />
+              <div className="flex items-center gap-2 border-t border-[var(--border-subtle)] pt-1.5 w-full justify-center">
+                 <button onClick={() => onStyleChange("")} className="w-4 h-1 bg-[var(--text-muted)] rounded-full" title="Solid" />
+                 <button onClick={() => onStyleChange("4 4")} className="w-4 h-1 border-b border-dashed border-[var(--text-muted)]" title="Dashed" />
+                 <button onClick={() => onStyleChange("1 2")} className="w-4 h-1 border-b border-dotted border-[var(--text-muted)]" title="Dotted" />
+                 <div className="w-px h-3 bg-[var(--border)] mx-1" />
+                 <button onClick={() => onThicknessChange(1)} className="text-[9px] text-[var(--text-muted)] hover:text-[var(--text-primary)]" title="Thin">1x</button>
+                 <button onClick={() => onThicknessChange(2)} className="text-[9px] text-[var(--text-muted)] hover:text-[var(--text-primary)] font-bold" title="Medium">2x</button>
+                 <button onClick={() => onThicknessChange(4)} className="text-[9px] text-[var(--text-muted)] hover:text-[var(--text-primary)] font-black" title="Thick">4x</button>
+                 <div className="w-px h-3 bg-[var(--border)] mx-1" />
                  <button 
                   onClick={onDelete}
-                  className="p-1 hover:bg-red-500/20 hover:text-red-400 rounded transition-colors text-zinc-500"
+                  className="p-1 hover:bg-red-500/20 hover:text-red-400 rounded transition-colors text-[var(--text-muted)]"
                 >
                   <X className="w-3 h-3" />
                 </button>

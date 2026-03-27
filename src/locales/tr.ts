@@ -359,8 +359,9 @@ export const tr = {
     "settings.exportError": "Yedek kaydedilirken hata oluştu.",
     "settings.restoreBackup": "Yedekten Geri Yükle",
     "settings.restoreDesc": "Projelerinizi bir JSON yedek dosyasından geri yükleyin. Bu işlem tüm mevcut verilerin üzerine yazacaktır.",
-    "settings.restoreConfirm": "Yedek dosyasından geri yükleme yapmak tüm mevcut projelerinizin ve verilerinizin üzerine yazacaktır. Bu işlem geri alınamaz. Emin misiniz?",
     "settings.restoreSuccess": "Yedek başarıyla geri yüklendi.",
+    "settings.restoreError": "Yedek geri yüklenirken hata oluştu.",
+    "settings.restoreConfirm": "Yedek dosyasından geri yükleme yapmak tüm mevcut projelerinizin ve verilerinizin üzerine yazacaktır. Bu işlem geri alınamaz. Emin misiniz?",
     "settings.aboutDesc": "Araştırmacılar ve akademisyenler için modern, minimalist nitel veri analiz aracı.",
 
     "app.renderError": "QualityOpen — Render Hatası",

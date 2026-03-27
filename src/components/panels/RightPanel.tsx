@@ -1215,17 +1215,17 @@ function EmptyCodeState() {
       animate={{ opacity: 1, y: 0 }}
       className="flex flex-col items-center text-center max-w-[240px] px-4"
     >
-      <div className="w-12 h-12 rounded-xl bg-zinc-900 flex items-center justify-center mb-6 border border-white/5">
-        <Tag className="h-6 w-6 text-zinc-500" />
+      <div className="w-12 h-12 rounded-xl bg-[var(--bg-tertiary)] flex items-center justify-center mb-6 border border-[var(--border)]">
+        <Tag className="h-6 w-6 text-[var(--text-disabled)]" />
       </div>
-      <h4 className="text-sm font-medium text-white mb-2">{t('welcome.firstCode')}</h4>
-      <p className="text-xs text-zinc-500 mb-6 leading-relaxed">
+      <h4 className="text-sm font-medium text-[var(--text-primary)] mb-2">{t('welcome.firstCode')}</h4>
+      <p className="text-xs text-[var(--text-disabled)] mb-6 leading-relaxed">
         {t('welcome.codeHint')}
       </p>
       <Button
         variant="ghost"
         size="sm"
-        className="h-8 rounded-lg text-xs border border-white/5 hover:bg-white/5"
+        className="h-8 rounded-lg text-xs border border-[var(--border)] hover:bg-[var(--surface-hover)]"
         onClick={() => {
           const { activeProjectId } = useAppStore.getState();
           const { createCode } = useProjectStore.getState();

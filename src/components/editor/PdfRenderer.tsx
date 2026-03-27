@@ -75,13 +75,13 @@ const PdfPage = memo(function PdfPage({
       if (cancelled) return;
 
       // Build spans with character offset attributes for selection → segment mapping
-      const pdfjs = await import("pdfjs-dist");
-      const renderTask = (pdfjs as any).renderTextLayer({
+      const { TextLayer } = await import("pdfjs-dist");
+      const textLayerInstance = new TextLayer({
         textContentSource: textContent,
         container: textLayer,
         viewport: viewport,
       });
-      await renderTask.promise;
+      await textLayerInstance.render();
 
       // Post-process the generated spans to attach character offsets for highlight matching
       const spans = textLayer.querySelectorAll("span");
