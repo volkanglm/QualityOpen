@@ -43,16 +43,34 @@ export function getCitation(doc: QDoc | undefined): string {
 
 // ─── Download helper ──────────────────────────────────────────────────────────
 
-function triggerDownload(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const a = Object.assign(document.createElement("a"), {
-    href: url,
-    download: filename,
-  });
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
+async function triggerDownload(blob: Blob, filename: string) {
+  try {
+    // Try Tauri native save if available
+    const { save } = await import("@tauri-apps/plugin-dialog");
+    const { writeFile } = await import("@tauri-apps/plugin-fs");
+    
+    const path = await save({
+      defaultPath: filename,
+    });
+
+    if (path) {
+      const arrayBuffer = await blob.arrayBuffer();
+      await writeFile(path, new Uint8Array(arrayBuffer));
+      return;
+    }
+    return; // User cancelled
+  } catch (err) {
+    // Fallback to browser download
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement("a"), {
+      href: url,
+      download: filename,
+    });
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
 }
 
 // ─── Column auto-width helper ─────────────────────────────────────────────────
@@ -69,7 +87,7 @@ function autoWidth(ws: XLSX.WorkSheet, data: Record<string, unknown>[]) {
 
 // ─── CSV export ───────────────────────────────────────────────────────────────
 
-export function exportCSV(payload: ExportPayload): void {
+export async function exportCSV(payload: ExportPayload): Promise<void> {
   const rows = buildCodeRows(payload);
   const ws = XLSX.utils.json_to_sheet(rows);
   autoWidth(ws, rows);
@@ -82,7 +100,7 @@ export function exportCSV(payload: ExportPayload): void {
 
 // ─── Excel export ─────────────────────────────────────────────────────────────
 
-export function exportExcel(payload: ExportPayload): void {
+export async function exportExcel(payload: ExportPayload): Promise<void> {
   const wb = XLSX.utils.book_new();
 
   // ── Sheet 1: Codes & Quotes (code-centric) ──
@@ -142,7 +160,16 @@ export function exportExcel(payload: ExportPayload): void {
     XLSX.utils.book_append_sheet(wb, ws5, "İşlem Geçmişi");
   }
 
-  XLSX.writeFile(wb, `${sanitize(payload.project.name)}_export.xlsx`);
+  try {
+    const blob = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    await triggerDownload(new Blob([blob], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), `${sanitize(payload.project.name)}_export.xlsx`);
+  } catch (err) {
+    // If triggerDownload fails (e.g., due to an unexpected error, not user cancellation),
+    // we can log it or re-attempt a browser download directly if triggerDownload's internal fallback also failed.
+    // However, triggerDownload already has a browser fallback, so this outer catch might be for very specific, unhandled errors.
+    // For now, we'll keep the original behavior of using XLSX.writeFile as a last resort if triggerDownload completely fails.
+    XLSX.writeFile(wb, `${sanitize(payload.project.name)}_export.xlsx`);
+  }
 }
 
 // ─── Word / APA 7 export ──────────────────────────────────────────────────────

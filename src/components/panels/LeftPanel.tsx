@@ -18,6 +18,7 @@ import {
   FileUp,
   BookOpen,
   UserCheck,
+  Tag,
 } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { exportMemberCheckHTML } from "@/lib/exportUtils";
@@ -76,6 +77,7 @@ export function LeftPanel() {
   const [renameId, setRenameId] = useState<{ id: string; type: "project" | "doc" } | null>(null);
   const [renameVal, setRenameVal] = useState("");
   const [colorPickerDoc, setColorPickerDoc] = useState<string | null>(null);
+  const [infoDocId, setInfoDocId] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -465,6 +467,15 @@ export function LeftPanel() {
                                         }}
                                       />
                                       <ContextItem
+                                        icon={<Tag className="h-3 w-3" />}
+                                        label={t('left.docInfo')}
+                                        onClick={() => {
+                                          setInfoDocId(doc.id);
+                                          setContextMenu(null);
+                                          setContextMenuPos(null);
+                                        }}
+                                      />
+                                      <ContextItem
                                         icon={<Download className="h-3 w-3" />}
                                         label={t('left.exportDoc')}
                                         onClick={() => {
@@ -480,7 +491,7 @@ export function LeftPanel() {
                                       />
                                       <ContextItem
                                         icon={<UserCheck className="h-3 w-3 text-green-500" />}
-                                        label="Katılımcı Teyidi (Member Check Export)"
+                                        label={t("left.memberCheck")}
                                         onClick={() => {
                                           exportMemberCheckHTML(doc, codes, segments);
                                           setContextMenu(null);
@@ -799,6 +810,12 @@ export function LeftPanel() {
           </div>
         </div>
       </Modal>
+      
+      {/* Document Info Modal */}
+      <DocumentInfoModal 
+        docId={infoDocId} 
+        onClose={() => setInfoDocId(null)} 
+      />
 
       {
         contextMenu && contextMenuPos && (
@@ -899,5 +916,90 @@ function EmptyState({ onNew }: { onNew: () => void }) {
         New project
       </Button>
     </div>
+  );
+}
+
+function DocumentInfoModal({ docId, onClose }: { docId: string | null; onClose: () => void }) {
+  const t = useT();
+  const { documents, updateDocument } = useProjectStore();
+  const doc = documents.find(d => d.id === docId);
+
+  if (!doc) return null;
+
+  const handleAddProperty = () => {
+    const key = prompt(t("right.propNamePlaceholder"));
+    if (!key) return;
+    const value = prompt(t("right.valPlaceholder"));
+    if (value === null) return;
+
+    const newProperties = { ...(doc.properties || {}), [key]: value };
+    updateDocument(doc.id, { properties: newProperties });
+  };
+
+  const removeProperty = (key: string) => {
+    const newProperties = { ...(doc.properties || {}) };
+    delete newProperties[key];
+    updateDocument(doc.id, { properties: newProperties });
+  };
+
+  return (
+    <Modal open={!!docId} onClose={onClose} title={t("left.docInfo")}>
+      <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800">
+            <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-1">{t("right.docName")}</p>
+            <p className="text-xs font-medium text-white truncate">{doc.name}</p>
+          </div>
+          <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800">
+            <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-1">{t("right.type")}</p>
+            <p className="text-xs font-medium text-white capitalize">{t(`left.type.${doc.type}`)}</p>
+          </div>
+          <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800">
+            <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-1">{t("right.wordCount")}</p>
+            <p className="text-xs font-medium text-white">{doc.wordCount || 0}</p>
+          </div>
+          <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800">
+            <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-1">{t("right.createdAt")}</p>
+            <p className="text-xs font-medium text-white">{new Date(doc.createdAt).toLocaleDateString()}</p>
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-400">{t("right.properties")}</h3>
+            <Button variant="ghost" size="sm" className="h-7 text-[10px]" onClick={handleAddProperty}>
+              <Plus className="h-3 w-3 mr-1" />
+              {t("right.addProperty")}
+            </Button>
+          </div>
+          
+          <div className="space-y-2">
+            {Object.entries(doc.properties || {}).length === 0 ? (
+              <p className="text-[11px] text-zinc-600 italic py-4 text-center bg-zinc-900/30 rounded-xl border border-dashed border-zinc-800">
+                {t("analysis.noVariables")}
+              </p>
+            ) : (
+              Object.entries(doc.properties || {}).map(([key, value]) => (
+                <div key={key} className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 group">
+                  <div>
+                    <span className="text-[10px] font-bold text-blue-400 uppercase tracking-tight mr-2">{key}:</span>
+                    <span className="text-xs text-white">{value}</span>
+                  </div>
+                  <button 
+                    onClick={() => removeProperty(key)}
+                    className="p-1 rounded-lg hover:bg-red-500/10 text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="flex justify-end mt-6 pt-4 border-t border-zinc-800">
+        <Button variant="primary" onClick={onClose}>{t("common.close")}</Button>
+      </div>
+    </Modal>
   );
 }

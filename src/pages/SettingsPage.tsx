@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, type Variants } from "framer-motion";
-import { Settings, Key, Eye, EyeOff, Check, Trash2, Info, Cpu, Globe, Download, Upload, Database, RefreshCw } from "lucide-react";
+import { Settings, Key, Eye, EyeOff, Check, Trash2, Info, Cpu, Globe, Download, Upload, Database, RefreshCw, Cloud } from "lucide-react";
 import { AppLogo } from "@/components/ui/AppLogo";
 import { open as openDialog, ask } from "@tauri-apps/plugin-dialog";
 import { APP_NAME, APP_VERSION } from "@/lib/constants";
@@ -737,6 +737,26 @@ export function SettingsPage() {
                   <Button size="sm" variant="outline" className="h-8 text-[11px]" onClick={() => importRef.current?.click()}>
                     <Upload className="h-3 w-3 mr-1.5" />
                     {t("settings.restoreBackup")}
+                  </Button>
+                  
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="h-8 text-[11px]" 
+                    onClick={() => {
+                      if (!accessToken) {
+                        const { signIn } = useAuthStore.getState();
+                        signIn();
+                      }
+                      setSyncManagerOpen(true);
+                    }}
+                    style={{ 
+                      borderColor: accessToken ? "var(--accent-border)" : "var(--border)", 
+                      color: accessToken ? "var(--accent)" : "var(--text-secondary)" 
+                    }}
+                  >
+                    <Cloud className="h-3 w-3 mr-1.5" />
+                    {t("settings.restoreFromCloud")}
                   </Button>
                 </div>
                 <input ref={importRef} type="file" className="hidden" accept=".json" onChange={handleImportFile} />

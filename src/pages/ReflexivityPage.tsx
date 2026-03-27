@@ -83,10 +83,10 @@ export function ReflexivityPage() {
               const dateStr = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(entry.date);
               
               return (
-                <button
+                <div
                   key={entry.id}
                   className={cn(
-                    "w-full text-left px-3 py-2 rounded-[var(--radius-sm)] flex flex-col gap-1 transition-colors group",
+                    "w-full text-left px-3 py-2 rounded-[var(--radius-sm)] flex flex-col gap-1 transition-colors group cursor-pointer",
                     isActive ? "bg-[var(--accent-subtle)]" : "hover:bg-[var(--surface-hover)]"
                   )}
                   onClick={() => setActiveEntryId(entry.id)}
@@ -100,7 +100,7 @@ export function ReflexivityPage() {
                       {dateStr}
                     </span>
                     <button
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-black/10 rounded"
                       onClick={(e) => {
                         e.stopPropagation();
                         deleteReflexivityEntry(entry.id);
@@ -109,7 +109,7 @@ export function ReflexivityPage() {
                       <Trash2 className="h-3 w-3 hover:text-red-500" style={{ color: "var(--text-disabled)" }} />
                     </button>
                   </div>
-                </button>
+                </div>
               );
             })
           )}

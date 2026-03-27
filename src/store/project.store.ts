@@ -273,6 +273,12 @@ export const useProjectStore = create<ProjectStore>()(
             memos: s.memos.filter((m) => m.projectId !== id),
             syntheses: s.syntheses.filter((sy) => sy.projectId !== id),
             protocolVersions: s.protocolVersions.filter((pv) => pv.projectId !== id),
+            reflexivityEntries: s.reflexivityEntries.filter((re) => re.projectId !== id),
+            conceptMaps: s.conceptMaps.filter((cm) => cm.projectId !== id),
+            jarsProgress: Object.keys(s.jarsProgress).reduce((acc, key) => {
+              if (!key.startsWith(`${id}_`)) acc[key] = s.jarsProgress[key];
+              return acc;
+            }, {} as Record<string, boolean>),
           }));
         },
 
@@ -447,7 +453,7 @@ export const useProjectStore = create<ProjectStore>()(
 
         addSegment: (seg) => {
           get().pushHistory();
-          const { activeProjectId } = (window as any).useAppStore?.getState() || {};
+          const { activeProjectId } = useAppStore.getState();
           const newSeg: Segment = { ...seg, id: uuid(), createdAt: Date.now(), projectId: activeProjectId || "" };
           set((s) => {
             const updatedCodes = s.codes.map((c) =>
@@ -460,7 +466,7 @@ export const useProjectStore = create<ProjectStore>()(
         addSegments: (segs) => {
           if (segs.length === 0) return [];
           get().pushHistory();
-          const { activeProjectId } = (window as any).useAppStore?.getState() || {};
+          const { activeProjectId } = useAppStore.getState();
           const now = Date.now();
           const newSegs: Segment[] = segs.map(seg => ({ ...seg, id: uuid(), createdAt: now, projectId: activeProjectId || "" }));
           set((s) => {
@@ -687,6 +693,7 @@ useProjectStore.subscribe(
     jarsProgress: s.jarsProgress,
     syntheses: s.syntheses,
     auditLog: s.auditLog,
+    protocolVersions: s.protocolVersions,
   }),
   (snap) => {
     if (_dbTimer !== undefined) window.clearTimeout(_dbTimer);
@@ -731,7 +738,8 @@ useProjectStore.subscribe(
         a.reflexivityEntries === b.reflexivityEntries &&
         a.jarsProgress === b.jarsProgress &&
         a.syntheses === b.syntheses &&
-        a.auditLog === b.auditLog;
+        a.auditLog === b.auditLog &&
+        a.protocolVersions === b.protocolVersions;
     }
   }
 );

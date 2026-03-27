@@ -158,7 +158,8 @@ export function BubbleCloud({ items, zoom = 1.0 }: BubbleCloudProps) {
             const color = getCodeColor(i, code.color);
             const isHov = hovered === code.id;
             const opacity = 0.50 + (count / maxCount) * 0.50;
-            const radius = circle.r * zoom;
+            const radius = Math.max(1, (circle.r || 20) * zoom);
+            if (isNaN(radius)) return null;
             const fontSize = Math.max(8, Math.min(12 * zoom, radius * 0.40));
             const label = code.name.length > Math.floor(radius / 5.0)
               ? code.name.slice(0, Math.floor(radius / 5.0)) + "…"

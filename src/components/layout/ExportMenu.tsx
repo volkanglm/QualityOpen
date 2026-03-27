@@ -119,22 +119,25 @@ export function ExportMenu() {
 
     try {
       if (format === "csv") {
-        exportCSV(payload);
+        await exportCSV(payload);
         push(t("analysis.export.success").replace("{name}", project.name).replace("{format}", "CSV"), "success");
       } else if (format === "excel") {
-        exportExcel(payload);
+        await exportExcel(payload);
         push(t("analysis.export.success").replace("{name}", project.name).replace("{format}", "Excel"), "success");
       } else if (format === "word") {
         await exportWordAPA7(payload);
         push(t("analysis.export.success").replace("{name}", project.name).replace("{format}", "Word (APA 7)"), "success");
       } else if (format === "png" || format === "jpeg") {
-        // Find the chart SVG in the DOM (Analysis page must be active)
-        if (activeView !== "analysis") {
+        // Find the chart SVG in the DOM (Analysis page or Dashboard must be active)
+        if (activeView !== "analysis" && activeView !== "dashboard") {
           push(t("analysis.export.goAnalysis"), "info");
           setLoading(null);
           return;
         }
-        const chartEl = document.querySelector<HTMLElement>(".analysis-chart-area svg, .analysis-chart-area");
+        // Updated selector to be more inclusive of dashboard/analysis chart areas
+        const chartEl = document.querySelector<HTMLElement>(
+          ".analysis-chart-area svg, .analysis-chart-area, .dashboard-card-content svg, .grid-cols-12 svg"
+        );
         if (!chartEl) {
           push(t("analysis.export.noChart"), "error");
           setLoading(null);

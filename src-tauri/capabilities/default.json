@@ -11,11 +11,28 @@
     "opener:default",
     {
       "identifier": "fs:default",
-      "scope": ["**"]
+      "scope": ["$HOME/**", "$DESKTOP/**", "$DOCUMENT/**", "$DOWNLOAD/**", "**"]
     },
-    "fs:allow-write-file",
-    "fs:allow-read-file",
-    "fs:allow-exists",
+    {
+      "identifier": "fs:allow-write-file",
+      "scope": ["$HOME/**", "$DESKTOP/**", "$DOCUMENT/**", "$DOWNLOAD/**", "**"]
+    },
+    {
+      "identifier": "fs:allow-read-file",
+      "scope": ["$HOME/**", "$DESKTOP/**", "$DOCUMENT/**", "$DOWNLOAD/**", "**"]
+    },
+    {
+      "identifier": "fs:allow-exists",
+      "scope": ["$HOME/**", "$DESKTOP/**", "$DOCUMENT/**", "$DOWNLOAD/**", "**"]
+    },
+    {
+      "identifier": "fs:allow-mkdir",
+      "scope": ["$HOME/**", "$DESKTOP/**", "$DOCUMENT/**", "$DOWNLOAD/**", "**"]
+    },
+    {
+      "identifier": "fs:allow-stat",
+      "scope": ["$HOME/**", "$DESKTOP/**", "$DOCUMENT/**", "$DOWNLOAD/**", "**"]
+    },
     "dialog:default",
     "dialog:allow-save",
     "dialog:allow-open",

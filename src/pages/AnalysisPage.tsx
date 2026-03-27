@@ -48,6 +48,7 @@ import { SubCodeDistribution } from "@/components/charts/SubCodeDistribution";
 import { SaturationChart } from "@/components/analysis/SaturationChart";
 import { SynthesisGrid } from "@/components/analysis/SynthesisGrid";
 import { QmarsTable } from "@/components/analysis/QmarsTable";
+import { DocumentPropertiesTable } from "@/components/charts/DocumentPropertiesTable";
 import { Counter } from "@/components/ui/Counter";
 import { assignClusters, computeGraphData } from "@/lib/graph.utils";
 import { flattenCodes } from "@/lib/tree";
@@ -58,7 +59,7 @@ const pageVariants: Variants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.18, ease: [0.2, 0, 0, 1] } },
 };
 
-type TabId = "dashboard" | "overview" | "cloud" | "matrix" | "network" | "synthesis" | "typology" | "qmars";
+type TabId = "dashboard" | "overview" | "cloud" | "matrix" | "network" | "synthesis" | "typology" | "qmars" | "variables";
 
 export function AnalysisPage() {
   const t = useT();
@@ -114,6 +115,7 @@ export function AnalysisPage() {
     { id: "matrix", label: t("analysis.matrix"), icon: <TrendingUp className="h-3.5 w-3.5" /> },
     { id: "network", label: t("analysis.network"), icon: <Share2 className="h-3.5 w-3.5" /> },
     { id: "typology", label: t("analysis.typologyTab"), icon: <LayoutGrid className="h-3.5 w-3.5" /> },
+    { id: "variables", label: t("analysis.variables") || "Variables", icon: <Tag className="h-3.5 w-3.5" /> },
     { id: "synthesis", label: t("synthesis.title"), icon: <Sparkles className="h-3.5 w-3.5" /> },
   ];
 
@@ -427,6 +429,12 @@ export function AnalysisPage() {
           {activeTab === "qmars" && (
             <motion.div key="qmars" variants={pageVariants} initial="hidden" animate="show" className="h-full bg-[var(--bg-secondary)]/40 rounded-2xl border border-[var(--border)] p-8 relative overflow-hidden">
               <QmarsTable codes={projectCodes} />
+            </motion.div>
+          )}
+
+          {activeTab === "variables" && (
+            <motion.div key="variables" variants={pageVariants} initial="hidden" animate="show" className="h-full bg-[var(--bg-secondary)]/40 rounded-2xl border border-[var(--border)] p-8 relative overflow-hidden">
+              <DocumentPropertiesTable />
             </motion.div>
           )}
         </AnimatePresence>

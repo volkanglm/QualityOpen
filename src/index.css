@@ -121,7 +121,7 @@
   ::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 
   ::selection {
-    background: color-mix(in srgb, var(--accent) 25%, transparent);
+    background: rgba(228, 228, 231, 0.25); /* Fallback for --accent 25% */
     color: var(--text-primary);
   }
 
@@ -137,7 +137,7 @@
   .no-drag { -webkit-app-region: no-drag; }
 
   .glass {
-    background: color-mix(in srgb, var(--bg-secondary) 88%, transparent);
+    background: rgba(17, 17, 19, 0.88); /* Fallback for --bg-secondary 88% */
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }

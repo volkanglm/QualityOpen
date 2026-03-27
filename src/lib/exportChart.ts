@@ -20,6 +20,45 @@ export async function exportElementAsImage(
             useCORS: true,
             allowTaint: true,
             ignoreElements: (node) => node.classList.contains("no-export"),
+            onclone: (clonedDoc) => {
+                const COLOR_FIX_REGEX = /(oklch|oklab|color-mix)\s*\((?:[^()]+|\([^()]*\))*\)/gi;
+                const SAFE_COLOR = "#888";
+
+                // Fix all <style> tags
+                const styles = clonedDoc.querySelectorAll("style");
+                styles.forEach(s => {
+                    if (s.textContent) {
+                        s.textContent = s.textContent.replace(COLOR_FIX_REGEX, SAFE_COLOR);
+                    }
+                });
+
+                // Fix inline styles
+                const elms = clonedDoc.querySelectorAll("*");
+                elms.forEach(el => {
+                    const sAttr = (el as HTMLElement).getAttribute("style");
+                    if (sAttr && (sAttr.includes("oklch") || sAttr.includes("oklab") || sAttr.includes("color-mix"))) {
+                        (el as HTMLElement).setAttribute("style", sAttr.replace(COLOR_FIX_REGEX, SAFE_COLOR));
+                    }
+                });
+
+                // Fix external sheet rules
+                try {
+                    for (let i = 0; i < clonedDoc.styleSheets.length; i++) {
+                        const sheet = clonedDoc.styleSheets[i];
+                        try {
+                            for (let j = 0; j < sheet.cssRules.length; j++) {
+                                const rule = sheet.cssRules[j];
+                                if (rule instanceof CSSStyleRule) {
+                                    const css = rule.style.cssText;
+                                    if (COLOR_FIX_REGEX.test(css)) {
+                                        rule.style.cssText = css.replace(COLOR_FIX_REGEX, SAFE_COLOR);
+                                    }
+                                }
+                            }
+                        } catch (e) { }
+                    }
+                } catch (e) { }
+            }
         });
 
         const dataUrl = canvas.toDataURL(`image/${format}`, format === "jpeg" ? 0.9 : undefined);

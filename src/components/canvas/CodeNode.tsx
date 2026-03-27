@@ -85,11 +85,66 @@ export const CodeNodeComponent = memo(({ id, data, selected }: NodeProps<CodeNod
         </div>
       )}
 
-      {/* 4-Way Universal Handles — Loose Mode enabled in Board */}
-      <Handle type="source" position={Position.Top} className="!w-2.5 !h-2.5 !bg-zinc-400 !border-white/20" />
-      <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-zinc-400 !border-white/20" />
-      <Handle type="source" position={Position.Left} className="!w-2.5 !h-2.5 !bg-zinc-400 !border-white/20" />
-      <Handle type="source" position={Position.Right} className="!w-2.5 !h-2.5 !bg-zinc-400 !border-white/20" />
+      {/* 4-way Universal Handles (Loose Mode enabled in Board) */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        id="t-top"
+        isConnectable={true}
+        className="!bg-blue-500/50 !w-4 !h-4 !-top-2 border-none transition-all hover:!bg-blue-400 opacity-0 group-hover:opacity-100"
+      />
+      <Handle
+        type="source"
+        position={Position.Top}
+        id="s-top"
+        isConnectable={true}
+        className="!bg-blue-500/50 !w-4 !h-4 !-top-2 border-none transition-all hover:!bg-blue-400 opacity-0 group-hover:opacity-100"
+      />
+      
+      <Handle
+        type="target"
+        position={Position.Bottom}
+        id="t-bottom"
+        isConnectable={true}
+        className="!bg-blue-500/50 !w-4 !h-4 !-bottom-2 border-none transition-all hover:!bg-blue-400 opacity-0 group-hover:opacity-100"
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="s-bottom"
+        isConnectable={true}
+        className="!bg-blue-500/50 !w-4 !h-4 !-bottom-2 border-none transition-all hover:!bg-blue-400 opacity-0 group-hover:opacity-100"
+      />
+      
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="t-left"
+        isConnectable={true}
+        className="!bg-blue-500/50 !w-4 !h-4 !-left-2 border-none transition-all hover:!bg-blue-400 opacity-0 group-hover:opacity-100"
+      />
+      <Handle
+        type="source"
+        position={Position.Left}
+        id="s-left"
+        isConnectable={true}
+        className="!bg-blue-500/50 !w-4 !h-4 !-left-2 border-none transition-all hover:!bg-blue-400 opacity-0 group-hover:opacity-100"
+      />
+      
+      <Handle
+        type="target"
+        position={Position.Right}
+        id="t-right"
+        isConnectable={true}
+        className="!bg-blue-500/50 !w-4 !h-4 !-right-2 border-none transition-all hover:!bg-blue-400 opacity-0 group-hover:opacity-100"
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="s-right"
+        isConnectable={true}
+        className="!bg-blue-500/50 !w-4 !h-4 !-right-2 border-none transition-all hover:!bg-blue-400 opacity-0 group-hover:opacity-100"
+      />
     </div>
   );
 });

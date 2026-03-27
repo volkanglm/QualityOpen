@@ -348,25 +348,79 @@ function ConceptMapInner() {
   };
 
   const exportImage = useCallback(async (format: "png" | "pdf") => {
+    // Target the viewport for export
     const element = document.querySelector(".react-flow__viewport") as HTMLElement;
-    if (!element) return;
+    if (!element) {
+      pushToast("Harita alanı bulunamadı. (Viewport not found)", "error");
+      return;
+    }
 
     try {
-      // Temporarily hide background dots for cleaner export
+      // Temporarily hide background dots and controls for cleaner export
       const background = document.querySelector(".react-flow__background") as HTMLElement;
-      if (background) background.style.display = "none";
+      const controls = document.querySelector(".react-flow__controls") as HTMLElement;
+      if (background) background.style.visibility = "hidden";
+      if (controls) controls.style.visibility = "hidden";
 
       const canvas = await html2canvas(element, {
-        backgroundColor: "#0a0a0a", // App's dark background
+        backgroundColor: theme === "dark" ? "#0a0a0a" : "#ffffff", 
         scale: 2,
         useCORS: true,
         logging: false,
+        allowTaint: true,
+        onclone: (clonedDoc) => {
+          // Robust fix for html2canvas failing on oklch/oklab colors (common in Tailwind 4)
+          // We must traverse style tags and element styles and replaces nested color functions (e.g., oklch(0.1 / var(--foo)))
+          const COLOR_FIX_REGEX = /(oklch|oklab|color-mix)\s*\((?:[^()]+|\([^()]*\))*\)/gi;
+          const SAFE_COLOR = "#a1a1aa";
+          
+          // 1. Re-serialize / deserialize only if really needed, but better to traverse
+          // 2. Fix it in all <style> tags
+          const styles = clonedDoc.querySelectorAll("style");
+          styles.forEach(s => {
+            if (s.textContent) {
+              s.textContent = s.textContent.replace(COLOR_FIX_REGEX, SAFE_COLOR);
+            }
+          });
+          
+          // 3. Fix it in all inline style attributes
+          const elms = clonedDoc.querySelectorAll("*");
+          elms.forEach(el => {
+            const sAttr = (el as HTMLElement).getAttribute("style");
+            if (sAttr && (sAttr.includes("oklch") || sAttr.includes("oklab") || sAttr.includes("color-mix"))) {
+              (el as HTMLElement).setAttribute("style", sAttr.replace(COLOR_FIX_REGEX, SAFE_COLOR));
+            }
+          });
+          
+          // 4. Also try to fix it in external stylesheets if possible (might fail for cross-domain)
+          try {
+            for (let i = 0; i < clonedDoc.styleSheets.length; i++) {
+              const sheet = clonedDoc.styleSheets[i];
+              try {
+                for (let j = 0; j < sheet.cssRules.length; j++) {
+                  const rule = sheet.cssRules[j];
+                  if (rule instanceof CSSStyleRule) {
+                    const css = rule.style.cssText;
+                    if (COLOR_FIX_REGEX.test(css)) {
+                      rule.style.cssText = css.replace(COLOR_FIX_REGEX, SAFE_COLOR);
+                    }
+                  }
+                }
+              } catch (e) { /* CROSS-DOMAIN */ }
+            }
+          } catch (e) { /* IGNORE */ }
+        }
       });
 
-      if (background) background.style.display = "block";
+      // Restore visibility
+      if (background) background.style.visibility = "visible";
+      if (controls) controls.style.visibility = "visible";
 
-      const fileName = `${currentMap?.name || "concept-map"}.${format}`;
+      const fileName = `${(currentMap?.name || "concept-map").replace(/[^a-z0-9]/gi, "_")}.${format}`;
+      
+      // Open save dialog
       const filePath = await save({
+        title: t("canvas.export") || "Export Map",
         filters: [{
           name: format.toUpperCase(),
           extensions: [format]
@@ -375,6 +429,8 @@ function ConceptMapInner() {
       });
 
       if (!filePath) return;
+
+      pushToast(t("analysis.export.processing") || "Exporting...", "info");
 
       if (format === "png") {
         const imageBase64 = canvas.toDataURL("image/png").split(",")[1];
@@ -391,10 +447,19 @@ function ConceptMapInner() {
         const pdfArrayBuffer = pdf.output("arraybuffer");
         await writeFile(filePath, new Uint8Array(pdfArrayBuffer));
       }
+
+      pushToast(t("analysis.export.success").replace("{name}", currentMap?.name || "Map").replace("{format}", format.toUpperCase()), "success");
     } catch (err) {
       console.error("Export failed:", err);
+      pushToast(t("analysis.export.error") || "Export failed", "error");
+      
+      // Safety restore
+      const background = document.querySelector(".react-flow__background") as HTMLElement;
+      const controls = document.querySelector(".react-flow__controls") as HTMLElement;
+      if (background) background.style.visibility = "visible";
+      if (controls) controls.style.visibility = "visible";
     }
-  }, [currentMap?.name]);
+  }, [currentMap?.name, theme, pushToast, t]);
 
   if (!activeProjectId) {
     return (

@@ -14,6 +14,7 @@ import { Modal } from "@/components/ui/Modal";
 import { listBackupFiles, downloadFile, pushLatestBackup } from "@/lib/drive";
 import { syncDataToLocal } from "@/lib/localSync";
 import { readTextFile, exists } from "@tauri-apps/plugin-fs";
+import { useT } from "@/lib/i18n";
 
 interface SyncManagerProps {
     open: boolean;
@@ -21,6 +22,7 @@ interface SyncManagerProps {
 }
 
 export function SyncManager({ open, onClose }: SyncManagerProps) {
+    const t = useT();
     const { accessToken, localFolderPath } = useAuthStore();
     const { projects, documents, codes, segments, memos, importBackup } = useProjectStore();
 
@@ -54,7 +56,7 @@ export function SyncManager({ open, onClose }: SyncManagerProps) {
             }
         } catch (err) {
             console.error("Comparison failed:", err);
-            setError("Veriler karşılaştırılamadı.");
+            setError(t("settings.sync.compareError"));
         } finally {
             setLoading(false);
         }
@@ -90,7 +92,7 @@ export function SyncManager({ open, onClose }: SyncManagerProps) {
             setTimeout(onClose, 2000);
         } catch (err) {
             setStatus("error");
-            setError("Senkronizasyon başarısız oldu.");
+            setError(t("settings.sync.error"));
         } finally {
             setLoading(false);
         }
@@ -101,7 +103,7 @@ export function SyncManager({ open, onClose }: SyncManagerProps) {
     const hasConflict = driveData && localData && Math.abs(driveTime - localTime) > 10000; // 10s difference
 
     return (
-        <Modal open={open} onClose={onClose} title="Senkronizasyon Merkezi" width="600px">
+        <Modal open={open} onClose={onClose} title={t("settings.sync.title")} width="600px">
             <div className="space-y-6 py-2">
                 {/* Comparison View */}
                 <div className="grid grid-cols-2 gap-4">
@@ -111,7 +113,7 @@ export function SyncManager({ open, onClose }: SyncManagerProps) {
                         <div>
                             <p className="text-sm font-semibold">Google Drive</p>
                             <p className="text-[11px] text-[var(--text-muted)]">
-                                {driveData ? `Son güncelleme: ${new Date(driveData.exportedAt).toLocaleString()}` : "Veri bulunamadı"}
+                                {driveData ? t("settings.sync.lastUpdate").replace("{date}", new Date(driveData.exportedAt).toLocaleString()) : t("settings.sync.noData")}
                             </p>
                         </div>
                     </div>
@@ -120,21 +122,38 @@ export function SyncManager({ open, onClose }: SyncManagerProps) {
                     <div className="rounded-[var(--radius-lg)] border p-4 flex flex-col items-center text-center gap-3 bg-[var(--bg-tertiary)]" style={{ borderColor: localTime > driveTime ? "var(--accent)" : "var(--border)" }}>
                         <HardDrive className="h-8 w-8 text-[var(--text-muted)]" />
                         <div>
-                            <p className="text-sm font-semibold">Yerel Bilgisayar</p>
+                            <p className="text-sm font-semibold">{t("welcome.localComputer") || "Local Computer"}</p>
                             <p className="text-[11px] text-[var(--text-muted)]">
-                                {localData ? `Son güncelleme: ${new Date(localData.exportedAt).toLocaleString()}` : "Veri bulunamadı"}
+                                {localData ? t("settings.sync.lastUpdate").replace("{date}", new Date(localData.exportedAt).toLocaleString()) : t("settings.sync.noData")}
                             </p>
                         </div>
                     </div>
                 </div>
 
+                {/* Login Prompt if not authenticated */}
+                {!accessToken && (
+                    <div className="flex flex-col items-center justify-center p-8 bg-[var(--bg-tertiary)] rounded-2xl border border-[var(--border-subtle)] gap-4">
+                        <Cloud className="h-10 w-10 text-[var(--accent)] opacity-50" />
+                        <div className="text-center">
+                            <p className="text-sm font-semibold">{t("settings.sync.loginRequired") || "Google Drive Login Required"}</p>
+                            <p className="text-xs text-[var(--text-muted)] mt-1">{t("settings.sync.loginDesc") || "Sign in to access your cloud backups and sync across devices."}</p>
+                        </div>
+                        <Button 
+                            onClick={() => useAuthStore.getState().signIn()}
+                            className="bg-[var(--accent)] text-[var(--accent-fg)] hover:bg-[var(--accent-hover)]"
+                        >
+                            {t("settings.sync.login") || "Sign in with Google"}
+                        </Button>
+                    </div>
+                )}
+
                 {/* Conflict Warning */}
-                {hasConflict && (
+                {accessToken && hasConflict && (
                     <div className="flex items-start gap-3 p-3 rounded-[var(--radius-md)] bg-[var(--danger-subtle)] border border-[var(--danger-border)]">
                         <AlertTriangle className="h-5 w-5 text-[var(--danger)] flex-shrink-0 mt-0.5" />
                         <div className="text-xs space-y-1">
-                            <p className="font-bold text-[var(--danger)]">Sürüm Çakışması Tespit Edildi!</p>
-                            <p className="text-[var(--danger)]/80">Bulut ve yerel veriler birbirinden farklı. Lütfen hangi sürümü korumak istediğinizi seçin. Bir yön seçtiğinizde diğer tarafın verisi üzerine yazılacaktır.</p>
+                            <p className="font-bold text-[var(--danger)]">{t("settings.sync.conflict")}</p>
+                            <p className="text-[var(--danger)]/80">{t("settings.sync.conflictDesc")}</p>
                         </div>
                     </div>
                 )}
@@ -149,7 +168,7 @@ export function SyncManager({ open, onClose }: SyncManagerProps) {
                     >
                         <div className="flex items-center gap-3 font-medium">
                             <HardDrive className="h-4 w-4" />
-                            <span>Bilgisayardakileri Buluta Yedekle</span>
+                            <span>{t("settings.sync.backupToDrive")}</span>
                         </div>
                         <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </Button>
@@ -162,7 +181,7 @@ export function SyncManager({ open, onClose }: SyncManagerProps) {
                     >
                         <div className="flex items-center gap-3 font-medium">
                             <Cloud className="h-4 w-4" />
-                            <span>Buluttakileri Bilgisayara İndir</span>
+                            <span>{t("settings.sync.downloadFromDrive")}</span>
                         </div>
                         <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
                     </Button>
@@ -175,7 +194,7 @@ export function SyncManager({ open, onClose }: SyncManagerProps) {
                 {status === "success" && (
                     <div className="flex items-center justify-center gap-2 text-[var(--code-2)] text-sm font-medium">
                         <CheckCircle2 className="h-4 w-4" />
-                        Senkronizasyon tamamlandı
+                        {t("settings.sync.success")}
                     </div>
                 )}
             </div>
