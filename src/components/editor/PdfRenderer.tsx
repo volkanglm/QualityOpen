@@ -6,6 +6,7 @@ import type { Segment, Code } from "@/types";
 import { useToastStore } from "@/store/toast.store";
 import { useAppStore } from "@/store/app.store";
 import { t, useT } from "@/lib/i18n";
+import "./PdfTextLayer.css";
 
 interface PdfTextItem {
   str?: string;
@@ -59,17 +60,21 @@ const PdfPage = memo(function PdfPage({
       const textLayer = textLayerRef.current;
       if (!canvas || !textLayer || cancelled) return;
 
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
+      // Scale canvas for Retina/HiDPI displays
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.round(viewport.width * dpr);
+      canvas.height = Math.round(viewport.height * dpr);
+      canvas.style.width = `${viewport.width}px`;
+      canvas.style.height = `${viewport.height}px`;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
+      ctx.scale(dpr, dpr);
 
       await page.render({ canvasContext: ctx, viewport }).promise;
 
-      // Text Layer
+      // Text Layer — reset and size to match canvas CSS dimensions
       textLayer.innerHTML = "";
-      textLayer.style.width = `${viewport.width}px`;
-      textLayer.style.height = `${viewport.height}px`;
+      textLayer.dataset.pageIndex = String(pageNumber - 1);
 
       const textContent = await page.getTextContent();
       if (cancelled) return;
@@ -83,7 +88,13 @@ const PdfPage = memo(function PdfPage({
       });
       await textLayerInstance.render();
 
-      // Post-process the generated spans to attach character offsets for highlight matching
+      // Set --total-scale-factor so pdfjs CSS variables resolve correctly.
+      // pdfjs expects this to be set by the outer viewer; we set it ourselves.
+      // It maps PDF points → CSS pixels: scale = viewport.scale.
+      textLayer.style.setProperty("--total-scale-factor", String(scale));
+
+      // Post-process the generated spans to attach character offsets and PDF page-space
+      // coordinates for highlight matching and stable bbox-based rendering.
       const spans = textLayer.querySelectorAll("span");
       let charOffset = pageStartOffset;
       const filteredItems = (textContent.items as PdfTextItem[]).filter((it): it is PdfTextItem & { str: string } => Boolean(it.str));
@@ -93,6 +104,16 @@ const PdfPage = memo(function PdfPage({
         const item = filteredItems[i];
         span.dataset.charStart = String(charOffset);
         span.dataset.charEnd = String(charOffset + item.str.length);
+        // PDF page-space coordinates (points, origin bottom-left) — stable across zoom changes
+        if (item.transform) {
+          const [a, b, , d, x, y] = item.transform;
+          // Use || (not ??) so that 0 values also fall back to the computed alternative
+          span.dataset.pdfX = String(x);
+          span.dataset.pdfY = String(y);
+          span.dataset.pdfWidth = String(item.width || Math.sqrt(a * a + b * b) * item.str.length * 0.6);
+          span.dataset.pdfHeight = String(item.height || Math.abs(d));
+        }
+        span.dataset.pageIndex = String(pageNumber - 1);
         charOffset += item.str.length + (i < filteredItems.length - 1 ? 1 : 0);
       }
 
@@ -105,8 +126,8 @@ const PdfPage = memo(function PdfPage({
   // Apply highlight backgrounds whenever render completes or segments/codes change
   useEffect(() => {
     if (renderVersion === 0 || !textLayerRef.current) return;
-    applyPdfHighlights(textLayerRef.current, segments ?? [], codes ?? []);
-  }, [renderVersion, segments, codes]);
+    applyPdfHighlights(textLayerRef.current, segments ?? [], codes ?? [], pageNumber - 1, scale);
+  }, [renderVersion, segments, codes, pageNumber, scale]);
 
   return (
     <div className="relative shadow-xl mx-auto border transition-opacity duration-500"
@@ -125,6 +146,9 @@ const PdfPage = memo(function PdfPage({
           cursor: "text",
           zIndex: 2,
           pointerEvents: "auto",
+          // pdfjs text layer spans render visible text without its bundled CSS.
+          // Force transparent text so only highlight overlays are visible.
+          color: "transparent",
         }}
       />
     </div>
@@ -363,8 +387,23 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
   );
 });
 
+// ─── Helper: Resolve highlight color for a segment ───────────────────────────
+function resolveSegmentColor(seg: Segment, codes: Code[]): string {
+  if (seg.codeIds?.length > 0) {
+    const code = codes.find((c) => c.id === seg.codeIds[0]);
+    if (code?.color) return code.color;
+  }
+  return seg.highlightColor ?? "#fcd34d";
+}
+
 // ─── Helper: Apply highlight backgrounds to PDF text layer spans ──────────────
-function applyPdfHighlights(textLayer: HTMLDivElement, segments: Segment[], codes: Code[]) {
+function applyPdfHighlights(
+  textLayer: HTMLDivElement,
+  segments: Segment[],
+  codes: Code[],
+  pageIndex: number,
+  scale: number,
+) {
   // Remove previously injected highlight overlay elements
   textLayer.querySelectorAll<HTMLElement>(".pdf-highlight-overlay").forEach(el => el.remove());
 
@@ -376,6 +415,42 @@ function applyPdfHighlights(textLayer: HTMLDivElement, segments: Segment[], code
   }
   if (!segments.length) return;
 
+  // ── BRANCH A: ratio-based rendering (new segments with pdfRects) ──────────
+  // pdfRects stores positions as page-relative ratios (0–1) captured via
+  // Range.getClientRects() at selection time. At render time we use the same
+  // measurement method (getBoundingClientRect) so both values are consistent.
+  const layerBCR = textLayer.getBoundingClientRect();
+  const layerW = layerBCR.width;
+  const layerH = layerBCR.height;
+
+  for (const seg of segments) {
+    if (!seg.pdfRects?.length) continue;
+    const pageRects = seg.pdfRects.filter(r => r.pageIndex === pageIndex);
+    if (!pageRects.length) continue;
+
+    const color = resolveSegmentColor(seg, codes);
+    for (const r of pageRects) {
+      const overlay = document.createElement("span");
+      overlay.className = "pdf-highlight-overlay";
+      overlay.style.cssText = [
+        "position:absolute",
+        `left:${r.x * layerW}px`,
+        `top:${r.y * layerH}px`,
+        `width:${r.width * layerW}px`,
+        `height:${r.height * layerH}px`,
+        `background:${color}55`,
+        `border-bottom:2px solid ${color}`,
+        "pointer-events:none",
+        "border-radius:2px",
+      ].join(";");
+      textLayer.appendChild(overlay);
+    }
+  }
+
+  // ── BRANCH B: legacy char-offset fallback (segments without pdfRects) ─────
+  const legacySegments = segments.filter(seg => !seg.pdfRects?.length);
+  if (!legacySegments.length) return;
+
   // Build a lookup of text content by offset for validation
   const spanList: { start: number; end: number; text: string }[] = [];
   for (const span of spans) {
@@ -386,31 +461,26 @@ function applyPdfHighlights(textLayer: HTMLDivElement, segments: Segment[], code
     });
   }
 
-  // Pre-validate segments: skip those whose stored text doesn't match the text layer
-  const validSegments = segments.filter(seg => {
+  // Pre-validate legacy segments: skip those whose stored text doesn't match the text layer
+  const validLegacySegments = legacySegments.filter(seg => {
     if (!seg.text) return true; // no stored text to compare — allow
-    // Reconstruct text at the segment's offset range from spans
     let reconstructed = "";
     for (const s of spanList) {
       if (s.end <= seg.start || s.start >= seg.end) continue;
       const overlapStart = Math.max(seg.start, s.start);
       const overlapEnd = Math.min(seg.end, s.end);
-      const localStart = overlapStart - s.start;
-      const localEnd = overlapEnd - s.start;
-      reconstructed += `${s.text.slice(localStart, localEnd)} `;
+      reconstructed += `${s.text.slice(overlapStart - s.start, overlapEnd - s.start)} `;
     }
     reconstructed = reconstructed.trim();
-    // Fuzzy match: compare normalized (whitespace-collapsed, lowered)
     const normalize = (t: string) => t.replace(/\s+/g, " ").trim().toLowerCase();
     const stored = normalize(seg.text);
     const actual = normalize(reconstructed);
     if (stored && actual && stored !== actual) {
-      // Allow if one contains the other (partial overlap is fine)
       if (!stored.includes(actual) && !actual.includes(stored)) {
         console.warn("[PDF Highlight] Text mismatch — segment may be misaligned:", {
           segmentId: seg.id, stored: seg.text, actual: reconstructed, start: seg.start, end: seg.end,
         });
-        return false; // skip this misaligned segment
+        return false;
       }
     }
     return true;
@@ -422,27 +492,18 @@ function applyPdfHighlights(textLayer: HTMLDivElement, segments: Segment[], code
     const spanLen = spanEnd - spanStart;
     if (spanLen <= 0) continue;
 
-    for (const seg of validSegments) {
-      if (seg.end <= spanStart || seg.start >= spanEnd) continue; // no overlap
+    for (const seg of validLegacySegments) {
+      if (seg.end <= spanStart || seg.start >= spanEnd) continue;
 
-      // Determine color: code color > highlight color > default yellow
-      let color = seg.highlightColor ?? "#fcd34d";
-      if (seg.codeIds?.length > 0) {
-        const code = codes.find((c) => c.id === seg.codeIds[0]);
-        if (code?.color) color = code.color;
-      }
-
-      // Check if segment fully covers the span
+      const color = resolveSegmentColor(seg, codes);
       const overlapStart = Math.max(seg.start, spanStart);
       const overlapEnd = Math.min(seg.end, spanEnd);
       const isFullCoverage = overlapStart <= spanStart && overlapEnd >= spanEnd;
 
       if (isFullCoverage) {
-        // Full span highlight — simple case
         span.style.backgroundColor = `${color}55`;
         span.style.borderBottom = `2px solid ${color}`;
       } else {
-        // Partial span highlight — create an overlay div for just the covered portion
         const spanWidth = parseFloat(span.style.width) || span.offsetWidth;
         const charRatioStart = (overlapStart - spanStart) / spanLen;
         const charRatioEnd = (overlapEnd - spanStart) / spanLen;

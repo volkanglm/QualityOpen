@@ -228,13 +228,10 @@ export function CenterPanel() {
 
     const rect = range.getBoundingClientRect();
     // For PDFs use span data attributes; for text/HTML use DOM traversal
-    const { start, end } = format === "pdf"
-      ? getPdfOffsets(range)
-      : getOffsets(range, readerRef.current);
+    const pdfResult = format === "pdf" ? getPdfOffsets(range) : null;
+    const { start, end } = pdfResult ?? getOffsets(range, readerRef.current);
 
-    const selectionText = format === "pdf" && doc
-      ? doc.content.slice(start, end)
-      : text;
+    const selectionText = format === "pdf" ? text : text;
 
     setFloatPos({
       centerX: rect.left + rect.width / 2,
@@ -242,6 +239,7 @@ export function CenterPanel() {
       text: selectionText,
       start,
       end,
+      pdfRects: pdfResult?.pdfRects,
     });
 
     if (doc) setActiveSelection({ text: selectionText, start, end, documentId: doc.id });
@@ -259,9 +257,8 @@ export function CenterPanel() {
     setFloatPos(null);  // hide floating menu
 
     const range = sel.getRangeAt(0);
-    const { start, end } = format === "pdf"
-      ? getPdfOffsets(range)
-      : getOffsets(range, readerRef.current);
+    const pdfResult = format === "pdf" ? getPdfOffsets(range) : null;
+    const { start, end } = pdfResult ?? getOffsets(range, readerRef.current);
 
     const selectionText = format === "pdf" && doc
       ? doc.content.slice(start, end)
@@ -270,7 +267,7 @@ export function CenterPanel() {
     setCtxMenu({
       x: e.clientX,
       y: e.clientY,
-      pos: { centerX: e.clientX, topY: e.clientY, text: selectionText, start, end },
+      pos: { centerX: e.clientX, topY: e.clientY, text: selectionText, start, end, pdfRects: pdfResult?.pdfRects },
     });
 
     if (doc) setActiveSelection({ text: selectionText, start, end, documentId: doc.id });
@@ -295,6 +292,7 @@ export function CenterPanel() {
       codeIds: [],
       isHighlight: true,
       highlightColor: HIGHLIGHT_COLOR,
+      pdfRects: pos.pdfRects,
     });
     window.getSelection()?.removeAllRanges();
   };
@@ -320,6 +318,7 @@ export function CenterPanel() {
         isHighlight: true,
         highlightColor: "#86efac",
         memo: summary,
+        pdfRects: pos.pdfRects,
       });
     } catch (err) {
       console.error("Summarize failed:", err);
@@ -337,6 +336,7 @@ export function CenterPanel() {
       end: codePanelSel.end,
       text: codePanelSel.text,
       codeIds: [code.id],
+      pdfRects: codePanelSel.pdfRects,
     });
     window.getSelection()?.removeAllRanges();
     setCodePanelSel(null);
@@ -407,6 +407,7 @@ export function CenterPanel() {
       end: ctxMenu.pos.end,
       text: ctxMenu.pos.text,
       codeIds: [code.id],
+      pdfRects: ctxMenu.pos.pdfRects,
     });
     window.getSelection()?.removeAllRanges();
     setCtxMenu(null);
@@ -1530,8 +1531,9 @@ function getOffsets(range: Range, container: HTMLElement | null): { start: numbe
   }
 }
 
-/** For PDF format: read character offsets from data-char-start/end attributes on text layer spans */
-function getPdfOffsets(range: Range): { start: number; end: number } {
+/** For PDF format: read character offsets from data-char-start/end attributes on text layer spans,
+ *  and also collect PDF page-space bounding boxes for stable bbox-based highlight rendering. */
+function getPdfOffsets(range: Range): { start: number; end: number; pdfRects: import("@/types").PdfRect[] } {
   /** Find the nearest text-layer ancestor of a node */
   function findTextLayer(node: Node): Element | null {
     let el: Element | null = node.nodeType === Node.TEXT_NODE ? node.parentElement : node as Element;
@@ -1612,8 +1614,55 @@ function getPdfOffsets(range: Range): { start: number; end: number } {
       }
     }
 
-    return { start: Math.min(start, end), end: Math.max(start, end) };
+    const resolvedStart = Math.min(start, end);
+    const resolvedEnd = Math.max(start, end);
+
+    // Collect highlight bounding boxes as page-relative ratios (0–1).
+    // Range.getClientRects() returns the exact visual line-by-line rects of the selection —
+    // no span iteration or char-offset math needed, works for multi-column layouts.
+    const pdfRects: import("@/types").PdfRect[] = [];
+
+    const findTextLayerOf = (node: Node): HTMLElement | null => {
+      let el: HTMLElement | null = node.nodeType === Node.TEXT_NODE ? node.parentElement : node as HTMLElement;
+      while (el && !el.hasAttribute("data-pdf-text-layer")) el = el.parentElement;
+      return el;
+    };
+
+    const tl1 = findTextLayerOf(range.startContainer);
+    const tl2 = findTextLayerOf(range.endContainer);
+
+    const clientRects = Array.from(range.getClientRects());
+    for (const cr of clientRects) {
+      if (cr.width < 2) continue;
+
+      // Match this rect to its text layer by checking containment
+      let textLayer: HTMLElement | null = null;
+      for (const tl of [tl1, tl2]) {
+        if (!tl) continue;
+        const tlRect = tl.getBoundingClientRect();
+        if (cr.left >= tlRect.left - 2 && cr.right <= tlRect.right + 2) {
+          textLayer = tl;
+          break;
+        }
+      }
+      if (!textLayer) textLayer = tl1;
+      if (!textLayer) continue;
+
+      const layerRect = textLayer.getBoundingClientRect();
+      if (layerRect.width === 0 || layerRect.height === 0) continue;
+      const pageIndex = parseInt(textLayer.dataset.pageIndex ?? "0", 10);
+
+      pdfRects.push({
+        pageIndex,
+        x: (cr.left - layerRect.left) / layerRect.width,
+        y: (cr.top - layerRect.top) / layerRect.height,
+        width: cr.width / layerRect.width,
+        height: Math.max(cr.height, 8) / layerRect.height,
+      });
+    }
+
+    return { start: resolvedStart, end: resolvedEnd, pdfRects };
   } catch {
-    return { start: 0, end: 0 };
+    return { start: 0, end: 0, pdfRects: [] };
   }
 }

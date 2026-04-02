@@ -65,6 +65,22 @@ export interface Code {
   usageCount?: number;
 }
 
+/** PDF highlight bounding box stored as page-relative ratios (0–1).
+ *  Captured from the span's viewport rect at selection time, then divided
+ *  by the text-layer dimensions — so they're scale-independent and survive zoom changes. */
+export interface PdfRect {
+  /** 0-indexed page number */
+  pageIndex: number;
+  /** left edge as fraction of page width (0–1) */
+  x: number;
+  /** top edge as fraction of page height (0–1) */
+  y: number;
+  /** width as fraction of page width (0–1) */
+  width: number;
+  /** height as fraction of page height (0–1) */
+  height: number;
+}
+
 export interface Segment {
   id: ID;
   documentId: ID;
@@ -84,6 +100,9 @@ export interface Segment {
   isDisconfirming?: boolean;
   /** Note explaining why this evidence is disconfirming */
   disconfirmingNote?: string;
+  /** PDF page-space bounding boxes — one rect per text item/line.
+   *  When present, used for rendering instead of char-offset fallback. */
+  pdfRects?: PdfRect[];
 }
 
 export interface Memo {

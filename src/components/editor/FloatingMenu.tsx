@@ -12,6 +12,8 @@ export interface FloatingMenuPos {
   text: string;
   start: number;
   end: number;
+  /** PDF page-space bounding boxes — present only for PDF documents */
+  pdfRects?: import("@/types").PdfRect[];
 }
 
 interface FloatingMenuProps {

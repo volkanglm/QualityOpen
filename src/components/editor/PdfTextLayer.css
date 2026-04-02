@@ -1,0 +1,39 @@
+/*
+ * Minimal pdfjs v5 text layer CSS.
+ * Without this, spans flow as inline content and selection rects are wrong.
+ * Scoped to [data-pdf-text-layer] to avoid polluting the rest of the app.
+ */
+
+[data-pdf-text-layer] :is(span, br) {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+[data-pdf-text-layer] {
+  --min-font-size: 1;
+  --min-font-size-inv: 1;
+  --text-scale-factor: calc(var(--total-scale-factor, 1) * var(--min-font-size));
+}
+
+[data-pdf-text-layer] > :not(.markedContent),
+[data-pdf-text-layer] .markedContent span:not(.markedContent) {
+  z-index: 1;
+  --font-height: 0;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  --scale-x: 1;
+  --rotate: 0deg;
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+
+[data-pdf-text-layer] .markedContent {
+  display: contents;
+}
+
+/* Make text selection clearly visible despite transparent span text */
+[data-pdf-text-layer] :is(span, br)::selection {
+  background: rgba(59, 130, 246, 0.45);
+  color: transparent;
+}
