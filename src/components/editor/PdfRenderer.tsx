@@ -126,7 +126,7 @@ const PdfPage = memo(function PdfPage({
   // Apply highlight backgrounds whenever render completes or segments/codes change
   useEffect(() => {
     if (renderVersion === 0 || !textLayerRef.current) return;
-    applyPdfHighlights(textLayerRef.current, segments ?? [], codes ?? [], pageNumber - 1, scale);
+    applyPdfHighlights(textLayerRef.current, segments ?? [], codes ?? [], pageNumber - 1);
   }, [renderVersion, segments, codes, pageNumber, scale]);
 
   return (
@@ -402,7 +402,6 @@ function applyPdfHighlights(
   segments: Segment[],
   codes: Code[],
   pageIndex: number,
-  scale: number,
 ) {
   // Remove previously injected highlight overlay elements
   textLayer.querySelectorAll<HTMLElement>(".pdf-highlight-overlay").forEach(el => el.remove());
