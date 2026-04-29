@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tag, Sparkles, Highlighter, AlignLeft } from "lucide-react";
 import { useT } from "@/hooks/useT";
-import { useLicenseStore } from "@/store/license.store";
 
 export interface FloatingMenuPos {
   /** viewport-relative X center of the selection */
@@ -87,16 +86,6 @@ export function FloatingMenu({
   const handle = (action: typeof ACTION_IDS[number]["id"]) => {
     if (!pos) return;
 
-    // Pro check for AI features
-    if (action === "ai" || action === "summarize") {
-      const { isPro, openModal } = useLicenseStore.getState();
-      if (!isPro) {
-        onDismiss();
-        openModal();
-        return;
-      }
-    }
-
     onDismiss();
     setTimeout(() => {
       if (action === "code") onAssignCode(pos);
@@ -163,9 +152,6 @@ export function FloatingMenu({
                   >
                     {action.label}
                   </span>
-                  {(action.id === "ai" || action.id === "summarize") && (
-                    <span className="absolute top-1 right-1 text-[8px] bg-[#eab308] text-white px-1 rounded-[2px] font-bold">PRO</span>
-                  )}
                 </motion.button>
               );
             })}

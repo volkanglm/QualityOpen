@@ -1,7 +1,7 @@
 /**
  * offlineCache.ts — AES-GCM encrypted auth cache (IndexedDB)
  *
- * Stores user profile + premium claim locally so the app works
+ * Stores user profile locally so the app works
  * without internet for up to 7 days after the last successful
  * online session.
  *
@@ -26,7 +26,6 @@ export interface CachedAuth {
   email:       string | null;
   displayName: string | null;
   photoURL:    string | null;
-  premium:     boolean;
   cachedAt:    number;
 }
 

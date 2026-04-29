@@ -5,9 +5,6 @@ vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
 vi.mock("@tauri-apps/plugin-store", () => ({ Store: vi.fn() }));
 vi.mock("@/lib/firebase", () => ({ auth: {}, db: {} }));
 vi.mock("@/lib/db", () => ({ writeSnapshotToDb: vi.fn() }));
-vi.mock("@/store/license.store", () => ({
-  useLicenseStore: { getState: () => ({ isPro: true }) },
-}));
 vi.mock("@/store/app.store", () => ({
   useAppStore: Object.assign(vi.fn(() => ({})), {
     getState: () => ({ language: "en" }),

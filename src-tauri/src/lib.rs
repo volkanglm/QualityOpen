@@ -57,40 +57,6 @@ fn start_oauth_listener(app: AppHandle) -> Result<u16, String> {
     Ok(port)
 }
 
-// ─── OS Keychain ──────────────────────────────────────────────────────────────
-
-/// Save a secret to the OS keychain (macOS Keychain / Windows Credential Manager).
-#[tauri::command]
-fn keyring_set(service: String, key: String, value: String) -> Result<(), String> {
-    keyring::Entry::new(&service, &key)
-        .and_then(|e| e.set_password(&value))
-        .map_err(|e| format!("Keychain write failed: {e}"))
-}
-
-/// Read a secret from the OS keychain. Returns None if not found.
-#[tauri::command]
-fn keyring_get(service: String, key: String) -> Result<Option<String>, String> {
-    let entry = keyring::Entry::new(&service, &key)
-        .map_err(|e| format!("Keychain error: {e}"))?;
-    match entry.get_password() {
-        Ok(v) => Ok(Some(v)),
-        Err(keyring::Error::NoEntry) => Ok(None),
-        Err(e) => Err(format!("Keychain read failed: {e}")),
-    }
-}
-
-/// Delete a secret from the OS keychain. No-op if not found.
-#[tauri::command]
-fn keyring_delete(service: String, key: String) -> Result<(), String> {
-    let entry = keyring::Entry::new(&service, &key)
-        .map_err(|e| format!("Keychain error: {e}"))?;
-    match entry.delete_credential() {
-        Ok(()) => Ok(()),
-        Err(keyring::Error::NoEntry) => Ok(()),
-        Err(e) => Err(format!("Keychain delete failed: {e}")),
-    }
-}
-
 // ─── Security helpers ─────────────────────────────────────────────────────────
 
 /// Returns true only if the URL is HTTPS and the host is in the hard-coded
@@ -122,8 +88,6 @@ fn is_url_allowed(url: &str) -> bool {
         "api.openai.com",
         // Anthropic Claude
         "api.anthropic.com",
-        // Lemon Squeezy licensing
-        "api.lemonsqueezy.com",
     ];
 
     ALLOWED_HOSTS
@@ -300,10 +264,7 @@ pub fn run() {
             start_oauth_listener,
             read_file_base64,
             native_http,
-            exchange_google_code,
-            keyring_set,
-            keyring_get,
-            keyring_delete
+            exchange_google_code
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

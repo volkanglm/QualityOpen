@@ -1,8 +1,5 @@
 import { useState, useMemo } from "react";
-import { useLicenseStore } from "@/store/license.store";
-import { useToastStore } from "@/store/toast.store";
 import { useProjectStore } from "@/store/project.store";
-import { useAppStore } from "@/store/app.store";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Hash, Quote, Search, ChevronRight, ChevronLeft } from "lucide-react";
@@ -13,20 +10,10 @@ interface AssetsPanelProps {
 
 export function AssetsPanel({ className }: AssetsPanelProps) {
   const t = useT();
-  const { codes, segments, documents, conceptMaps } = useProjectStore();
-  const { activeProjectId } = useAppStore();
+  const { codes, segments, documents } = useProjectStore();
   const [activeTab, setActiveTab] = useState<"codes" | "quotes">("codes");
   const [search, setSearch] = useState("");
   const [collapsed, setCollapsed] = useState(false);
-
-  const { isPro, openModal } = useLicenseStore();
-  const pushToast = useToastStore((s) => s.push);
-
-  const currentMap = useMemo(() => {
-    return conceptMaps.find((m) => m.projectId === activeProjectId);
-  }, [conceptMaps, activeProjectId]);
-
-  const nodeCount = currentMap?.nodes?.length || 0;
 
   const filteredCodes = useMemo(() => {
     return codes.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
@@ -43,14 +30,6 @@ export function AssetsPanel({ className }: AssetsPanelProps) {
   }, [segments, search, documents, t]);
 
   const onDragStart = (event: React.DragEvent, nodeType: string, data: any) => {
-    // Check limit on drag start to prevent even dragging the 6th item
-    if (!isPro && nodeCount >= 5) {
-      event.preventDefault();
-      openModal();
-      pushToast(t("project.limit.mapNodeCount"), "error");
-      return;
-    }
-
     const payload = JSON.stringify({ nodeType, data });
     const dt = event.dataTransfer;
     dt.setData("text", payload);
@@ -62,12 +41,6 @@ export function AssetsPanel({ className }: AssetsPanelProps) {
   };
 
   const onAdd = (nodeType: string, data: any) => {
-    if (!isPro && nodeCount >= 5) {
-      openModal();
-      pushToast(t("project.limit.mapNodeCount"), "error");
-      return;
-    }
-
     const customEvent = new CustomEvent("manual-drop", { 
       detail: { 
         appData: JSON.stringify({ nodeType, data }), 

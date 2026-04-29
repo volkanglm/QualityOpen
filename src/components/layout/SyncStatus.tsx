@@ -1,9 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Cloud, CloudOff, Check, AlertCircle, LogOut, RefreshCw, LogIn, Sparkles } from "lucide-react";
+import { Cloud, CloudOff, Check, AlertCircle, LogOut, RefreshCw, LogIn } from "lucide-react";
 import { useSyncStore } from "@/store/sync.store";
 import { useAuthStore } from "@/store/auth.store";
-import { useLicenseStore } from "@/store/license.store";
 import { Button } from "@/components/ui/Button";
 import { useT } from "@/lib/i18n";
 import type { BackupSchedule } from "@/types";
@@ -15,7 +14,6 @@ export function SyncStatus() {
     syncNow, backupNow, setSchedule, resetDrive } =
     useSyncStore();
   const { accessToken, user, signOut, signIn, loading: authLoading } = useAuthStore();
-  const { isPro, openModal } = useLicenseStore();
   const t = useT();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -73,21 +71,6 @@ export function SyncStatus() {
               boxShadow: "var(--float-shadow)",
             }}
           >
-            {/* License Status / Upgrade */}
-            {!isPro && (
-              <div className="mb-3 pb-3 border-b" style={{ borderColor: "var(--border-subtle)" }}>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="w-full justify-center gap-2 text-[12px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border-none text-white shadow-md shadow-blue-900/20"
-                  onClick={() => { setMenuOpen(false); openModal(); }}
-                >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  {t("sync.activatePro")}
-                </Button>
-              </div>
-            )}
-
             {/* User profile — or sign-in prompt */}
             {user ? (
               <div className="flex items-center gap-2.5 mb-3 pb-3 border-b" style={{ borderColor: "var(--border-subtle)" }}>

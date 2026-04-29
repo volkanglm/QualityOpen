@@ -1,8 +1,5 @@
 import DOMPurify from "dompurify";
 import type { DocumentFormat } from "@/types";
-import { useLicenseStore } from "@/store/license.store";
-import { t } from "@/lib/i18n";
-import { useAppStore } from "@/store/app.store";
 
 export interface ImportedFile {
   name: string;
@@ -208,15 +205,6 @@ export function getFileCategory(file: File): "text" | "video" | "image" | "audio
 }
 
 export async function importFile(file: File): Promise<ImportedFile> {
-  const { isPro } = useLicenseStore.getState();
-
-  // Demo Mode: Size limit for guests (non-pro)
-  const SIZE_LIMIT = 5 * 1024 * 1024; // 5MB limit
-  if (!isPro && file.size > SIZE_LIMIT) {
-    const lang = useAppStore.getState().language;
-    throw new Error(t("file.limit.size", lang));
-  }
-
   const cat = getFileCategory(file);
   if (cat === "video") return importVideo(file);
   if (cat === "audio") {

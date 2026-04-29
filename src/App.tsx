@@ -6,15 +6,12 @@ import { TitleBar } from "@/components/layout/TitleBar";
 import { PanelLayout } from "@/components/layout/PanelLayout";
 import { SyncStatus } from "@/components/layout/SyncStatus";
 import { OfflineBadge } from "@/components/layout/OfflineBadge";
-import { PaywallPage } from "@/pages/PaywallPage";
 import { CommandPalette } from "@/components/command/CommandPalette";
 import { ToastContainer } from "@/components/ui/Toast";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
 import { useAuthStore, initAuthListener, initNetworkWatcher } from "@/store/auth.store";
-import { useLicenseStore } from "@/store/license.store";
 import { useSettingsStore } from "@/store/settings.store";
-import { LicenseModal } from "@/components/modals/LicenseModal";
 import { SyncConflictDialog } from "@/components/modals/SyncConflictDialog";
 import { AppLogo } from "@/components/ui/AppLogo";
 import { Upload } from "lucide-react";
@@ -155,9 +152,6 @@ export default function App() {
         // Phase 1: Authentication & Settings dependencies
         console.log("[Boot] 1/4: Loading API keys...");
         await useSettingsStore.getState().loadKeys();
-
-        console.log("[Boot] 2/4: Checking license...");
-        await useLicenseStore.getState().checkLicense();
 
         console.log("[Boot] 3/4: Initializing Auth Listener...");
         unsubAuth = initAuthListener();
@@ -333,7 +327,6 @@ export default function App() {
   // initialized + user  → Main app
   //
   const showMain = initialized && !booting;
-  const showPaywall = false;
   const showLoading = !initialized && !booting;
 
   return (
@@ -346,8 +339,7 @@ export default function App() {
         {/* ── Splash (covers everything while booting) ── */}
         {booting && <SplashScreen />}
 
-        {/* ── Auth / License gate ── */}
-        {showPaywall && <PaywallPage />}
+        {/* ── Auth gate ── */}
         {showLoading && (
           <div className="fixed inset-0 flex items-center justify-center" style={{ background: "var(--bg-primary)" }}>
             <div className="h-4 w-4 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: "var(--accent)" }} />
@@ -442,9 +434,6 @@ export default function App() {
 
         {/* Sync Conflict Dialog */}
         <SyncConflictDialog />
-
-        {/* License Modal */}
-        <LicenseModal />
 
         {/* Toast notifications */}
         <ToastContainer />

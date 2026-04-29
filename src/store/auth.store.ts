@@ -27,11 +27,10 @@ interface AuthStore {
   initialized: boolean;          // Firebase listener has fired at least once
   error: string | null;
 
-  // ── License / offline / local sync state ──
-  premium: boolean | null;   // null = not yet determined; false = no license
+  // ── Offline / local sync state ──
   offlineMode: boolean;          // true when running from offline cache
   booting: boolean;          // true during splash screen (initial boot)
-  localFolderPath: string | null; // Path to local backup folder (Premium)
+  localFolderPath: string | null; // Path to local backup folder
 
   // ── Actions ──
   signIn: () => Promise<void>;
@@ -43,7 +42,6 @@ interface AuthStore {
   _setUser: (u: User | null) => void;
   _setLoading: (v: boolean) => void;
   _setInit: (v: boolean) => void;
-  _setPremium: (v: boolean | null) => void;
   _setOffline: (v: boolean) => void;
   _setBooting: (v: boolean) => void;
   setLocalFolderPath: (path: string | null) => void;
@@ -57,7 +55,6 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   loading: false,
   initialized: false,
   error: null,
-  premium: import.meta.env.DEV ? true : null,
   offlineMode: false,
   booting: true,   // show splash while finding user
   localFolderPath: localStorage.getItem("qo_local_folder_path"),
@@ -73,12 +70,10 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
         displayName: result.user.displayName,
         photoURL: result.user.photoURL,
       };
-      // premium from JWT — null means not yet verified (default to false to avoid paywall loops)
-      const premium = import.meta.env.DEV ? true : (result.premium ?? false);
-      set({ user: profile, accessToken: result.accessToken, premium, loading: false, error: null, initialized: true, offlineMode: false });
+      set({ user: profile, accessToken: result.accessToken, loading: false, error: null, initialized: true, offlineMode: false });
 
       // Save to cache
-      void saveAuthCache({ ...profile, premium }).catch((e) =>
+      void saveAuthCache(profile).catch((e) =>
         console.warn("[Auth] saveAuthCache failed:", e)
       );
     } catch (err) {
@@ -98,7 +93,6 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     set({
       user: null,
       accessToken: null,
-      premium: null,
       offlineMode: false,
       error: null,
     });
@@ -111,12 +105,10 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     try {
       const claims = await refreshAndGetClaims(true);
       if (claims || import.meta.env.DEV) {
-        const prm = import.meta.env.DEV ? true : (claims?.premium ?? false);
-        set({ premium: prm });
-        await saveAuthCache({ ...user, premium: prm });
+        await saveAuthCache(user);
       }
     } catch {
-      // Network issue — stay with current premium value
+      // Network issue — stay with current cache
     }
   },
 
@@ -124,7 +116,6 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   _setUser: (u) => set({ user: u }),
   _setLoading: (v) => set({ loading: v }),
   _setInit: (v) => set({ initialized: v }),
-  _setPremium: (v) => set({ premium: v }),
   _setOffline: (v) => set({ offlineMode: v }),
   _setBooting: (v) => set({ booting: v }),
   setLocalFolderPath: (path) => {
@@ -141,8 +132,8 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 // Phase 1 (immediate): Load from IndexedDB cache (max 1.5 s), then set
 //   booting:false / initialized:true.  Never waits for Firebase.
 //
-// Phase 2 (background): Firebase onAuthStateChanged runs after boot is done.
-//   Only updates token / claims / premium — never re-blocks the UI.
+  // Phase 2 (background): Firebase onAuthStateChanged runs after boot is done.
+  //   Only updates token / claims — never re-blocks the UI.
 //
 export function initAuthListener(): () => void {
   if (!firebaseConfigured) {
@@ -163,7 +154,6 @@ export function initAuthListener(): () => void {
       if (cache) {
         useAuthStore.setState({
           user: { uid: cache.uid, email: cache.email, displayName: cache.displayName, photoURL: cache.photoURL },
-          premium: import.meta.env.DEV ? true : cache.premium,
           offlineMode: !navigator.onLine,
           initialized: true,
           booting: false,
@@ -171,7 +161,6 @@ export function initAuthListener(): () => void {
       } else {
         useAuthStore.setState({
           user: null,
-          premium: import.meta.env.DEV ? true : null,
           offlineMode: !navigator.onLine,
           initialized: true,
           booting: false,
@@ -183,7 +172,7 @@ export function initAuthListener(): () => void {
       }
     } catch (err) {
       console.error("[AuthBoot] Cache boot failed, forcing completion:", err);
-      useAuthStore.setState({ booting: false, initialized: true, user: null, premium: import.meta.env.DEV ? true : null });
+      useAuthStore.setState({ booting: false, initialized: true, user: null });
     }
   })();
 
@@ -219,14 +208,13 @@ export function initAuthListener(): () => void {
             try {
               const claims = await refreshAndGetClaims(false);
               if (claims || import.meta.env.DEV) {
-                const prm = import.meta.env.DEV ? true : (claims?.premium ?? false);
-                setState({ premium: prm, offlineMode: false });
-                void saveAuthCache({ ...profile, premium: prm }).catch(() => { });
+                setState({ offlineMode: false });
+                void saveAuthCache(profile).catch(() => { });
               } else {
-                setState({ premium: false, offlineMode: false });
+                setState({ offlineMode: false });
               }
             } catch {
-              // Claims failed — keep cached premium value
+              // Claims failed — keep current state
             }
           })();
         }
@@ -238,7 +226,7 @@ export function initAuthListener(): () => void {
         }
         // Boot still pending (rare) and Firebase confirmed no session
         if (currentState.booting) {
-          setState({ user: null, premium: import.meta.env.DEV ? true : null, offlineMode: !navigator.onLine, initialized: true, booting: false });
+          setState({ user: null, offlineMode: !navigator.onLine, initialized: true, booting: false });
         }
       }
     } catch (err) {

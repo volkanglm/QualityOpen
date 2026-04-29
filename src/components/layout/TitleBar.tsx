@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { APP_NAME } from "@/lib/constants";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
-import { useLicenseStore } from "@/store/license.store";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { ExportMenu } from "@/components/layout/ExportMenu";
 import { AppLogo } from "@/components/ui/AppLogo";
@@ -30,7 +29,6 @@ export function TitleBar() {
   const t = useT();
 
   const { projects } = useProjectStore();
-  const { isPro } = useLicenseStore();
   const activeProject = projects.find((p) => p.id === activeProjectId);
   const win = getCurrentWindow();
 
@@ -90,12 +88,6 @@ export function TitleBar() {
           </span>
         )}
 
-        {/* PRO Badge */}
-        {isPro && (
-          <span className="ml-1 px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider" style={{ background: "linear-gradient(135deg, #fbbf24, #f59e0b)", color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,0.2)" }}>
-            PRO
-          </span>
-        )}
       </div>
 
       {/* ── Right — Export + ⌘K + Theme + Window controls ── */}

@@ -136,17 +136,6 @@ export const tr = {
     "settings.save": "Kaydet",
     "settings.saved": "Kaydedildi",
     "settings.clearAll": "Tüm anahtarları sil",
-    "settings.licenseSection": "Lisans / Abonelik",
-    "settings.licenseSubtitle": "Ürün erişimini yönet",
-    "settings.licenseKeyHolder": "Lisans anahtarı...",
-    "settings.activate": "Aktive Et",
-    "settings.activating": "Bekleniyor...",
-    "settings.proActive": "PRO Aktif",
-    "settings.deactivate": "Lisansı Kaldır",
-    "settings.deactivateConfirm": "Lisansı bu cihazdan kaldırmak istediğinize emin misiniz? Bu işlem cihaz slotunu boşa çıkaracaktır.",
-    "settings.deactivateSuccess": "Lisans bu cihazdan başarıyla kaldırıldı.",
-    "settings.deactivateError": "Lisans kaldırılırken bir hata oluştu.",
-    "settings.deactivating": "Kaldırılıyor...",
     "settings.defaultProv": "Varsayılan sağlayıcı",
     "settings.defaultDesc": "Birden fazla anahtar varken hangisi kullanılsın",
     "settings.auto": "Oto",
@@ -181,7 +170,6 @@ export const tr = {
     "settings.sync.login": "Google ile Giriş Yap",
     "settings.selectFolder": "Klasör Seç",
     "settings.changeFolder": "Değiştir",
-    "settings.premium": "PREMIUM",
 
     // ── Memos ────────────────────────────────────────────────────────────────────
     "memos.title": "Notlar",
@@ -250,7 +238,6 @@ export const tr = {
     "cmd.noKey": "API anahtarı yok",
 
     // ── Sync Status ────────────────────────────────────────────────────────────
-    "sync.activatePro": "QualityOpen Pro'yu Etkinleştir",
     "sync.signingIn": "Giriş yapılıyor…",
     "sync.signInGoogle": "Google ile Giriş Yap",
     "sync.driveDisabled": "Google Drive API etkin değil veya izin eksik. Veriler yalnızca yerel olarak kaydediliyor.",
@@ -283,27 +270,6 @@ export const tr = {
     "update.close": "Kapat",
 
     // ── License Modal ────────────────────────────────────────────────────────────
-    "license.successToast": "Lisans aktifleştirildi. QualityOpen Pro'ya hoş geldiniz!",
-    "license.invalidKey": "Geçersiz lisans anahtarı.",
-    "license.successTitle": "Aktivasyon Başarılı!",
-    "license.successSubtitle": "QualityOpen Pro'ya hoş geldiniz. Sınırları kaldırdınız.",
-    "license.featuresTitle": "Araştırmanızda Sınırları Kaldırın",
-    "license.featuresSubtitle": "QualityOpen Pro ile projelerinizdeki kısıtlamaları aşın ve tam yapılandırılmış güçlü AI araçlarından sınırsızca yararlanın.",
-    "license.featUnlimited": "Sınırsız Belge ve Proje",
-    "license.featUnlimitedDesc": "Proje ve ekleyebileceğiniz analiz belgelerinde limite takılmayın.",
-    "license.featAi": "Gelişmiş Yapay Zeka",
-    "license.featAiDesc": "Metin kodlama, sentezleme ve asistan özelliklerini kullanın.",
-    "license.featExport": "Tam Dışa Aktarma",
-    "license.featExportDesc": "Word, Excel, CSV ve yüksek çözünürlüklü grafik dışa aktarım formatları.",
-    "license.featUpdates": "1 Yıllık Güncelleme",
-    "license.featUpdatesDesc": "Yazılıma gelecek tüm yeni araç ve analiz bileşenlerinden ücretsiz yararlanın.",
-    "license.buyNow": "Ömür Boyu Lisans Al ($149)",
-    "license.oneTime": "✨ Tek seferlik ödeme. Abonelik yok.",
-    "license.alreadyHave": "Zaten lisansınız var mı?",
-    "license.activateDesc": "Satın aldığınız lisans anahtarını yapıştırarak bilgisayarınızı etkinleştirin.",
-    "license.label": "Lisans Anahtarı",
-    "license.verifying": "Doğrulanıyor...",
-    "license.activate": "Etkinleştir",
 
     "chat.docLabel": "Belge:",
     "chat.segsLabel": "Kodlanmış segmentler:",
@@ -317,7 +283,6 @@ export const tr = {
     "chat.systemPrompt": "Sen nitel araştırma verisi analizi konusunda uzman bir yardımcısın.\nAşağıda araştırmacının çalıştığı belge ve kodlanmış segmentler verilmiştir.\nBu bağlamı kullanarak araştırmacının sorularını Türkçe olarak yanıtla.\nKısa, analitik ve akademik bir dil kullan.",
     "chat.contextLabel": "Bağlam:",
     "chat.noContext": "Bağlam bulunmuyor.",
-
 
     "common.active": "Aktif",
     "common.viewSegments": "Segmentleri Görüntüle",
@@ -385,7 +350,6 @@ export const tr = {
     "login.google": "Google ile Devam Et",
     "login.notConfigured": "Firebase yapılandırılmamış.",
     "login.footer": "Önce-yerel · Verileriniz size aittir",
-
 
     // ── Analysis Page & Charts ──────────────────────────────────────────────────
     "analysis.counts": "{codes} KOD · {segments} SEGMENT · {docs} BELGE",
@@ -542,9 +506,6 @@ export const tr = {
     "ai.error.invalidGeminiFormat": "Beklenmeyen Gemini yanıt formatı",
     "ai.error.invalidFormat": "AI yanıtı beklenen formatta değil.",
     "ocr.error": "OCR işlemi başarısız oldu. Lütfen tekrar deneyin.",
-    "project.limit.docCount": "Demo sürümünde proje başına en fazla 3 belge ekleyebilirsiniz. Sınırsız kullanım için QualityOpen Pro'ya yükseltin.",
-    "project.limit.mapNodeCount": "Demo sürümünde haritaya en fazla 5 öge ekleyebilirsiniz. Sınırsız kullanım için QualityOpen Pro'ya yükseltin.",
-    "file.limit.size": "Demo sürümünde dosya boyutu 5MB ile sınırlıdır. Lütfen daha küçük bir dosya seçin veya tam sürüm için QualityOpen Pro'ya yükseltin.",
     "sync.conflictTitle": "Uzakta daha yeni veri var",
     "sync.conflictDesc": "Google Drive'daki versiyon daha yeni. Ne yapmak istiyorsunuz?",
     "sync.conflictOverwrite": "Yerel ile üzerine yaz",
@@ -601,5 +562,5 @@ export const tr = {
     "protocol.saveTitle": "Versiyonu Kaydet",
     "protocol.saveDesc": "Bu versiyonda neler değişti? Kısa bir özet yazarak takibini kolaylaştırabilirsiniz.",
     "protocol.changeLog": "Değişim Günlüğü (Change Log)",
-    "protocol.changeLogPlaceholder": "Örn: 2. Soru daha açık hale getirildi, demografi bölümü eklendi.",
-};
+    "protocol.changeLogPlaceholder": "Örn: 2. Soru daha açık hale getirildi, demografi bölümü eklendi."
+  };

@@ -16,7 +16,6 @@ import { xorEncode, xorDecode, AUTH_CIPHER } from "@/lib/crypto";
 
 export interface ClaimsResult {
   idToken: string;
-  premium: boolean;
 }
 
 // NOTE: fetch proxy removed — we no longer use Firebase SDK's signInWithCredential,
@@ -206,7 +205,6 @@ export interface GoogleSignInResult {
   accessToken: string;
   idToken: string;
   firebaseRefreshToken: string | null;
-  premium?: boolean;
 }
 
 export async function signInWithGoogle(): Promise<GoogleSignInResult> {
@@ -344,7 +342,6 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
       accessToken: tokens.access_token ?? "",
       idToken: firebaseResult.idToken,
       firebaseRefreshToken: firebaseResult.refreshToken,
-      premium: false, // will be checked by claims refresh
     };
   } catch (err) {
     console.error("🛑 [OAuth] Flow failed with error:", err);
@@ -363,10 +360,10 @@ export async function refreshAndGetClaims(
   forceRefresh = false,
 ): Promise<ClaimsResult | null> {
   // Primary path: Firebase SDK (used when signInWithCredential was called)
-  const user = auth.currentUser;
+    const user = auth.currentUser;
   if (user) {
     const result = await user.getIdTokenResult(forceRefresh);
-    return { idToken: result.token, premium: !!(result.claims["premium"]) };
+    return { idToken: result.token };
   }
 
   // Fallback: exchange stored Firebase refresh token for a fresh idToken
@@ -385,8 +382,7 @@ export async function refreshAndGetClaims(
     const data = JSON.parse(text) as { id_token?: string; refresh_token?: string };
     if (!data.id_token) return null;
     if (data.refresh_token) saveFirebaseRefreshToken(data.refresh_token);
-    const payload = decodeJwtPayload(data.id_token);
-    return { idToken: data.id_token, premium: !!payload["premium"] };
+    return { idToken: data.id_token };
   } catch {
     return null;
   }

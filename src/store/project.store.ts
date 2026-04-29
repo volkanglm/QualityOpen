@@ -3,8 +3,6 @@ import { persist, subscribeWithSelector } from "zustand/middleware";
 import type { Project, Document, Code, Segment, Memo, Synthesis, ReflexivityEntry, AuditLogEntry, ProtocolVersion, ConceptMap, ID } from "@/types";
 import { CODE_COLORS } from "@/lib/constants";
 import { writeSnapshotToDb } from "@/lib/db";
-import { useLicenseStore } from "@/store/license.store";
-import { t } from "@/lib/i18n";
 import { useAppStore } from "@/store/app.store";
 import { idbStorage } from "@/lib/storage";
 
@@ -284,17 +282,6 @@ export const useProjectStore = create<ProjectStore>()(
 
         createDocument: (projectId, name, type = "document") => {
           get().pushHistory();
-          const { isPro, openModal } = useLicenseStore.getState();
-
-          if (!isPro) {
-            const count = get().documents.filter((d) => d.projectId === projectId).length;
-            if (count >= 3) {
-              openModal();
-              const lang = useAppStore.getState().language;
-              throw new Error(t("project.limit.docCount", lang));
-            }
-          }
-
           const doc: Document = {
             id: uuid(),
             projectId,

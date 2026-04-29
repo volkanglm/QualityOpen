@@ -24,7 +24,6 @@ function uuid() {
 }
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
-import { useLicenseStore } from "@/store/license.store";
 import { useToastStore } from "@/store/toast.store";
 import { useT } from "@/lib/i18n";
 import { Button } from "@/components/ui/Button";
@@ -136,13 +135,6 @@ function ConceptMapInner() {
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
-      
-      const { isPro, openModal } = useLicenseStore.getState();
-      if (!isPro && nodes.length >= 5) {
-        openModal();
-        pushToast(t("project.limit.mapNodeCount"), "error");
-        return;
-      }
 
       console.log("Drop DETECTED!");
       event.preventDefault();
@@ -244,15 +236,6 @@ function ConceptMapInner() {
 
     const handleManualDrop = (e: any) => {
       const { appData, clientX, clientY } = e.detail;
-      
-      const { isPro, openModal } = useLicenseStore.getState();
-      if (!isPro && nodes.length >= 5) {
-        openModal();
-        import("@/store/toast.store").then((m) => {
-          m.useToastStore.getState().push(t("project.limit.mapNodeCount"), "error");
-        });
-        return;
-      }
 
       try {
         const { nodeType, data } = JSON.parse(appData);
@@ -286,13 +269,6 @@ function ConceptMapInner() {
   }, [screenToFlowPosition, setNodes, nodes.length, t]); // Added nodes.length and t to dependencies for stability
 
   const addNewNode = useCallback(() => {
-    const { isPro, openModal } = useLicenseStore.getState();
-    if (!isPro && nodes.length >= 5) {
-      openModal();
-      pushToast(t("project.limit.mapNodeCount"), "error");
-      return;
-    }
-
     const id = uuid();
     const offset = Math.floor(Math.random() * 60) - 30;
     const colorIndex = Math.floor(Math.random() * 5); // Random color to start

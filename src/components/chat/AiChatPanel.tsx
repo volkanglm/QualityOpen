@@ -4,7 +4,6 @@ import { X, Send, Loader2, MessageSquare } from "lucide-react";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
 import { useSettingsStore } from "@/store/settings.store";
-import { useLicenseStore } from "@/store/license.store";
 import { useT } from "@/hooks/useT";
 import { askAi } from "@/lib/ai";
 import { useToastStore } from "@/store/toast.store";
@@ -21,7 +20,6 @@ export function AiChatPanel() {
   const { chatOpen, setChatOpen, activeDocumentId, activeProjectId } = useAppStore();
   const { documents, segments, codes } = useProjectStore();
   const { getActiveKey } = useSettingsStore();
-  const { isPro, openModal } = useLicenseStore();
   const t = useT();
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -73,11 +71,6 @@ export function AiChatPanel() {
   }, [documents, segments, codes, activeDocumentId, activeProjectId]);
 
   const sendMessage = useCallback(async () => {
-    if (!isPro) {
-      openModal();
-      return;
-    }
-
     const text = input.trim();
     if (!text || loading) return;
 
@@ -111,7 +104,7 @@ ${ctx.docContext ? `${t("chat.contextLabel")}\n${ctx.docContext}` : t("chat.noCo
     } finally {
       setLoading(false);
     }
-  }, [isPro, openModal, input, loading, buildContext, messages, t]);
+  }, [input, loading, buildContext, messages, t]);
 
   const handleSend = useCallback(() => { sendMessage().catch(console.error); }, [sendMessage]);
 
@@ -150,11 +143,6 @@ ${ctx.docContext ? `${t("chat.contextLabel")}\n${ctx.docContext}` : t("chat.noCo
               style={{ color: "var(--text-primary)" }}
             >
               {t("chat.title")}
-              {!isPro && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold tracking-wider" style={{ background: "var(--accent)", color: "white" }}>
-                  PRO
-                </span>
-              )}
             </span>
             <button
               onClick={() => setMessages([])}

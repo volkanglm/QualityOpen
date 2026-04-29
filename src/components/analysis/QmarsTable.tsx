@@ -5,7 +5,6 @@ import type { Code } from "@/types";
 import { Download, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { askAi } from "@/lib/ai";
-import { useLicenseStore } from "@/store/license.store";
 import { useSettingsStore } from "@/store/settings.store";
 export function QmarsTable({ codes }: { codes: Code[] }) {
     const { documents, segments, syntheses, upsertSynthesis } = useProjectStore();
@@ -31,12 +30,6 @@ export function QmarsTable({ codes }: { codes: Code[] }) {
     }, [codes, segments, syntheses]);
 
     const handleGenerateSynthesis = async (code: Code, codeSegments: typeof segments) => {
-        const { isPro, openModal } = useLicenseStore.getState();
-        if (!isPro) {
-            openModal();
-            return;
-        }
-
         const key = getActiveKey();
         if (!key || !activeProjectId) return;
 

@@ -241,8 +241,6 @@ export interface AuthState {
   loading: boolean;
   initialized: boolean;
   error: string | null;
-  /** Firebase custom claim: premium=true → full access */
-  premium: boolean | null;
   /** True when the app is running from an offline cache session */
   offlineMode: boolean;
   /** True during the initial boot splash screen */
