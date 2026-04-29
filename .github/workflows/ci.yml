@@ -89,10 +89,14 @@ jobs:
         run: |
           python3 -c "import base64, os; cert = os.environ['APPLE_CERTIFICATE'].strip(); open('certificate.p12','wb').write(base64.b64decode(cert))"
           ls -la certificate.p12
+          # DEBUG: Check password env var is populated
+          echo "Password length: ${#APPLE_CERTIFICATE_PASSWORD}"
           openssl pkcs12 -in certificate.p12 -passin pass:"$APPLE_CERTIFICATE_PASSWORD" -info -noout 2>&1 | head -5
-          security create-keychain -p "$(openssl rand -base64 32)" build.keychain
+          # Create keychain with empty password (consistent)
+          security create-keychain -p "" build.keychain || true
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
+          # Import with explicit keychain
           security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain
 
