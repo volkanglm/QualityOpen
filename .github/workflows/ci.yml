@@ -47,6 +47,9 @@ jobs:
   build-macos:
     name: Build macOS Universal
     runs-on: macos-latest
+    # Only build on main branch pushes (skip for PRs to save time)
+    if: github.ref == 'refs/heads/main'
+    timeout-minutes: 90
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -127,6 +130,9 @@ jobs:
   build-windows:
     name: Build Windows x64
     runs-on: windows-latest
+    # Only build on main branch pushes (skip for PRs to save time)
+    if: github.ref == 'refs/heads/main'
+    timeout-minutes: 90
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

@@ -26,6 +26,7 @@ jobs:
     name: Build & Release macOS
     needs: create-release
     runs-on: macos-latest
+    timeout-minutes: 90
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -102,6 +103,7 @@ jobs:
     name: Build & Release Windows
     needs: create-release
     runs-on: windows-latest
+    timeout-minutes: 90
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
