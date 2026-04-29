@@ -67,10 +67,11 @@ jobs:
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         run: |
           python3 -c "import base64, os; cert = os.environ['APPLE_CERTIFICATE'].strip(); open('certificate.p12','wb').write(base64.b64decode(cert))"
+          PASSWORD=$(echo "$APPLE_CERTIFICATE_PASSWORD" | xargs)
           security create-keychain -p "$(openssl rand -base64 32)" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
-          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security import certificate.p12 -k build.keychain -P "$PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain
 
       - name: Build Tauri app (universal)

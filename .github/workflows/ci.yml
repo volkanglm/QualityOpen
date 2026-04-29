@@ -89,15 +89,16 @@ jobs:
         run: |
           python3 -c "import base64, os; cert = os.environ['APPLE_CERTIFICATE'].strip(); open('certificate.p12','wb').write(base64.b64decode(cert))"
           ls -la certificate.p12
-          # DEBUG: Check password env var is populated
-          echo "Password length: ${#APPLE_CERTIFICATE_PASSWORD}"
-          openssl pkcs12 -in certificate.p12 -passin pass:"$APPLE_CERTIFICATE_PASSWORD" -info -noout 2>&1 | head -5
+          # Trim password to remove accidental whitespace/newlines
+          PASSWORD=$(echo "$APPLE_CERTIFICATE_PASSWORD" | xargs)
+          echo "Password length after trim: ${#PASSWORD}"
+          openssl pkcs12 -in certificate.p12 -passin pass:"$PASSWORD" -info -noout 2>&1 | head -5
           # Create keychain with empty password (consistent)
           security create-keychain -p "" build.keychain || true
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
           # Import with explicit keychain
-          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security import certificate.p12 -k build.keychain -P "$PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain
 
       - name: Build Tauri app (universal)
