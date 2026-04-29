@@ -66,7 +66,7 @@ jobs:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         run: |
-          echo "$APPLE_CERTIFICATE" | openssl base64 -d -out certificate.p12
+          printf '%s' "$APPLE_CERTIFICATE" | base64 -d > certificate.p12
           security create-keychain -p "$(openssl rand -base64 32)" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
