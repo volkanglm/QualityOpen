@@ -119,6 +119,9 @@ export const es = {
     "settings.langDesc": "Idioma de la interfaz",
     "settings.keyHint": "La llave se almacena cifrada en el almacenamiento local. Nunca se envía a un servidor.",
     "settings.about": "Acerca de",
+    "settings.donateTitle": "Apóyanos",
+    "settings.donateDesc": "QualityOpen es completamente gratuito y de código abierto. Si lo encuentras útil, puedes apoyar el desarrollo con una donación.",
+    "settings.copy": "Copiar",
 
     // ── Memos ────────────────────────────────────────────────────────────────────
     "memos.title": "Memos",

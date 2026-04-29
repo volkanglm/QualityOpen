@@ -119,6 +119,9 @@ export const nl = {
     "settings.langDesc": "Interfacetaal",
     "settings.keyHint": "Sleutel wordt versleuteld opgeslagen in lokale opslag. Wordt nooit naar een server verzonden.",
     "settings.about": "Over",
+    "settings.donateTitle": "Steun ons",
+    "settings.donateDesc": "QualityOpen is volledig gratis en open-source. Als je het nuttig vindt, kun je de ontwikkeling steunen met een donatie.",
+    "settings.copy": "Kopiëren",
 
     // ── Memos ────────────────────────────────────────────────────────────────────
     "memos.title": "Memo's",

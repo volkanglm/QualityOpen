@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, type Variants } from "framer-motion";
-import { Settings, Key, Eye, EyeOff, Check, Trash2, Info, Cpu, Globe, Download, Upload, Database, RefreshCw, Cloud, FolderOpen } from "lucide-react";
+import { Settings, Key, Eye, EyeOff, Check, Trash2, Info, Cpu, Globe, Download, Upload, Database, RefreshCw, Cloud, FolderOpen, Copy, Heart } from "lucide-react";
 import { AppLogo } from "@/components/ui/AppLogo";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { APP_NAME, APP_VERSION } from "@/lib/constants";
@@ -741,6 +741,65 @@ export function SettingsPage() {
           <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
             {t("settings.aboutDesc")}
           </p>
+        </motion.div>
+
+        {/* ── Support / Donate ── */}
+        <motion.div
+          variants={itemVariants}
+          className="rounded-[var(--radius-lg)] border p-5"
+          style={{ borderColor: "var(--border)", background: "var(--bg-secondary)" }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Heart className="h-4 w-4 text-red-500" />
+            <h3
+              className="text-xs font-semibold uppercase tracking-wider"
+              style={{ color: "var(--text-primary)" }}
+            >
+              {t("settings.donateTitle")}
+            </h3>
+          </div>
+          <p className="text-[11px] mb-3" style={{ color: "var(--text-muted)" }}>
+            {t("settings.donateDesc")}
+          </p>
+          <div className="space-y-2">
+            {[
+              { name: "Bitcoin", addr: "bc1qxysukcrqeawv6xlh84xf6m2xhlhmgp57n8cddv" },
+              { name: "Ethereum", addr: "0xAD1548f91195D5CF6Bf6E73d90bF91fb7505D713" },
+              { name: "Solana", addr: "DpDRz8w3Q4dBn7X59dSHmuxLb7fFKGKKJadzWjKMKH3c" },
+              { name: "Kaspa", addr: "kaspa:qypmfy82e2h4th3g8qn9qy2rrrxxqqsmfe2xcg7g0r89rn38kmywxngj4u0zdxu" },
+            ].map((crypto) => (
+              <div
+                key={crypto.name}
+                className="flex items-center justify-between px-3 py-2 rounded-[var(--radius-sm)] border"
+                style={{
+                  background: "var(--bg-tertiary)",
+                  borderColor: "var(--border-subtle)",
+                }}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    className="text-[11px] font-semibold whitespace-nowrap"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    {crypto.name}
+                  </span>
+                  <span
+                    className="text-[10px] font-mono truncate"
+                    style={{ color: "var(--text-muted)" }}
+                  >
+                    {crypto.addr}
+                  </span>
+                </div>
+                <button
+                  onClick={() => navigator.clipboard.writeText(crypto.addr)}
+                  className="p-1.5 rounded-md hover:bg-[var(--surface-hover)] transition-colors flex-shrink-0"
+                  title={t("settings.copy")}
+                >
+                  <Copy className="h-3 w-3" style={{ color: "var(--text-muted)" }} />
+                </button>
+              </div>
+            ))}
+          </div>
         </motion.div>
       </motion.div>
 
