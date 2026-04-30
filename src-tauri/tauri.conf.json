@@ -30,17 +30,15 @@
   },
   "plugins": {
     "updater": {
-      "active": true,
+      "active": false,
       "dialog": false,
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXkgQUU2MUE4QkVENTJCREVCNgpSV1MyM2l2VnZxaGhyajdqajNGbFJNQ29pOHA3V3FwNng1L3JRWWcrdFpvd0NCcWpwVm8yTXk0Qgo=",
-        "endpoints": [
-        "https://github.com/volkanglm/QualityOpen/releases/latest/download/latest.json"
-      ]
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXkgNTA2RDU2NDQ5OTIxNEEwOQpSV1FKU2lHWlJGWnRVQTR3S3J2a2RCWUxjYlhkUkk3YU9tY0lUSXJkMFVKNEQ5V2V6MGx6aExxdAo=",
+      "endpoints": []
     }
   },
   "bundle": {
     "active": true,
-      "createUpdaterArtifacts": "v1Compatible",
+      "createUpdaterArtifacts": false,
     "targets": [
       "nsis",
       "dmg",
@@ -54,7 +52,8 @@
       "icons/icon.ico"
     ],
     "macOS": {
-      "entitlements": "Entitlements.plist"
+      "entitlements": "Entitlements.plist",
+      "signingIdentity": "DAE9FCDBAB6E8BB3D310A222873027B3126C55E9"
     }
   }
 }
