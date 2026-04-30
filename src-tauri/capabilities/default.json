@@ -36,7 +36,6 @@
     "dialog:default",
     "dialog:allow-save",
     "dialog:allow-open",
-    "updater:default",
     "core:window:allow-minimize",
     "core:window:allow-toggle-maximize",
     "core:window:allow-start-dragging",
@@ -64,6 +63,9 @@
         },
         {
           "url": "https://api.anthropic.com/*"
+        },
+        {
+          "url": "https://api.github.com/*"
         }
       ]
     }
