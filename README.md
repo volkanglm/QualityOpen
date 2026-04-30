@@ -17,32 +17,9 @@
 
 ---
 
-## Screenshots
+## Website
 
-### Project Dashboard
-*Overview of documents, codes, and analysis progress.*
-
-![Dashboard](docs/screenshots/dashboard.png)
-
-### Document Coding Interface
-*Select text, images, or video segments and assign codes.*
-
-![Coding](docs/screenshots/coding.png)
-
-### Visual Analytics — Thematic Network
-*Explore relationships between codes and themes interactively.*
-
-![Thematic Network](docs/screenshots/thematic-network.png)
-
-### AI Analysis Assistant
-*Chat with your data using your own API key.*
-
-![AI Assistant](docs/screenshots/ai-assistant.png)
-
-### Export & Reporting
-*Generate publication-ready reports in APA 7 format.*
-
-![Export](docs/screenshots/export.png)
+Visit **[qualityopen.com](https://qualityopen.com)** for the latest updates, documentation, and community resources.
 
 ---
 
@@ -113,6 +90,18 @@ Please read our [Contributing Guide](CONTRIBUTING.md) for details on:
 This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
 
 See [LICENSE](LICENSE) for the full license text.
+
+### Copyleft Protection
+
+This software is **copyleft**: you are free to use, study, modify, and redistribute it — but any modified version distributed to others (including over a network) must also be released under AGPL-3.0 with full source code.
+
+**You may not:**
+- Take this code, modify it, and sell it as a closed-source commercial product.
+- Remove or bypass this license when redistributing.
+- Use it in proprietary software without releasing your source code.
+- Redistribute without including the complete corresponding source code.
+
+AGPL-3.0 ensures the software remains forever free and open for the research community. Any derivative work, even when accessed over a network, must share its source code. This prevents anyone from taking the software, improving it, and offering it as a proprietary service without giving back.
 
 ---
 
