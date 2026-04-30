@@ -29,3 +29,5 @@ ignore/
 Rakipler/
 sos.md
 *.log
+tauri.key
+tauri.pub

@@ -28,7 +28,7 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
     set({ step: "checking", error: null, dismissed: false });
     try {
       const res = await check();
-      if (res?.available) {
+      if (res?.available && res?.version) {
         set({ update: res, step: "available" });
       } else {
         set({ step: "idle", update: null });

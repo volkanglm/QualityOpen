@@ -40,7 +40,9 @@ export function AutoUpdater() {
                 className="fixed bottom-6 right-6 bg-[var(--bg-secondary)] border border-[var(--border)] p-4 rounded-xl shadow-[var(--float-shadow)] flex items-center gap-4 z-[9999]"
             >
                 <div className="flex flex-col min-w-[120px]">
-                    <span className="text-[var(--text-primary)] text-sm font-bold">v{update?.version} {t("update.available")}</span>
+                    <span className="text-[var(--text-primary)] text-sm font-bold">
+                        {update?.version ? `v${update.version} ` : ""}{t("update.available")}
+                    </span>
                     <span className="text-[var(--text-secondary)] text-xs">
                         {step === "downloading" ? t("update.downloading") : step === "ready" ? t("update.ready") : "Bug fixes & performance boosts."}
                     </span>
