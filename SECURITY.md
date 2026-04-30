@@ -81,7 +81,7 @@ QualityOpen is designed with security and privacy as core principles:
 
 ### Disabling Automatic Updates
 
-QualityOpen uses Tauri's built-in updater. If you prefer to review updates manually, you can disable auto-check in the application settings.
+QualityOpen checks for updates via the GitHub API. If you prefer to review updates manually, you can disable auto-check in the application settings.
 
 ### AI Provider API Keys
 

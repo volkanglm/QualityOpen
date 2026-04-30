@@ -1,7 +1,7 @@
 # AI Context: QualityOpen Proje Mimarisi
 
 > Bu dosya, bir AI asistaninin projeyi sifirdan anlamasi icin hazirlanmistir.
-> QualityOpen v1.3.4 — Nitel Veri Analiz Platformu (QDA)
+> QualityOpen v1.3.7 — Nitel Veri Analiz Platformu (QDA)
 
 ---
 
@@ -37,8 +37,8 @@ QualityOpen, nitel arastirma verilerini analiz etmek icin kullanilan bir masaust
 |-----------|----------|
 | Tauri v2 | Rust tabanli masaustu framework |
 | Firebase | Auth, Firestore (sync) |
-| Lemon Squeezy | Lisans yonetimi |
 | IndexedDB | Offline-first kalici veri saklama |
+| GitHub API | Update checker (releases/latest endpoint) |
 
 ### Paket Yonetimi
 - **pnpm** (pnpm-lock.yaml mevcut)
@@ -75,11 +75,10 @@ QualityOpenQDA/
 │   │   ├── app.store.ts          # UI state (aktif proje, view, tema, panel genislikleri)
 │   │   ├── project.store.ts      # Domain data (projeler, dokumanlar, kodlar, segmentler, conceptMaps)
 │   │   ├── auth.store.ts         # Firebase auth state
-│   │   ├── license.store.ts      # Lemon Squeezy lisans state
 │   │   ├── settings.store.ts     # API key'ler, ayarlar
 │   │   ├── sync.store.ts         # Google Drive sync state
 │   │   ├── toast.store.ts        # Bildirim state
-│   │   ├── update.store.ts       # Auto-updater state
+│   │   ├── update.store.ts       # GitHub API-based update checker
 │   │   └── visualTheme.store.ts  # Gorsel tema ayarlari
 │   ├── types/
 │   │   └── index.ts              # Tum TypeScript interface'leri
@@ -106,14 +105,12 @@ QualityOpenQDA/
 │   │   ├── qdpx.ts               # QDPX format import/export
 │   │   └── ai.ts                 # AI servis entegrasyonu
 │   ├── hooks/
-│   │   ├── useLicense.ts         # Lisans hook
 │   │   ├── useNetwork.ts         # Ag durumu hook
 │   │   ├── useResizable.ts       # Panel boyutlandirma hook
 │   │   └── useT.ts               # i18n hook
 │   ├── locales/                  # 8 dil destegi (tr, en, de, es, nl, fr, it, pt)
 │   ├── data/                     # Sabit veri (features.ts)
 │   ├── dev-tools/                # Mock data, Studio Director
-│   ├── services/                 # Lemon Squeezy API
 │   └── pages/                    # Sayfa bilesenleri (8 sayfa)
 ├── src-tauri/                    # Rust backend
 │   ├── src/                      # Rust kaynak kodu
@@ -179,7 +176,7 @@ className={cn("base-classes", condition && "conditional-class")}
 ```json
 {
   "productName": "QualityOpen",
-  "version": "1.3.4",
+  "version": "1.3.7",
   "identifier": "com.ivg.qualityopen",
   "app": {
     "windows": [{
@@ -192,22 +189,23 @@ className={cn("base-classes", condition && "conditional-class")}
     }]
   },
   "bundle": {
-    "targets": ["nsis", "dmg", "app"]
+    "targets": ["nsis", "dmg", "app"],
+    "createUpdaterArtifacts": false
   }
-}
 ```
 
 - Custom title bar (decorations: false)
 - Window boyutu: 900x600 minimum, 1280x800 default
+- Updater: GitHub API uzerinden versiyon kontrolu (Tauri plugin-updater yerine)
 
 ---
 
 ## 6. Lisans Modeli
 
-- **Free:** Sinirli ozellikler (3 dokuman/proje, 5 dugum/harita)
-- **Pro:** Sinirsiz — Lemon Squeezy lisans sistemi
-- **DEV mode:** Tum Pro ozellikler otomatik acik (`import.meta.env.DEV`)
-- Kontrol: `useLicenseStore.getState().isPro` — UI limit kontrollerinde
+- **Open Source:** AGPL-3.0 altinda tamamen ucretsiz
+- Tum ozellikler sinirsiz: dokuman, mindmap dugumu, dosya boyutu
+- AI ozellikler, export ozellikleri, sync — hepsi ucretsiz
+- Herhangi bir lisans aktivasyonu gerektirmez
 
 ---
 
