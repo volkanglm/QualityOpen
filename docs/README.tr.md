@@ -17,32 +17,9 @@
 
 ---
 
-## Ekran Görüntüleri
+## Website
 
-### Proje Panosu
-*Belgeler, kodlar ve analiz ilerlemesine genel bakış.*
-
-![Dashboard](docs/screenshots/dashboard.png)
-
-### Belge Kodlama Arayüzü
-*Metin, görüntü veya video segmentlerini seçin ve kod atayın.*
-
-![Coding](docs/screenshots/coding.png)
-
-### Görsel Analitik — Tematik Ağ
-*Kodlar ve temalar arasındaki ilişkileri etkileşimli olarak keşfedin.*
-
-![Thematic Network](docs/screenshots/thematic-network.png)
-
-### Yapay Zeka Analiz Asistanı
-*Kendi API anahtarınızı kullanarak verilerinizle sohbet edin.*
-
-![AI Assistant](docs/screenshots/ai-assistant.png)
-
-### Dışa Aktarım ve Raporlama
-*APA 7 formatında yayına hazır raporlar oluşturun.*
-
-![Export](docs/screenshots/export.png)
+En son güncellemeler, dokümantasyon ve topluluk kaynakları için **[qualityopen.com](https://qualityopen.com)**'u ziyaret edin.
 
 ---
 

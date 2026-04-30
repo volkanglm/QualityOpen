@@ -17,32 +17,9 @@
 
 ---
 
-## Schermafbeeldingen
+## Website
 
-### Projectdashboard
-*Overzicht van documenten, codes en analysevoortgang.*
-
-![Dashboard](docs/screenshots/dashboard.png)
-
-### Documentcodering-interface
-*Selecteer tekst-, afbeelding- of videosegmenten en wijs codes toe.*
-
-![Coding](docs/screenshots/coding.png)
-
-### Visuele analytics — Thematisch Netwerk
-*Verken interactief de relaties tussen codes en thema's.*
-
-![Thematic Network](docs/screenshots/thematic-network.png)
-
-### AI-analyseassistent
-*Chat met uw gegevens met behulp van uw eigen API-sleutel.*
-
-![AI Assistant](docs/screenshots/ai-assistant.png)
-
-### Exporteren en rapporteren
-*Genereer publicatieklaar rapporten in APA 7-formaat.*
-
-![Export](docs/screenshots/export.png)
+Bezoek **[qualityopen.com](https://qualityopen.com)** voor de nieuwste updates, documentatie en communitybronnen.
 
 ---
 

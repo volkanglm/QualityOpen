@@ -17,32 +17,9 @@
 
 ---
 
-## Capturas de pantalla
+## Sitio web
 
-### Panel del proyecto
-*Vista general de documentos, códigos y progreso del análisis.*
-
-![Dashboard](docs/screenshots/dashboard.png)
-
-### Interfaz de codificación de documentos
-*Seleccione segmentos de texto, imágenes o video y asigne códigos.*
-
-![Coding](docs/screenshots/coding.png)
-
-### Analítica visual — Red Temática
-*Explore interactivamente las relaciones entre códigos y temas.*
-
-![Thematic Network](docs/screenshots/thematic-network.png)
-
-### Asistente de análisis con IA
-*Chatee con sus datos utilizando su propia clave de API.*
-
-![AI Assistant](docs/screenshots/ai-assistant.png)
-
-### Exportación e informes
-*Genere informes listos para publicación en formato APA 7.*
-
-![Export](docs/screenshots/export.png)
+Visita **[qualityopen.com](https://qualityopen.com)** para obtener las últimas actualizaciones, documentación y recursos de la comunidad.
 
 ---
 
