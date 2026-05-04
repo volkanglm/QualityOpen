@@ -74,7 +74,8 @@ jobs:
           security create-keychain -p "" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
-          security import certificate.p12 -k build.keychain -P "$PASSWORD" -T /usr/bin/codesign
+          security set-keychain-settings -lut 7200 build.keychain
+          security import certificate.p12 -k build.keychain -P "$PASSWORD" -T /usr/bin/codesign -A
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain
 
       - name: Test signing key
