@@ -77,6 +77,16 @@ jobs:
           security import certificate.p12 -k build.keychain -P "$PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain
 
+      - name: Test signing key
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          echo "Key length: ${#TAURI_SIGNING_PRIVATE_KEY}"
+          echo "Password set: $( [ -n "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" ] && echo yes || echo no)"
+          echo "test" > /tmp/test_file.txt
+          pnpm tauri signer sign /tmp/test_file.txt && echo "SIGNING OK" || echo "SIGNING FAILED"
+
       - name: Build Tauri app (universal)
         run: pnpm tauri build --target universal-apple-darwin
         env:
@@ -165,6 +175,17 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
+
+      - name: Test signing key
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          Write-Host "Key length: $($env:TAURI_SIGNING_PRIVATE_KEY.Length)"
+          Write-Host "Password set: $( if ($env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) { 'yes' } else { 'no' })"
+          "test" | Out-File -FilePath "$env:RUNNER_TEMP\test_file.txt"
+          pnpm tauri signer sign "$env:RUNNER_TEMP\test_file.txt" && Write-Host "SIGNING OK" || Write-Host "SIGNING FAILED"
 
       - name: Build Tauri app
         run: pnpm tauri build
