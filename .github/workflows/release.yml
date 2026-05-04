@@ -77,13 +77,6 @@ jobs:
           security import certificate.p12 -k build.keychain -P "$PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain
 
-      - name: Prepare Tauri signing key
-        env:
-          TAURI_KEY_B64: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-        run: |
-          echo "$TAURI_KEY_B64" | base64 --decode > /tmp/signing.key
-          echo "TAURI_SIGNING_PRIVATE_KEY_PATH=/tmp/signing.key" >> $GITHUB_ENV
-
       - name: Build Tauri app (universal)
         run: pnpm tauri build --target universal-apple-darwin
         env:
@@ -97,6 +90,8 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
       - name: Notarize DMG
         env:
@@ -171,16 +166,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Prepare Tauri signing key
-        shell: pwsh
-        env:
-          TAURI_KEY_B64: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-        run: |
-          $keyBytes = [Convert]::FromBase64String($env:TAURI_KEY_B64.Trim())
-          $keyContent = [System.Text.Encoding]::UTF8.GetString($keyBytes)
-          Set-Content -Path "$env:RUNNER_TEMP\signing.key" -Value $keyContent -NoNewline
-          "TAURI_SIGNING_PRIVATE_KEY_PATH=$env:RUNNER_TEMP\signing.key" | Add-Content -Path $env:GITHUB_ENV
-
       - name: Build Tauri app
         run: pnpm tauri build
         env:
@@ -189,6 +174,8 @@ jobs:
           VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
           VITE_GOOGLE_CLIENT_SECRET: ${{ secrets.VITE_GOOGLE_CLIENT_SECRET }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
       - name: Read Windows signature
         id: read_sig
