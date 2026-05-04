@@ -49,7 +49,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZCMjU5NENDNzE1NjQwNDMKUldSRFFGWnh6SlFsYS9WRCsvNlIvSFhLaXozcFpjcEtFVHhYdEI3YXl6UVRTVjZMM3poYW5ySm4K",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDY2MkU1ODVDRDM0NTc2MEQKUldRTmRrWFRYRmd1Wmwwck5Famk1VWxIRm5EWDBINk9laHoxanNRRXNBVHR3dUV0aXFiSzBmMzAK",
       "endpoints": [
         "https://github.com/volkanglm/QualityOpen/releases/latest/download/latest.json"
       ]
