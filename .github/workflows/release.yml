@@ -27,6 +27,8 @@ jobs:
     needs: create-release
     runs-on: macos-latest
     timeout-minutes: 90
+    outputs:
+      mac_sig: ${{ steps.read_sig.outputs.mac_sig }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -88,6 +90,8 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
       - name: Notarize DMG
         env:
@@ -105,11 +109,20 @@ jobs:
           echo "Stapling ticket..."
           xcrun stapler staple "$DMG_PATH"
 
+      - name: Read macOS signature
+        id: read_sig
+        run: |
+          SIG_FILE=$(ls src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app.tar.gz.sig | head -1)
+          SIG_CONTENT=$(cat "$SIG_FILE" | tr -d '\n')
+          echo "mac_sig=$SIG_CONTENT" >> $GITHUB_OUTPUT
+
       - name: Upload macOS release assets
         uses: softprops/action-gh-release@v2
         with:
           files: |
             src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app.tar.gz
+            src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app.tar.gz.sig
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -118,6 +131,9 @@ jobs:
     needs: create-release
     runs-on: windows-latest
     timeout-minutes: 90
+    outputs:
+      win_sig: ${{ steps.read_sig.outputs.win_sig }}
+      win_filename: ${{ steps.read_sig.outputs.win_filename }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -158,11 +174,87 @@ jobs:
           VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
           VITE_GOOGLE_CLIENT_SECRET: ${{ secrets.VITE_GOOGLE_CLIENT_SECRET }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: Read Windows signature
+        id: read_sig
+        shell: pwsh
+        run: |
+          $zipSig = Get-ChildItem "src-tauri\target\release\bundle\nsis\*.nsis.zip.sig" | Select-Object -First 1
+          $zipFile = Get-ChildItem "src-tauri\target\release\bundle\nsis\*.nsis.zip" | Select-Object -First 1
+          $sig = (Get-Content $zipSig.FullName -Raw) -replace "`r`n|`r|`n", ""
+          echo "win_sig=$sig" >> $env:GITHUB_OUTPUT
+          echo "win_filename=$($zipFile.Name)" >> $env:GITHUB_OUTPUT
 
       - name: Upload Windows release assets
         uses: softprops/action-gh-release@v2
         with:
           files: |
             src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/nsis/*.nsis.zip
+            src-tauri/target/release/bundle/nsis/*.nsis.zip.sig
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-release:
+    name: Generate latest.json & Publish
+    needs: [build-macos-release, build-windows-release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate latest.json
+        env:
+          MAC_SIG: ${{ needs.build-macos-release.outputs.mac_sig }}
+          WIN_SIG: ${{ needs.build-windows-release.outputs.win_sig }}
+          WIN_FILENAME: ${{ needs.build-windows-release.outputs.win_filename }}
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          VERSION_NO_V="${VERSION#v}"
+          PUB_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          python3 - << 'PYEOF'
+          import os, json
+          version = os.environ['GITHUB_REF_NAME'].lstrip('v')
+          tag = os.environ['GITHUB_REF_NAME']
+          pub_date = os.environ.get('PUB_DATE', '')
+          mac_sig = os.environ['MAC_SIG']
+          win_sig = os.environ['WIN_SIG']
+          win_filename = os.environ['WIN_FILENAME']
+
+          data = {
+            "version": version,
+            "notes": "See full release notes on GitHub.",
+            "pub_date": pub_date,
+            "platforms": {
+              "darwin-aarch64": {
+                "signature": mac_sig,
+                "url": f"https://github.com/volkanglm/QualityOpen/releases/download/{tag}/QualityOpen.app.tar.gz"
+              },
+              "darwin-x86_64": {
+                "signature": mac_sig,
+                "url": f"https://github.com/volkanglm/QualityOpen/releases/download/{tag}/QualityOpen.app.tar.gz"
+              },
+              "windows-x86_64": {
+                "signature": win_sig,
+                "url": f"https://github.com/volkanglm/QualityOpen/releases/download/{tag}/{win_filename}"
+              }
+            }
+          }
+
+          with open('latest.json', 'w') as f:
+            json.dump(data, f, indent=2)
+
+          print("Generated latest.json:")
+          print(json.dumps(data, indent=2))
+          PYEOF
+
+      - name: Validate latest.json
+        run: python3 -m json.tool latest.json > /dev/null && echo "JSON valid"
+
+      - name: Upload latest.json and publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          files: latest.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

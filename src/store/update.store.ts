@@ -1,83 +1,39 @@
 import { create } from "zustand";
-import { getVersion } from "@tauri-apps/api/app";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { check, Update } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
 
-const GITHUB_REPO = "volkanglm/QualityOpen";
-const RELEASES_URL = `https://github.com/${GITHUB_REPO}/releases/latest`;
-const API_URL = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
-
-type UpdateStep = "idle" | "checking" | "available" | "error";
-
-interface GitHubRelease {
-  tag_name: string;
-  html_url: string;
-  body: string;
-  published_at: string;
-}
+type UpdateStep = "idle" | "checking" | "available" | "downloading" | "ready" | "error";
 
 interface UpdateState {
+  update: Update | null;
   latestVersion: string | null;
-  currentVersion: string | null;
-  releaseUrl: string | null;
   step: UpdateStep;
+  progress: number;
   error: string | null;
   dismissed: boolean;
 
   checkForUpdates: (manual?: boolean) => Promise<void>;
-  openReleasePage: () => Promise<void>;
+  downloadAndInstall: () => Promise<void>;
+  restart: () => Promise<void>;
   setDismissed: (dismissed: boolean) => void;
 }
 
-function compareVersions(a: string, b: string): number {
-  const cleanA = a.replace(/^v/, "");
-  const cleanB = b.replace(/^v/, "");
-  const partsA = cleanA.split(".").map(Number);
-  const partsB = cleanB.split(".").map(Number);
-  for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
-    const pa = partsA[i] || 0;
-    const pb = partsB[i] || 0;
-    if (pa > pb) return 1;
-    if (pa < pb) return -1;
-  }
-  return 0;
-}
-
 export const useUpdateStore = create<UpdateState>((set, get) => ({
+  update: null,
   latestVersion: null,
-  currentVersion: null,
-  releaseUrl: null,
   step: "idle",
+  progress: 0,
   error: null,
   dismissed: false,
 
   checkForUpdates: async (manual = false) => {
     set({ step: "checking", error: null, dismissed: false });
     try {
-      const current = await getVersion();
-      const response = await fetch(API_URL, {
-        headers: {
-          Accept: "application/vnd.github.v3+json",
-          "User-Agent": "QualityOpen-Updater",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`GitHub API error: ${response.status}`);
-      }
-
-      const release: GitHubRelease = await response.json();
-      const latest = release.tag_name;
-      const isNewer = compareVersions(latest, current) > 0;
-
-      if (isNewer) {
-        set({
-          latestVersion: latest,
-          currentVersion: current,
-          releaseUrl: release.html_url,
-          step: "available",
-        });
+      const res = await check();
+      if (res?.available) {
+        set({ update: res, latestVersion: res.version ?? null, step: "available" });
       } else {
-        set({ step: "idle", latestVersion: null, releaseUrl: null });
+        set({ step: "idle", update: null, latestVersion: null });
         if (manual) {
           const { useToastStore } = await import("@/store/toast.store");
           useToastStore.getState().push("Up to date", "success");
@@ -85,7 +41,7 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
       }
     } catch (e: unknown) {
       const errMsg = e instanceof Error ? e.message : String(e);
-      console.error("Update check failed:", e);
+      console.error("[Updater] Check failed:", e);
       set({ step: "error", error: errMsg });
       if (manual) {
         const { useToastStore } = await import("@/store/toast.store");
@@ -94,10 +50,37 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
     }
   },
 
-  openReleasePage: async () => {
-    const { releaseUrl } = get();
-    const url = releaseUrl || RELEASES_URL;
-    await openUrl(url);
+  downloadAndInstall: async () => {
+    const { update } = get();
+    if (!update) return;
+
+    set({ step: "downloading", progress: 0 });
+    let downloaded = 0;
+    let total = 0;
+
+    try {
+      await update.downloadAndInstall((event) => {
+        if (event.event === "Started") {
+          total = event.data.contentLength ?? 0;
+        } else if (event.event === "Progress") {
+          downloaded += event.data.chunkLength;
+          const pct = total > 0 ? Math.round((downloaded / total) * 100) : 0;
+          set({ progress: pct });
+        } else if (event.event === "Finished") {
+          set({ step: "ready", progress: 100 });
+        }
+      });
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : String(e);
+      console.error("[Updater] Download failed:", e);
+      set({ step: "error", error: errMsg });
+      const { useToastStore } = await import("@/store/toast.store");
+      useToastStore.getState().push(`Download failed: ${errMsg}`, "error");
+    }
+  },
+
+  restart: async () => {
+    await relaunch();
   },
 
   setDismissed: (dismissed) => set({ dismissed }),

@@ -9,6 +9,7 @@
     "core:default",
     "core:event:allow-listen",
     "opener:default",
+    "updater:default",
     {
       "identifier": "fs:default",
       "scope": ["$HOME/**", "$DESKTOP/**", "$DOCUMENT/**", "$DOWNLOAD/**", "**"]

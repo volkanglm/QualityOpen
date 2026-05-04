@@ -30,7 +30,7 @@
   },
   "bundle": {
     "active": true,
-      "createUpdaterArtifacts": false,
+    "createUpdaterArtifacts": true,
     "targets": [
       "nsis",
       "dmg",
@@ -46,6 +46,14 @@
     "macOS": {
       "entitlements": "Entitlements.plist",
       "signingIdentity": "DAE9FCDBAB6E8BB3D310A222873027B3126C55E9"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZCMjU5NENDNzE1NjQwNDMKUldSRFFGWnh6SlFsYS9WRCsvNlIvSFhLaXozcFpjcEtFVHhYdEI3YXl6UVRTVjZMM3poYW5ySm4K",
+      "endpoints": [
+        "https://github.com/volkanglm/QualityOpen/releases/latest/download/latest.json"
+      ]
     }
   }
 }
