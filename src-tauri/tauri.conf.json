@@ -44,8 +44,7 @@
       "icons/icon.ico"
     ],
     "macOS": {
-      "entitlements": "Entitlements.plist",
-      "signingIdentity": "DAE9FCDBAB6E8BB3D310A222873027B3126C55E9"
+      "entitlements": "Entitlements.plist"
     }
   },
   "plugins": {
