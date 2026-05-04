@@ -198,12 +198,19 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
+      - name: List NSIS bundle output
+        shell: pwsh
+        run: |
+          Write-Host "=== NSIS bundle directory ==="
+          Get-ChildItem "src-tauri\target\release\bundle\nsis\" | Select-Object Name, Length
+
       - name: Read Windows signature
         id: read_sig
         shell: pwsh
         run: |
           $zipSig = Get-ChildItem "src-tauri\target\release\bundle\nsis\*.nsis.zip.sig" | Select-Object -First 1
           $zipFile = Get-ChildItem "src-tauri\target\release\bundle\nsis\*.nsis.zip" | Select-Object -First 1
+          if (-not $zipSig) { Write-Error "No .nsis.zip.sig found!"; exit 1 }
           $sig = (Get-Content $zipSig.FullName -Raw) -replace "`r`n|`r|`n", ""
           echo "win_sig=$sig" >> $env:GITHUB_OUTPUT
           echo "win_filename=$($zipFile.Name)" >> $env:GITHUB_OUTPUT
