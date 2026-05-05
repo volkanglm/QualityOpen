@@ -237,15 +237,12 @@ jobs:
           WIN_SIG: ${{ needs.build-windows-release.outputs.win_sig }}
           WIN_FILENAME: ${{ needs.build-windows-release.outputs.win_filename }}
         run: |
-          VERSION="${GITHUB_REF_NAME}"
-          VERSION_NO_V="${VERSION#v}"
-          PUB_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-
           python3 - << 'PYEOF'
           import os, json
+          from datetime import datetime, timezone
           version = os.environ['GITHUB_REF_NAME'].lstrip('v')
           tag = os.environ['GITHUB_REF_NAME']
-          pub_date = os.environ.get('PUB_DATE', '')
+          pub_date = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
           mac_sig = os.environ['MAC_SIG']
           win_sig = os.environ['WIN_SIG']
           win_filename = os.environ['WIN_FILENAME']
