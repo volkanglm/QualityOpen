@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] - 2026-06-17
+
+### Added
+- Local LLM support via Ollama — chat with on-device models; unified "Active source" picker switches cloud BYOK and local interchangeably
+- Streaming AI responses with a Stop button, plus a privacy badge when a local provider is active
+- Semantic search across documents — meaning-based retrieval, model picker (nomic-embed-text, mxbai-embed-large, bge-m3, OpenAI, Gemini), cross-document "find similar", and manual index management
+- Notes panel for memos
+
+### Changed
+- Native window chrome: macOS traffic lights / Windows custom controls in the title bar
+- Full internationalization sweep — all remaining hardcoded UI strings routed through the i18n system (8 languages)
+
+### Fixed
+- Semantic search returning irrelevant results for PDFs (now extracts real text instead of indexing base64)
+- Title bar crowding/overlap; full-screen overlay header colliding with macOS traffic lights
+- Toast notifications hidden behind panels
+
 ## [1.3.7] - 2026-04-30
 
 ### Fixed
