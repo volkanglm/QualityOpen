@@ -3,9 +3,13 @@ import { persist } from "zustand/middleware";
 import { invoke } from "@tauri-apps/api/core";
 // xorDecode is kept only for one-time migration of old localStorage keys
 import { xorDecode, SETTINGS_CIPHER } from "@/lib/crypto";
+import type { ActiveProviderConfig } from "@/lib/ai/provider";
 
 export type AiProvider = "openai" | "anthropic" | "gemini" | null;
-export type DefaultProvider = "auto" | "openai" | "anthropic" | "gemini";
+export type DefaultProvider = "auto" | "openai" | "anthropic" | "gemini" | "ollama";
+
+const DEFAULT_OLLAMA_URL = "http://127.0.0.1:11434";
+const DEFAULT_OLLAMA_MODEL = "llama3.1:8b";
 
 const SERVICE = "qualityopen";
 
@@ -14,6 +18,10 @@ const SERVICE = "qualityopen";
 interface SettingsStore {
   /** Preferred provider when multiple keys are configured */
   defaultProvider: DefaultProvider;
+
+  /** Local LLM (Ollama) connection — non-sensitive, persisted */
+  ollamaBaseUrl: string;
+  ollamaModel: string;
 
   /** In-memory only — loaded from OS keychain at startup, never persisted to localStorage */
   _openai: string;
@@ -36,11 +44,15 @@ interface SettingsStore {
   /** Returns the active key based on defaultProvider setting */
   getActiveKey: () => string | null;
   getProvider: () => AiProvider;
+  /** Single source of truth for which provider (cloud or local) all AI features use */
+  getActiveProvider: () => ActiveProviderConfig;
 
   setOpenAIKey: (k: string) => Promise<void>;
   setAnthropicKey: (k: string) => Promise<void>;
   setGeminiKey: (k: string) => Promise<void>;
   setDefaultProvider: (p: DefaultProvider) => void;
+  setOllamaBaseUrl: (url: string) => void;
+  setOllamaModel: (model: string) => void;
   clearKeys: () => Promise<void>;
 }
 
@@ -48,6 +60,8 @@ export const useSettingsStore = create<SettingsStore>()(
   persist(
     (set, get) => ({
       defaultProvider: "auto",
+      ollamaBaseUrl: DEFAULT_OLLAMA_URL,
+      ollamaModel: DEFAULT_OLLAMA_MODEL,
       _openai: "",
       _anthropic: "",
       _gemini: "",
@@ -127,6 +141,27 @@ export const useSettingsStore = create<SettingsStore>()(
         return null;
       },
 
+      getActiveProvider: (): ActiveProviderConfig => {
+        const { defaultProvider, _openai, _anthropic, _gemini, ollamaBaseUrl, ollamaModel } = get();
+
+        // Explicit local selection — no API key required.
+        if (defaultProvider === "ollama") {
+          return { type: "ollama", ollamaBaseUrl, ollamaModel };
+        }
+
+        // Explicit cloud selection (only honored when that key exists).
+        if (defaultProvider === "anthropic" && _anthropic) return { type: "anthropic", apiKey: _anthropic };
+        if (defaultProvider === "openai" && _openai) return { type: "openai", apiKey: _openai };
+        if (defaultProvider === "gemini" && _gemini) return { type: "gemini", apiKey: _gemini };
+
+        // "auto" / fallback — first configured cloud key, then local as last resort
+        // so the app still works with zero BYOK keys.
+        if (_anthropic) return { type: "anthropic", apiKey: _anthropic };
+        if (_gemini) return { type: "gemini", apiKey: _gemini };
+        if (_openai) return { type: "openai", apiKey: _openai };
+        return { type: "ollama", ollamaBaseUrl, ollamaModel };
+      },
+
       setOpenAIKey: async (k) => {
         set({ _openai: k }); // Optimistic: UI updates immediately
         try {
@@ -158,6 +193,8 @@ export const useSettingsStore = create<SettingsStore>()(
       },
 
       setDefaultProvider: (p) => set({ defaultProvider: p }),
+      setOllamaBaseUrl: (url) => set({ ollamaBaseUrl: url }),
+      setOllamaModel: (model) => set({ ollamaModel: model }),
 
       clearKeys: async () => {
         set({ _openai: "", _anthropic: "", _gemini: "" });
@@ -174,8 +211,12 @@ export const useSettingsStore = create<SettingsStore>()(
     }),
     {
       name: "qo-settings",
-      // Only persist non-sensitive preference — keys live in OS keychain
-      partialize: (state) => ({ defaultProvider: state.defaultProvider }),
+      // Only persist non-sensitive preferences — keys live in OS keychain
+      partialize: (state) => ({
+        defaultProvider: state.defaultProvider,
+        ollamaBaseUrl: state.ollamaBaseUrl,
+        ollamaModel: state.ollamaModel,
+      }),
     }
   )
 );

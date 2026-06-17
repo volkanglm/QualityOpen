@@ -1,8 +1,9 @@
 // ─── AI Types ───────────────────────────────────────────────────────────────
 
-import { nativeHttp } from "@/lib/nativeHttp";
 import { t } from "@/lib/i18n";
 import { useAppStore } from "@/store/app.store";
+import { resolveProvider } from "@/lib/ai/providerRegistry";
+import { useSettingsStore } from "@/store/settings.store";
 
 export interface Message {
   role: "user" | "assistant";
@@ -18,14 +19,6 @@ export interface ThematicResult {
   codes: ThematicCode[];
 }
 
-// ─── Provider detection ───────────────────────────────────────────────────────
-
-function detectProvider(key: string): "openai" | "anthropic" | "gemini" {
-  if (key.startsWith("sk-ant-")) return "anthropic";
-  if (key.startsWith("AIza")) return "gemini";
-  return "openai";
-}
-
 // ─── System Prompts ───────────────────────────────────────────────────────────
 
 const THEMATIC_SYSTEM = `You are a qualitative data analysis expert specializing in thematic coding.
@@ -34,153 +27,92 @@ Return ONLY valid JSON in this exact shape:
 { "codes": [{ "name": "Short Label", "rationale": "One concise sentence." }] }
 Requirements: code names must be 2–5 words in title case. No markdown, no commentary outside the JSON object.`;
 
-// CHAT_SYSTEM removed — callers use t("chat.systemPrompt", lang) to get a localized prompt
-
 // ─── Unified AI Call ──────────────────────────────────────────────────────────
+//
+// Provider selection is driven by Settings (getActiveProvider): cloud BYOK
+// (OpenAI / Anthropic / Gemini) and local Ollama are fully interchangeable
+// behind the AiProvider interface. The legacy `key` parameter is kept for
+// call-site compatibility but is no longer used for routing — the active
+// provider (and its key, if cloud) comes from the settings store, so local
+// providers work with no key. Every existing AI feature (chat, synthesis,
+// thematic coding) flows through here unchanged.
 
 export async function askAi(
-  key: string,
+  _key: string | null,
   messages: Message[],
   systemPrompt: string,
   retryCount = 0
 ): Promise<string> {
-  const provider = detectProvider(key);
-
+  const config = useSettingsStore.getState().getActiveProvider();
   try {
-    if (provider === "anthropic") {
-      const res = await nativeHttp("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": key,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "claude-3-5-haiku-latest",
-          max_tokens: 1024,
-          system: systemPrompt,
-          messages: messages.map((m) => ({ role: m.role, content: m.content })),
-        }),
-      });
-
-      if (res.status === 429 && retryCount < 1) {
-        await new Promise(r => setTimeout(r, 2000));
-        return askAi(key, messages, systemPrompt, retryCount + 1);
-      }
-
-      if (res.status < 200 || res.status >= 300) {
-        const lang = useAppStore.getState().language;
-        throw new Error(`${t("ai.error.anthropic", lang)} (HTTP ${res.status})`);
-      }
-      const data = JSON.parse(res.body) as { content?: { text: string }[] };
-      return data.content?.[0]?.text ?? "";
-
-    } else if (provider === "gemini") {
-      const maxRetries = 3;
-      let currentRetry = retryCount;
-      let res;
-
-      while (currentRetry <= maxRetries) {
-        res = await nativeHttp(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              system_instruction: { parts: [{ text: systemPrompt }] },
-              contents: messages.map((m) => ({
-                role: m.role === "user" ? "user" : "model",
-                parts: [{ text: m.content }],
-              })),
-            }),
-          }
-        );
-
-        if (res.status === 429 && currentRetry < maxRetries) {
-          const delay = 3000 * Math.pow(2, currentRetry);
-          console.warn(`Gemini 429 received. Retrying in ${delay}ms (Attempt ${currentRetry + 1}/${maxRetries})...`);
-          await new Promise(r => setTimeout(r, delay));
-          currentRetry++;
-          continue;
-        }
-        break;
-      }
-
-      if (!res) throw new Error("Gemini API request failed to initiate.");
-
-      if (res.status < 200 || res.status >= 300) {
-        if (res.status === 429) {
-          const lang = useAppStore.getState().language;
-          throw new Error(`${t("ai.error.quotaExceeded", lang)} (API Quota Exceeded. Please check your Google AI Studio billing/limits.)`);
-        }
-        const lang = useAppStore.getState().language;
-        throw new Error(`${t("ai.error.gemini", lang)} (HTTP ${res.status})`);
-      }
-
-      let data;
-      try {
-        data = JSON.parse(res.body);
-      } catch {
-        const lang = useAppStore.getState().language;
-        throw new Error(`${t("ai.error.gemini", lang)}: Invalid JSON.`);
-      }
-
-      const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!candidateText) {
-        const lang = useAppStore.getState().language;
-        throw new Error(`${t("ai.error.invalidGeminiFormat", lang)}: ${res.body.substring(0, 100)}...`);
-      }
-
-      return candidateText;
-
-    } else {
-      const res = await nativeHttp("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${key}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          temperature: 0.5,
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...messages.map((m) => ({ role: m.role, content: m.content })),
-          ],
-        }),
-      });
-
-      if (res.status === 429 && retryCount < 1) {
-        await new Promise(r => setTimeout(r, 2000));
-        return askAi(key, messages, systemPrompt, retryCount + 1);
-      }
-
-      if (res.status < 200 || res.status >= 300) {
-        const lang = useAppStore.getState().language;
-        throw new Error(`${t("ai.error.openai", lang)} (HTTP ${res.status})`);
-      }
-      const data = JSON.parse(res.body) as { choices: { message: { content: string } }[] };
-      return data.choices[0].message.content;
-    }
+    return await resolveProvider(config).complete({ messages, systemPrompt });
   } catch (err) {
     if (retryCount < 1) {
-      await new Promise(r => setTimeout(r, 2000));
-      return askAi(key, messages, systemPrompt, retryCount + 1);
+      await new Promise((r) => setTimeout(r, 2000));
+      return askAi(_key, messages, systemPrompt, retryCount + 1);
     }
     throw err;
   }
 }
 
+// ─── Streaming AI Call ──────────────────────────────────────────────────────────
+//
+// Same provider routing as askAi, but streams tokens via the provider's
+// stream() method. Ollama emits real incremental tokens; cloud providers fall
+// back to a single chunk. The returned promise resolves to the full text.
+// Callers pass an AbortSignal to support a Stop button; an aborted stream
+// rejects with an AbortError after onToken has already received the partial.
+
+export async function streamAi(
+  messages: Message[],
+  systemPrompt: string,
+  onToken: (chunk: string) => void,
+  signal: AbortSignal
+): Promise<string> {
+  const config = useSettingsStore.getState().getActiveProvider();
+  return resolveProvider(config).stream({ messages, systemPrompt }, onToken, signal);
+}
+
+/** True when the active provider runs fully on the user's machine (Ollama). */
+export function isActiveProviderLocal(): boolean {
+  return useSettingsStore.getState().getActiveProvider().type === "ollama";
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
+/**
+ * Parse JSON that a model may have wrapped in ```json fences or surrounded with
+ * prose. Local models (esp. reasoning models) rarely return bare JSON, so we
+ * strip fences and extract the outermost { … } before parsing.
+ */
+function parseLooseJson<T>(raw: string): T {
+  let s = raw.trim();
+  // Strip a leading ```json / ``` fence and a trailing ``` fence.
+  s = s.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  // If there's surrounding prose, keep only the outermost object.
+  const first = s.indexOf("{");
+  const last = s.lastIndexOf("}");
+  if (first !== -1 && last > first) s = s.slice(first, last + 1);
+  return JSON.parse(s) as T;
+}
+
 export async function analyzeThematicCodes(
-  key: string,
+  _key: string | null,
   text: string
 ): Promise<ThematicResult> {
+  const config = useSettingsStore.getState().getActiveProvider();
+  const lang = useAppStore.getState().language;
+  // Force the model to write the human-readable values in the UI language while
+  // keeping the JSON keys in English.
+  const langInstruction = `\n\nIMPORTANT: Write every "name" and "rationale" value in the user's language (ISO language code: "${lang}"). Keep the JSON keys ("codes", "name", "rationale") in English.`;
   const messages: Message[] = [{ role: "user", content: `Analyze this excerpt:\n\n"${text}"` }];
-  const raw = await askAi(key, messages, THEMATIC_SYSTEM);
+  const raw = await resolveProvider(config).complete({
+    messages,
+    systemPrompt: THEMATIC_SYSTEM + langInstruction,
+    jsonMode: true,
+  });
   try {
-    return JSON.parse(raw) as ThematicResult;
+    return parseLooseJson<ThematicResult>(raw);
   } catch {
     console.error("Failed to parse thematic analysis result:", raw);
     const lang = useAppStore.getState().language;

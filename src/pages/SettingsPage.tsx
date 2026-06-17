@@ -12,6 +12,7 @@ import { useUpdateStore } from "@/store/update.store";
 import { Button } from "@/components/ui/Button";
 import { useT } from "@/lib/i18n";
 import { SyncManager } from "@/components/sync/SyncManager";
+import { LocalAiPanel } from "@/components/settings/LocalAiPanel";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -365,12 +366,6 @@ export function SettingsPage() {
     if (importRef.current) importRef.current.value = "";
   };
 
-  const configuredProviders = [
-    getAnthropicKey() && "anthropic",
-    getGeminiKey() && "gemini",
-    getOpenAIKey() && "openai",
-  ].filter(Boolean) as string[];
-
   return (
     <div className="h-full flex flex-col overflow-y-auto" style={{ background: "var(--bg-primary)" }}>
       {/* Header */}
@@ -459,32 +454,33 @@ export function SettingsPage() {
               onClear={() => setOpenAIKey("")}
             />
 
-            {/* Default provider selector (shown when any key is configured) */}
-            {configuredProviders.length >= 1 && (
-              <>
-                <div className="h-px" style={{ background: "var(--border-subtle)" }} />
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>
-                      {t("settings.defaultProv")}
-                    </p>
-                    <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-                      {t("settings.defaultDesc")}
-                    </p>
-                  </div>
-                  <SegmentedControl<DefaultProvider>
-                    value={defaultProvider}
-                    options={[
-                      { value: "auto", label: t("settings.auto") },
-                      ...(getAnthropicKey() ? [{ value: "anthropic" as DefaultProvider, label: "Anthropic" }] : []),
-                      ...(getGeminiKey() ? [{ value: "gemini" as DefaultProvider, label: "Gemini" }] : []),
-                      ...(getOpenAIKey() ? [{ value: "openai" as DefaultProvider, label: "OpenAI" }] : []),
-                    ]}
-                    onChange={setDefaultProvider}
-                  />
-                </div>
-              </>
-            )}
+            {/* ── Local LLM (Ollama) — on-device, no key required ── */}
+            <div className="h-px" style={{ background: "var(--border-subtle)" }} />
+            <LocalAiPanel />
+
+            {/* Active source selector — cloud vs local; always shown since local needs no key */}
+            <div className="h-px" style={{ background: "var(--border-subtle)" }} />
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>
+                  {t("settings.defaultProv")}
+                </p>
+                <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
+                  {t("settings.defaultDesc")}
+                </p>
+              </div>
+              <SegmentedControl<DefaultProvider>
+                value={defaultProvider}
+                options={[
+                  { value: "auto", label: t("settings.auto") },
+                  ...(getAnthropicKey() ? [{ value: "anthropic" as DefaultProvider, label: "Anthropic" }] : []),
+                  ...(getGeminiKey() ? [{ value: "gemini" as DefaultProvider, label: "Gemini" }] : []),
+                  ...(getOpenAIKey() ? [{ value: "openai" as DefaultProvider, label: "OpenAI" }] : []),
+                  { value: "ollama" as DefaultProvider, label: "Ollama" },
+                ]}
+                onChange={setDefaultProvider}
+              />
+            </div>
 
             {hasAnyKey && (
               <button

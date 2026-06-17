@@ -12,7 +12,7 @@ import {
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
 import { useSettingsStore } from "@/store/settings.store";
-import { analyzeThematicCodes } from "@/lib/ai";
+import { analyzeThematicCodes, isActiveProviderLocal } from "@/lib/ai";
 import { CODE_COLORS } from "@/lib/constants";
 import { useT } from "@/lib/i18n";
 
@@ -156,7 +156,8 @@ export function CommandPalette() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const hasSelection = !!activeSelection?.text;
-  const hasApiKey = !!getActiveKey();
+  // Usable when a cloud key exists OR the active provider is local (Ollama, no key).
+  const hasUsableProvider = isActiveProviderLocal() || !!getActiveKey();
   const provider = getProvider();
 
   const close = useCallback(() => {
@@ -191,8 +192,8 @@ export function CommandPalette() {
         : t("cmd.codeThematicNoSel"),
       badge: provider ?? "AI",
       category: t("cmd.catAi"),
-      disabled: !hasSelection || !hasApiKey,
-      disabledReason: !hasApiKey
+      disabled: !hasSelection || !hasUsableProvider,
+      disabledReason: !hasUsableProvider
         ? t("cmd.noApiKey")
         : !hasSelection
           ? t("cmd.noSelection")
@@ -202,8 +203,10 @@ export function CommandPalette() {
       id: "open-api-settings",
       icon: <Key className="h-3.5 w-3.5" />,
       label: t("cmd.apiSettings"),
-      description: hasApiKey
-        ? `${provider === "anthropic" ? "Anthropic" : "OpenAI"} active`
+      description: hasUsableProvider
+        ? (isActiveProviderLocal()
+            ? "Ollama active"
+            : `${provider === "anthropic" ? "Anthropic" : provider === "gemini" ? "Gemini" : "OpenAI"} active`)
         : t("cmd.apiSettingsDesc"),
       category: t("cmd.catSettings"),
     },
@@ -316,14 +319,12 @@ export function CommandPalette() {
 
     if (id === "thematic-code") {
       if (!activeSelection || !activeProjectId) return;
-      const key = getActiveKey();
-      if (!key) return;
 
       setPaletteState("loading");
       setError("");
 
       try {
-        const result = await analyzeThematicCodes(key, activeSelection.text);
+        const result = await analyzeThematicCodes(null, activeSelection.text);
 
         // Create codes that don't exist yet; collect all codeIds
         const existingCodes = codes.filter((c) => c.projectId === activeProjectId);
@@ -576,7 +577,7 @@ export function CommandPalette() {
                 <kbd className="font-mono">↵</kbd> {t("cmd.run")}
               </span>
             </div>
-            {hasApiKey ? (
+            {hasUsableProvider ? (
               <span
                 className="text-[10px] flex items-center gap-1"
                 style={{ color: "var(--code-2)" }}

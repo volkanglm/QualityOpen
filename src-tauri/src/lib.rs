@@ -2,6 +2,8 @@ use std::io::{Read, Write};
 use std::net::TcpListener;
 use tauri::{AppHandle, Emitter};
 
+mod local_http;
+
 /// Starts a one-shot HTTP server on a dynamically assigned loopback port.
 /// The OS picks a free port (bind to 0), so this never fails due to a
 /// port being in TIME_WAIT after a previous auth attempt.
@@ -264,7 +266,10 @@ pub fn run() {
             start_oauth_listener,
             read_file_base64,
             native_http,
-            exchange_google_code
+            exchange_google_code,
+            local_http::local_http,
+            local_http::local_http_stream,
+            local_http::local_ai_health
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
