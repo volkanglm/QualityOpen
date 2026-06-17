@@ -52,6 +52,11 @@ export function TextHighlighter({ content, segments, codes }: TextHighlighterPro
       color = firstCode?.color ?? "#a78bfa";
     }
 
+    // A "note" segment is an AI/manual annotation, not a coding highlight —
+    // render it subtly (no fill, thin dotted underline) so the document
+    // doesn't look coded.
+    const isNote = segment.isHighlight === true && !!segment.memo?.trim() && segment.codeIds.length === 0;
+
     // Coded / highlighted segment — fades in when first created
     parts.push(
       <motion.mark
@@ -60,15 +65,26 @@ export function TextHighlighter({ content, segments, codes }: TextHighlighterPro
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.25 }}
-        style={{
-          background:    `${color}28`,
-          borderBottom:  `2px solid ${color}`,
-          borderRadius:  "2px 2px 0 0",
-          paddingBottom: "1px",
-          color:         "inherit",
-        }}
+        style={
+          isNote
+            ? {
+                background:    "transparent",
+                borderBottom:  "1px dotted var(--text-muted)",
+                paddingBottom: "1px",
+                color:         "inherit",
+              }
+            : {
+                background:    `${color}28`,
+                borderBottom:  `2px solid ${color}`,
+                borderRadius:  "2px 2px 0 0",
+                paddingBottom: "1px",
+                color:         "inherit",
+              }
+        }
         title={
-          segment.isHighlight
+          isNote
+            ? segment.memo
+            : segment.isHighlight
             ? "Highlight"
             : codes
                 .filter((c) => segment.codeIds.includes(c.id))

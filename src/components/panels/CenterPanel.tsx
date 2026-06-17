@@ -38,7 +38,7 @@ import { FloatingMenu, type FloatingMenuPos } from "@/components/editor/Floating
 import { ContextCodeMenu } from "@/components/editor/ContextCodeMenu";
 import { CodeAssignPanel } from "@/components/editor/CodeAssignPanel";
 import { CodingStripes } from "@/components/editor/CodingStripes";
-import { MarginMemos } from "@/components/editor/MarginMemos";
+import { NotesPanel } from "@/components/editor/NotesPanel";
 import { LineNumbers } from "@/components/editor/LineNumbers";
 import { PdfRenderer } from "@/components/editor/PdfRenderer";
 import { DatabaseView } from "@/components/panels/DatabaseView";
@@ -126,6 +126,7 @@ export function CenterPanel() {
   const [noteExpanded, setNoteExpanded] = useState(false);
   const [noteVal, setNoteVal] = useState(doc?.note ?? "");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
   const [useRegex, setUseRegex] = useState(false);
   const [matchCase, setMatchCase] = useState(false);
   const [wholeWord, setWholeWord] = useState(false);
@@ -299,16 +300,21 @@ export function CenterPanel() {
 
   const handleSummarize = async (pos: FloatingMenuPos) => {
     if (!doc || !activeProjectId) return;
-    const { useSettingsStore } = await import("@/store/settings.store");
-    const key = useSettingsStore.getState().getActiveKey();
-    if (!key) { alert("Ayarlar > API Anahtarları'ndan bir AI anahtarı ekleyin."); return; }
 
     setSummarizing(true);
     try {
       const { analyzeThematicCodes } = await import("@/lib/ai");
-      const result = await analyzeThematicCodes(key, pos.text);
+      const { useToastStore } = await import("@/store/toast.store");
+      // Provider (cloud or local Ollama) is resolved from settings inside the call.
+      const result = await analyzeThematicCodes(null, pos.text);
       const summary = result.codes.map((c) => `${c.name}: ${c.rationale}`).join("\n");
-      // Add as a highlight segment with memo
+      if (!summary.trim()) {
+        // Parsed OK but the model produced no codes — tell the user instead of
+        // silently leaving an empty highlight.
+        useToastStore.getState().push(t("ai.error.generic"), "error");
+        return;
+      }
+      // Add as a highlight segment with the code summary as a margin memo.
       addSegment({
         documentId: doc.id,
         start: pos.start,
@@ -322,6 +328,8 @@ export function CenterPanel() {
       });
     } catch (err) {
       console.error("Summarize failed:", err);
+      const { useToastStore } = await import("@/store/toast.store");
+      useToastStore.getState().push(t("ai.error.generic"), "error");
     } finally {
       setSummarizing(false);
       window.getSelection()?.removeAllRanges();
@@ -542,6 +550,9 @@ export function CenterPanel() {
         summarizing={summarizing}
         showLineNumbers={showLineNumbers}
         splitView={splitView}
+        notesOpen={notesOpen}
+        notesCount={docSegments.filter((s) => s.memo?.trim()).length}
+        onToggleNotes={() => setNotesOpen((v) => !v)}
         onToggleSplitView={toggleSplitView}
         onToggleEdit={() => {
           if (editMode) {
@@ -861,18 +872,19 @@ export function CenterPanel() {
                         />
                       )}
                     </div>
-
-                    {!splitView && (
-                      <MarginMemos
-                        segments={docSegments}
-                        codes={codes}
-                        contentLength={format === "pdf" ? pdfTextLength : doc.content.length}
-                        containerHeight={readerHeight}
-                      />
-                    )}
                   </div>
                 )}
               </div>
+
+              {/* Notes panel — toggle-able right-side drawer */}
+              {!splitView && (
+                <NotesPanel
+                  open={notesOpen}
+                  segments={docSegments}
+                  codes={projectCodes}
+                  onClose={() => setNotesOpen(false)}
+                />
+              )}
             </div>
 
             {/* RIGHT PANE (Split View) */}
@@ -1227,6 +1239,9 @@ function DocHeader({
   summarizing,
   showLineNumbers,
   splitView,
+  notesOpen,
+  notesCount,
+  onToggleNotes,
   onToggleEdit,
   onImport,
   onToggleSearch,
@@ -1249,6 +1264,9 @@ function DocHeader({
   summarizing: boolean;
   showLineNumbers: boolean;
   splitView: boolean;
+  notesOpen: boolean;
+  notesCount: number;
+  onToggleNotes: () => void;
   onToggleEdit: () => void;
   onImport: () => void;
   onToggleSearch: () => void;
@@ -1356,6 +1374,20 @@ function DocHeader({
             title={t("center.lineNumbers")}
           >
             <List className="h-3 w-3" />
+          </Button>
+        )}
+
+        {/* Notes panel toggle */}
+        {notesCount > 0 && !splitView && (
+          <Button
+            size="sm"
+            variant={notesOpen ? "primary" : "ghost"}
+            className="h-6 gap-1 text-[11px]"
+            onClick={onToggleNotes}
+            title="Notlar"
+          >
+            <StickyNote className="h-3 w-3" />
+            {notesCount}
           </Button>
         )}
 

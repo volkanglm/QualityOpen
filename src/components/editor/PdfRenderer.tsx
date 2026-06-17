@@ -411,6 +411,7 @@ function applyPdfHighlights(
   for (const span of spans) {
     span.style.backgroundColor = "";
     span.style.borderBottom = "";
+    delete span.dataset.segmentId;
   }
   if (!segments.length) return;
 
@@ -428,17 +429,21 @@ function applyPdfHighlights(
     if (!pageRects.length) continue;
 
     const color = resolveSegmentColor(seg, codes);
+    // A "note" segment is an AI/manual annotation, not a coding highlight —
+    // render it subtly (no fill, thin dotted underline).
+    const isNote = seg.isHighlight === true && !!seg.memo?.trim() && seg.codeIds.length === 0;
     for (const r of pageRects) {
       const overlay = document.createElement("span");
       overlay.className = "pdf-highlight-overlay";
+      overlay.dataset.segmentId = seg.id;
       overlay.style.cssText = [
         "position:absolute",
         `left:${r.x * layerW}px`,
         `top:${r.y * layerH}px`,
         `width:${r.width * layerW}px`,
         `height:${r.height * layerH}px`,
-        `background:${color}55`,
-        `border-bottom:2px solid ${color}`,
+        isNote ? "background:transparent" : `background:${color}55`,
+        isNote ? "border-bottom:1px dotted rgba(120,120,120,0.8)" : `border-bottom:2px solid ${color}`,
         "pointer-events:none",
         "border-radius:2px",
       ].join(";");
@@ -495,13 +500,22 @@ function applyPdfHighlights(
       if (seg.end <= spanStart || seg.start >= spanEnd) continue;
 
       const color = resolveSegmentColor(seg, codes);
+      // A "note" segment is an AI/manual annotation, not a coding highlight —
+      // render it subtly (no fill, thin dotted underline).
+      const isNote = seg.isHighlight === true && !!seg.memo?.trim() && seg.codeIds.length === 0;
       const overlapStart = Math.max(seg.start, spanStart);
       const overlapEnd = Math.min(seg.end, spanEnd);
       const isFullCoverage = overlapStart <= spanStart && overlapEnd >= spanEnd;
 
       if (isFullCoverage) {
-        span.style.backgroundColor = `${color}55`;
-        span.style.borderBottom = `2px solid ${color}`;
+        span.dataset.segmentId = seg.id;
+        if (isNote) {
+          span.style.backgroundColor = "transparent";
+          span.style.borderBottom = "1px dotted rgba(120,120,120,0.8)";
+        } else {
+          span.style.backgroundColor = `${color}55`;
+          span.style.borderBottom = `2px solid ${color}`;
+        }
       } else {
         const spanWidth = parseFloat(span.style.width) || span.offsetWidth;
         const charRatioStart = (overlapStart - spanStart) / spanLen;
@@ -509,13 +523,19 @@ function applyPdfHighlights(
 
         const overlay = document.createElement("span");
         overlay.className = "pdf-highlight-overlay";
+        overlay.dataset.segmentId = seg.id;
         overlay.style.position = "absolute";
         overlay.style.top = span.style.top;
         overlay.style.left = `${parseFloat(span.style.left) + spanWidth * charRatioStart}px`;
         overlay.style.width = `${spanWidth * (charRatioEnd - charRatioStart)}px`;
         overlay.style.height = span.style.height;
-        overlay.style.backgroundColor = `${color}55`;
-        overlay.style.borderBottom = `2px solid ${color}`;
+        if (isNote) {
+          overlay.style.backgroundColor = "transparent";
+          overlay.style.borderBottom = "1px dotted rgba(120,120,120,0.8)";
+        } else {
+          overlay.style.backgroundColor = `${color}55`;
+          overlay.style.borderBottom = `2px solid ${color}`;
+        }
         overlay.style.pointerEvents = "none";
         overlay.style.borderRadius = "2px";
         textLayer.appendChild(overlay);
