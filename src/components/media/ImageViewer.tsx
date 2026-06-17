@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { useT } from "@/hooks/useT";
 
 interface ImageViewerProps {
   src: string;
@@ -11,6 +12,7 @@ const MIN_SCALE = 0.2;
 const MAX_SCALE = 5;
 
 export function ImageViewer({ src }: ImageViewerProps) {
+  const t = useT();
   const [scale,  setScale]  = useState(1);
   const [error,  setError]  = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
@@ -63,7 +65,7 @@ export function ImageViewer({ src }: ImageViewerProps) {
         className="flex-shrink-0 flex items-center justify-center gap-2 border-t px-4 py-2"
         style={{ borderColor: "var(--border-subtle)", background: "var(--bg-secondary)" }}
       >
-        <Tooltip content="Yakınlaştır (scroll)" side="top">
+        <Tooltip content={t("image.zoomIn")} side="top">
           <button
             onClick={() => zoom(0.2)}
             className="h-6 w-6 flex items-center justify-center rounded transition-colors"
@@ -86,7 +88,7 @@ export function ImageViewer({ src }: ImageViewerProps) {
           {Math.round(scale * 100)}%
         </span>
 
-        <Tooltip content="Uzaklaştır" side="top">
+        <Tooltip content={t("image.zoomOut")} side="top">
           <button
             onClick={() => zoom(-0.2)}
             className="h-6 w-6 flex items-center justify-center rounded transition-colors"
@@ -104,7 +106,7 @@ export function ImageViewer({ src }: ImageViewerProps) {
 
         <div className="w-px h-4 mx-1" style={{ background: "var(--border)" }} />
 
-        <Tooltip content="Sıfırla" side="top">
+        <Tooltip content={t("image.reset")} side="top">
           <button
             onClick={reset}
             className="h-6 w-6 flex items-center justify-center rounded transition-colors"

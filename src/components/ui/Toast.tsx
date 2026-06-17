@@ -76,7 +76,7 @@ export function ToastContainer() {
 
   return (
     <div
-      className="fixed top-12 right-4 z-[200] flex flex-col gap-2 pointer-events-none"
+      className="fixed top-12 right-4 z-[500] flex flex-col gap-2 pointer-events-none"
       style={{ position: "fixed" }}
     >
       <AnimatePresence mode="popLayout">

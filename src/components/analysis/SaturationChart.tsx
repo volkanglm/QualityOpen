@@ -10,9 +10,11 @@ import {
 } from "recharts";
 import { useProjectStore } from "@/store/project.store";
 import { useAppStore } from "@/store/app.store";
+import { useT } from "@/hooks/useT";
 import { Info, TrendingDown } from "lucide-react";
 
 export function SaturationChart() {
+  const t = useT();
   const { activeProjectId } = useAppStore();
   const { documents, segments } = useProjectStore();
 
@@ -95,7 +97,7 @@ export function SaturationChart() {
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-zinc-700" />
-            <span className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Kümülatif</span>
+            <span className="text-[10px] text-[var(--text-muted)] uppercase font-bold">{t("saturation.cumulative")}</span>
           </div>
         </div>
       </div>
@@ -167,7 +169,7 @@ export function SaturationChart() {
         <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5 flex items-start gap-3">
           <Info className="h-4 w-4 text-blue-500 mt-1 flex-shrink-0" />
           <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-            <strong>Analiz Notu:</strong> Yeni kod keşif oranı %10'un altına düştüğünde genellikle "teorik doygunluğa" ulaşıldığı kabul edilir.
+            <strong>{t("saturation.noteLabel")}</strong> {t("saturation.note")}
           </p>
         </div>
       </div>

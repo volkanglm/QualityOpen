@@ -331,9 +331,9 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
             >
               <AlertTriangle className="h-4 w-4 flex-shrink-0" style={{ color: "var(--warning, #f59e0b)" }} />
               <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>Taranmış belge algılandı</p>
+                <p className="text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>{tr("pdf.scannedDetected")}</p>
                 <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-                  {ocrStatus === "running" ? `OCR işleniyor… %${ocrProgress}` : "Metne çevirerek üzerinde kodlama yapabilirsiniz."}
+                  {ocrStatus === "running" ? `${tr("pdf.ocrRunning")} %${ocrProgress}` : tr("pdf.ocrHint")}
                 </p>
                 {ocrStatus === "running" && (
                   <div className="mt-1.5 h-1 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
@@ -344,7 +344,7 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
               </div>
               {ocrStatus !== "running" && (
                 <Button variant="primary" size="sm" onClick={handleOcr} className="flex-shrink-0">
-                  <ScanLine className="h-3.5 w-3.5 mr-1" /> OCR Başlat
+                  <ScanLine className="h-3.5 w-3.5 mr-1" /> {tr("pdf.startOcr")}
                 </Button>
               )}
             </motion.div>
@@ -353,13 +353,13 @@ export const PdfRenderer = memo(function PdfRenderer({ base64, onOcrComplete, on
 
         <div className="flex items-center justify-center gap-2 rounded-full border px-4 py-1.5 shadow-sm mx-auto"
           style={{ background: "var(--bg-secondary)", borderColor: "var(--border)" }}>
-          <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Uzaklaştır" onClick={() => setScale(s => Math.max(0.5, s - 0.2))}>
+          <Button size="icon" variant="ghost" className="h-7 w-7" aria-label={tr("image.zoomOut")} onClick={() => setScale(s => Math.max(0.5, s - 0.2))}>
             <ZoomOut className="h-4 w-4" />
           </Button>
           <span className="text-[11px] tabular-nums font-medium w-12 text-center" style={{ color: "var(--text-secondary)" }}>
             {Math.round(scale * 100)}%
           </span>
-          <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Yakınlaştır" onClick={() => setScale(s => Math.min(3, s + 0.2))}>
+          <Button size="icon" variant="ghost" className="h-7 w-7" aria-label={tr("image.zoomIn")} onClick={() => setScale(s => Math.min(3, s + 0.2))}>
             <ZoomIn className="h-4 w-4" />
           </Button>
           <div className="w-px h-4 mx-1" style={{ background: "var(--border)" }} />

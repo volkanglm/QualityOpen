@@ -262,6 +262,18 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .setup(|_app| {
+            // macOS keeps native decorations + Overlay title bar (traffic lights).
+            // Other platforms use a fully custom, borderless title bar.
+            #[cfg(not(target_os = "macos"))]
+            {
+                use tauri::Manager;
+                if let Some(window) = _app.get_webview_window("main") {
+                    let _ = window.set_decorations(false);
+                }
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             start_oauth_listener,
             read_file_base64,

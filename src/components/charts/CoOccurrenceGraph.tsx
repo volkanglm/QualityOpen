@@ -386,7 +386,7 @@ function CoOccurrenceGraphInner({ codes, segments }: CoOccurrenceGraphProps) {
                     </p>
                     <div className="mt-2 flex items-center justify-between p-2 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border)]">
                       <span className="text-[11px] font-mono text-[var(--text-secondary)]">
-                        {anchorId ? codes.find(c => c.id === anchorId)?.name : "Seçim yok..."}
+                        {anchorId ? codes.find(c => c.id === anchorId)?.name : t("graph.noSelection")}
                       </span>
                       {anchorId && (
                         <button onClick={() => setAnchorId(null)} className="p-1 hover:bg-[var(--surface-hover)] rounded-md text-[var(--text-muted)]">

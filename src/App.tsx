@@ -17,6 +17,8 @@ import { AppLogo } from "@/components/ui/AppLogo";
 import { Upload } from "lucide-react";
 import { useSyncStore } from "@/store/sync.store";
 import { AiChatPanel } from "@/components/chat/AiChatPanel";
+import { SemanticSearchPanel } from "@/components/search/SemanticSearchPanel";
+import { useEmbeddingsStore } from "@/store/embeddings.store";
 import { ShortcutEngine } from "@/components/keyboard/ShortcutEngine";
 import { importFile, getFileCategory } from "@/lib/fileImport";
 import { WelcomeScreen } from "@/components/onboarding/WelcomeScreen";
@@ -141,6 +143,11 @@ export default function App() {
     document.documentElement.setAttribute("data-theme", theme);
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
+
+  /* Load persisted on-device embedding vectors into memory once on launch */
+  useEffect(() => {
+    useEmbeddingsStore.getState().init().catch(console.error);
+  }, []);
 
   useEffect(() => {
     let unsubAuth: () => void = () => { };
@@ -428,6 +435,9 @@ export default function App() {
 
         {/* AI Chat Panel */}
         <AiChatPanel />
+
+        {/* Semantic (vector) Search Panel */}
+        <SemanticSearchPanel />
 
         {/* Auto Updater (Silent) */}
         <AutoUpdater />

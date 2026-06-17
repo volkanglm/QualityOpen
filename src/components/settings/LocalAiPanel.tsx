@@ -3,6 +3,8 @@ import { Cpu, RefreshCw, ChevronDown, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettingsStore } from "@/store/settings.store";
 import { useLocalAiStore, type LocalAiStatus } from "@/store/localAi.store";
+import { useT } from "@/hooks/useT";
+import type { TranslationKey } from "@/lib/i18n";
 
 /**
  * Local-AI (Ollama) settings section.
@@ -23,14 +25,15 @@ const STATUS_DOT: Record<LocalAiStatus, string> = {
   unknown: "#9ca3af", // grey
 };
 
-const STATUS_LABEL: Record<LocalAiStatus, string> = {
-  healthy: "Connected",
-  degraded: "Degraded",
-  unreachable: "Not reachable",
-  unknown: "Checking…",
+const STATUS_LABEL_KEY: Record<LocalAiStatus, TranslationKey> = {
+  healthy: "localai.statusConnected",
+  degraded: "localai.statusDegraded",
+  unreachable: "localai.statusUnreachable",
+  unknown: "localai.statusChecking",
 };
 
 export function LocalAiPanel() {
+  const t = useT();
   const ollamaBaseUrl = useSettingsStore((s) => s.ollamaBaseUrl);
   const ollamaModel = useSettingsStore((s) => s.ollamaModel);
   const setOllamaBaseUrl = useSettingsStore((s) => s.setOllamaBaseUrl);
@@ -105,7 +108,7 @@ export function LocalAiPanel() {
             className="text-xs font-medium flex-shrink-0"
             style={{ color: "var(--text-primary)" }}
           >
-            {STATUS_LABEL[status]}
+            {t(STATUS_LABEL_KEY[status])}
           </span>
           <span
             className="text-[11px] truncate"
@@ -135,7 +138,7 @@ export function LocalAiPanel() {
           }}
         >
           <RefreshCw className={cn("h-2.5 w-2.5", refreshing && "animate-spin")} />
-          Refresh
+          {t("localai.refresh")}
         </button>
       </div>
 
@@ -153,8 +156,7 @@ export function LocalAiPanel() {
             style={{ color: "var(--danger)" }}
           />
           <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-primary)" }}>
-            Couldn&apos;t reach Ollama at this address. Make sure it&apos;s installed and
-            running (<code className="font-mono">ollama serve</code>). See the setup guide below.
+            {t("localai.unreachableWarning")}
           </p>
         </div>
       )}
@@ -165,7 +167,7 @@ export function LocalAiPanel() {
           className="text-[12px] font-medium"
           style={{ color: "var(--text-secondary)" }}
         >
-          Base URL
+          {t("localai.baseUrl")}
         </label>
         <input
           type="text"
@@ -198,7 +200,7 @@ export function LocalAiPanel() {
           className="text-[12px] font-medium"
           style={{ color: "var(--text-secondary)" }}
         >
-          Active model
+          {t("localai.activeModel")}
         </label>
         <select
           value={ollamaModel}
@@ -212,7 +214,7 @@ export function LocalAiPanel() {
         >
           {modelOptions.length === 0 ? (
             <option value="" disabled>
-              No models found — pull one with `ollama pull`
+              {t("localai.noModels")}
             </option>
           ) : (
             modelOptions.map((m) => (

@@ -13,13 +13,14 @@
     "windows": [
       {
         "label": "main",
-        "title": "QualityOpen",
+        "title": "",
         "width": 1280,
         "height": 800,
         "minWidth": 900,
         "minHeight": 600,
-        "decorations": false,
+        "decorations": true,
         "transparent": false,
+        "titleBarStyle": "Overlay",
         "center": true,
         "devtools": true
       }

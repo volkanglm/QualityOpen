@@ -23,6 +23,9 @@ interface ProtocolManagerProps {
 
 export function ProtocolManager({ open, onClose }: ProtocolManagerProps) {
   const t = useT();
+  // macOS draws native traffic lights at the window's top-left; this full-screen
+  // overlay must reserve that space so its header doesn't collide with them.
+  const isMac = typeof navigator !== "undefined" && navigator.userAgent.includes("Mac");
   const { activeProjectId } = useAppStore();
   const { protocolVersions, addProtocolVersion, deleteProtocolVersion } = useProjectStore();
 
@@ -65,7 +68,11 @@ export function ProtocolManager({ open, onClose }: ProtocolManagerProps) {
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-[var(--bg-primary)] overflow-hidden">
       {/* Header */}
-      <header className="flex h-14 items-center justify-between px-6 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
+      <header
+        data-tauri-drag-region
+        style={{ paddingLeft: isMac ? 84 : undefined }}
+        className="flex h-14 items-center justify-between px-6 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]"
+      >
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
             <BookOpen className="h-5 w-5" />

@@ -260,7 +260,7 @@ function SynthesisCard({
                         onBlur={handleSave}
                         autoFocus
                         className="flex-1 bg-transparent text-xs leading-relaxed resize-none focus:outline-none custom-scrollbar"
-                        placeholder="Analiz özetini buraya yazın veya AI ile oluşturun..."
+                        placeholder={t("synthesis.placeholder")}
                     />
                 ) : (
                     <div

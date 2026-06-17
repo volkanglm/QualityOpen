@@ -31,6 +31,9 @@ export interface Document {
   /** plain text, HTML, base64 PDF/image, or blob URL for video */
   content: string;
   format?: DocumentFormat;     // default "text"
+  /** Extracted plain text for non-text docs (PDF) — used for semantic search;
+   *  `content` stays the base64 binary so the PDF still renders. */
+  extractedText?: string;
   type: "interview" | "fieldnote" | "document" | "memo" | "video" | "image";
   tags: string[];
   createdAt: number;

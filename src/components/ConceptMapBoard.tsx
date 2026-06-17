@@ -327,7 +327,7 @@ function ConceptMapInner() {
     // Target the viewport for export
     const element = document.querySelector(".react-flow__viewport") as HTMLElement;
     if (!element) {
-      pushToast("Harita alanı bulunamadı. (Viewport not found)", "error");
+      pushToast(t("map.viewportNotFound"), "error");
       return;
     }
 

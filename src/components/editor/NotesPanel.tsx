@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { StickyNote, X, ChevronDown } from "lucide-react";
 import type { Segment, Code } from "@/types";
+import { useT } from "@/hooks/useT";
 
 interface NotesPanelProps {
   open: boolean;
@@ -41,6 +42,7 @@ function scrollToSegment(id: string) {
  * note scrolls the document to its source highlight.
  */
 export function NotesPanel({ open, segments, codes, onClose }: NotesPanelProps) {
+  const t = useT();
   const notes = useMemo<NoteItem[]>(() => {
     return segments
       .filter((s) => s.memo?.trim())
@@ -50,13 +52,13 @@ export function NotesPanel({ open, segments, codes, onClose }: NotesPanelProps) 
           id: seg.id,
           memo: seg.memo ?? "",
           excerpt: seg.text,
-          label: firstCode?.name ?? (seg.isHighlight ? "Not" : "Kod"),
+          label: firstCode?.name ?? (seg.isHighlight ? t("notes.labelNote") : t("notes.labelCode")),
           color: seg.isHighlight
             ? (seg.highlightColor ?? "#fcd34d")
             : (firstCode?.color ?? "var(--accent)"),
         };
       });
-  }, [segments, codes]);
+  }, [segments, codes, t]);
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -87,7 +89,7 @@ export function NotesPanel({ open, segments, codes, onClose }: NotesPanelProps) 
               className="text-[12px] font-semibold tracking-wide flex-1 truncate"
               style={{ color: "var(--text-primary)" }}
             >
-              Notlar ({notes.length})
+              {t("notes.title")} ({notes.length})
             </span>
             <button
               onClick={onClose}
@@ -95,7 +97,7 @@ export function NotesPanel({ open, segments, codes, onClose }: NotesPanelProps) 
               style={{ color: "var(--text-muted)" }}
               onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-hover)")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-              title="Kapat"
+              title={t("notes.close")}
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -108,7 +110,7 @@ export function NotesPanel({ open, segments, codes, onClose }: NotesPanelProps) 
                 className="h-full flex items-center justify-center text-center text-[11px] px-4"
                 style={{ color: "var(--text-muted)" }}
               >
-                Henüz not yok
+                {t("notes.empty")}
               </div>
             ) : (
               notes.map((note) => {

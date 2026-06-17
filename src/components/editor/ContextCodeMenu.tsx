@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Check } from "lucide-react";
 import type { Code } from "@/types";
+import { useT } from "@/hooks/useT";
 
 interface Props {
   x:            number;
@@ -16,6 +17,7 @@ interface Props {
 export function ContextCodeMenu({
   x, y, codes, selectedText, onSelect, onCreate, onClose,
 }: Props) {
+  const tr = useT();
   const [query,    setQuery]    = useState("");
   const [creating, setCreating] = useState(false);
   const [newName,  setNewName]  = useState("");
@@ -74,7 +76,7 @@ export function ContextCodeMenu({
           className="text-[10px] font-semibold uppercase tracking-widest"
           style={{ color: "var(--text-muted)" }}
         >
-          Kod Ata
+          {tr("codeMenu.assign")}
         </p>
         <p
           className="text-[11px] mt-0.5 line-clamp-2 italic leading-relaxed"
@@ -102,7 +104,7 @@ export function ContextCodeMenu({
               onClose();
             }
           }}
-          placeholder="Kod ara…"
+          placeholder={tr("codeMenu.searchPlaceholder")}
           className="w-full h-6 px-2 text-[12px] rounded-[var(--radius-xs)] outline-none border"
           style={{
             color:       "var(--text-primary)",
@@ -119,7 +121,7 @@ export function ContextCodeMenu({
             className="text-[11px] px-3 py-2"
             style={{ color: "var(--text-muted)" }}
           >
-            {query ? `"${query}" bulunamadı` : "Henüz kod yok"}
+            {query ? `"${query}" ${tr("codeMenu.notFoundPrefix")}` : tr("codeMenu.empty")}
           </p>
         ) : (
           filtered.map((code) => (
@@ -163,7 +165,7 @@ export function ContextCodeMenu({
                 }
                 if (e.key === "Escape") { setCreating(false); setNewName(""); }
               }}
-              placeholder="Kod adı…"
+              placeholder={tr("codeMenu.namePlaceholder")}
               className="flex-1 h-6 px-2 text-[12px] rounded-[var(--radius-xs)] outline-none border"
               style={{
                 color:       "var(--text-primary)",
@@ -195,7 +197,7 @@ export function ContextCodeMenu({
             }
           >
             <Plus className="h-3.5 w-3.5 flex-shrink-0" />
-            <span className="text-[12px]">Yeni Kod Oluştur</span>
+            <span className="text-[12px]">{tr("codeMenu.create")}</span>
           </button>
         )}
       </div>

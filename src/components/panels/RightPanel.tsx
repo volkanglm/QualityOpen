@@ -230,7 +230,7 @@ function CodeRow(props: CodeRowProps) {
         </span>
 
         {/* Color dot */}
-        <Tooltip content="Renk değiştir" side="top">
+        <Tooltip content={t("right.changeColor")} side="top">
           <button ref={colorBtnRef} className="flex-shrink-0 transition-transform hover:scale-110"
             onClick={() => { const r = colorBtnRef.current?.getBoundingClientRect(); if (r) onColorClick(code.id, r); }}
           >
@@ -326,7 +326,7 @@ function CodeRow(props: CodeRowProps) {
                       <span style={{ color: code.color }}>&quot;</span>{seg.text}<span style={{ color: code.color }}>&quot;</span>
                     </p>
                     <div className="flex items-center gap-1 opacity-0 group-hover/seg:opacity-100 transition-opacity flex-shrink-0">
-                      <Tooltip content={seg.isDisconfirming ? "Normal Kanıt Olarak İşaretle" : "Zıt Kanıt (Disconfirming)"} side="top">
+                      <Tooltip content={seg.isDisconfirming ? t("right.markNormal") : t("right.markDisconfirming")} side="top">
                         <button 
                           onClick={() => toggleDisconfirming(seg.id, seg.disconfirmingNote)}
                           className={cn("p-1 rounded hover:bg-[var(--surface-dark)]", seg.isDisconfirming ? "text-orange-500" : "text-[var(--text-disabled)]")}
@@ -344,7 +344,7 @@ function CodeRow(props: CodeRowProps) {
                       </div>
                       <textarea
                         className="w-full bg-black/20 border border-white/5 rounded p-1.5 text-[10px] text-[var(--text-secondary)] outline-none focus:border-orange-500/30 transition-colors resize-none"
-                        placeholder="Neden zıt kanıt? (Örn: Katılımcı burada genel eğilimin aksine...)"
+                        placeholder={t("right.disconfirmPlaceholder")}
                         rows={2}
                         value={seg.disconfirmingNote || ""}
                         onChange={(e) => toggleDisconfirming(seg.id, e.target.value)}

@@ -3,17 +3,40 @@ import type { Project, Document, Code, Segment, Memo } from "@/types";
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
 
+/**
+ * A stored semantic embedding. Two kinds:
+ *  - "segment": keyed by segment id (a coded/highlighted/noted passage)
+ *  - "chunk":   keyed by `chunk:{documentId}:{index}` (a slice of raw document
+ *               text, so search/"find similar" spans whole files, not just
+ *               existing segments)
+ */
+export interface EmbeddingRecord {
+  id: string;
+  kind: "segment" | "chunk";
+  projectId: string;
+  documentId: string;
+  text: string;          // embedded text — kept for result display / snippets
+  charStart?: number;    // offset into the document (for navigation)
+  charEnd?: number;
+  vector: number[];      // raw embedding (length === dim)
+  model: string;         // e.g. "nomic-embed-text"
+  dim: number;
+  updatedAt: number;
+}
+
 export interface QoDb {
-  projects:  { key: string; value: Project  };
-  documents: { key: string; value: Document };
-  codes:     { key: string; value: Code     };
-  segments:  { key: string; value: Segment  };
-  memos:     { key: string; value: Memo     };
-  meta:      { key: string; value: unknown  };
+  projects:   { key: string; value: Project         };
+  documents:  { key: string; value: Document        };
+  codes:      { key: string; value: Code            };
+  segments:   { key: string; value: Segment         };
+  memos:      { key: string; value: Memo            };
+  embeddings: { key: string; value: EmbeddingRecord };
+  meta:       { key: string; value: unknown         };
 }
 
 const DB_NAME    = "qualityopen-db";
-const DB_VERSION = 1;
+// v2: added the `embeddings` store for local semantic search.
+const DB_VERSION = 2;
 
 let _db: IDBPDatabase<QoDb> | null = null;
 
@@ -27,6 +50,7 @@ async function getDb(): Promise<IDBPDatabase<QoDb>> {
         "codes",
         "segments",
         "memos",
+        "embeddings",
         "meta",
       ] as const) {
         if (!db.objectStoreNames.contains(store)) {
@@ -60,6 +84,26 @@ export async function dbDeleteAll(store: StoreName): Promise<void> {
 export async function dbGetAll<T>(store: StoreName): Promise<T[]> {
   const db = await getDb();
   return db.getAll(store) as Promise<T[]>;
+}
+
+export async function dbDelete(store: StoreName, key: string): Promise<void> {
+  const db = await getDb();
+  await db.delete(store, key);
+}
+
+/** Delete many keys in a SINGLE transaction (orders of magnitude faster than
+ *  awaiting one delete per key). */
+export async function dbDeleteMany(store: StoreName, keys: string[]): Promise<void> {
+  if (keys.length === 0) return;
+  const db = await getDb();
+  const tx = db.transaction(store, "readwrite");
+  await Promise.all(keys.map((k) => tx.store.delete(k)));
+  await tx.done;
+}
+
+export async function dbPut<T>(store: StoreName, item: T): Promise<void> {
+  const db = await getDb();
+  await db.put(store, item as never);
 }
 
 // ─── Snapshot: write entire app state to IndexedDB ───────────────────────────

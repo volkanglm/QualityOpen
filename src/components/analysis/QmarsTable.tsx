@@ -6,7 +6,9 @@ import { Download, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { askAi } from "@/lib/ai";
 import { useSettingsStore } from "@/store/settings.store";
+import { useT } from "@/hooks/useT";
 export function QmarsTable({ codes }: { codes: Code[] }) {
+    const t = useT();
     const { documents, segments, syntheses, upsertSynthesis } = useProjectStore();
     const { activeProjectId } = useAppStore();
     const { getActiveKey } = useSettingsStore();
@@ -71,7 +73,7 @@ Sentez metni kısa, öz ve akademik dilde olmalıdır (3-5 cümle). Doğrudan se
         <html lang="tr">
         <head>
             <meta charset="UTF-8">
-            <title>QMARS Sentez Tablosu</title>
+            <title>${t("qmars.title")}</title>
             <style>
                 body { font-family: "Georgia", serif; line-height: 1.6; color: #333; max-width: 1000px; margin: 40px auto; padding: 20px; }
                 h1 { font-size: 24px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
@@ -82,14 +84,14 @@ Sentez metni kısa, öz ve akademik dilde olmalıdır (3-5 cümle). Doğrudan se
             </style>
         </head>
         <body>
-            <h1>Nitel Meta-Sentez (QMARS) Tema Sentez Tablosu</h1>
-            <p>Bu tablo APA JARS standartlarına uygun olarak meta-sentez bulgularını özetlemektedir.</p>
+            <h1>${t("qmars.exportHeading")}</h1>
+            <p>${t("qmars.exportIntro")}</p>
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 20%;">Tema (Kod)</th>
-                        <th style="width: 15%;">Birincil Çalışma Sayısı (k)</th>
-                        <th style="width: 65%;">Sentezlenmiş Bulgu (Synthesized Finding)</th>
+                        <th style="width: 20%;">${t("qmars.theme")}</th>
+                        <th style="width: 15%;">${t("qmars.exportStudyCount")}</th>
+                        <th style="width: 65%;">${t("qmars.synthesizedFinding")}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -100,7 +102,7 @@ Sentez metni kısa, öz ve akademik dilde olmalıdır (3-5 cümle). Doğrudan se
                 <tr>
                     <td><strong>${row.code.name}</strong></td>
                     <td class="study-count">${row.studyCount}</td>
-                    <td>${row.synthesis ? row.synthesis.replace(/\n/g, "<br/>") : "<em>Henüz sentezlenmedi.</em>"}</td>
+                    <td>${row.synthesis ? row.synthesis.replace(/\n/g, "<br/>") : `<em>${t("qmars.notSynthesizedShort")}</em>`}</td>
                 </tr>
             `;
         });
@@ -126,13 +128,13 @@ Sentez metni kısa, öz ve akademik dilde olmalıdır (3-5 cümle). Doğrudan se
         <div className="flex flex-col h-full gap-6">
             <div className="flex items-center justify-between bg-[var(--bg-secondary)]/40 p-4 rounded-xl border border-[var(--border)]">
                 <div>
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-secondary)]">QMARS Sentez Tablosu</h2>
-                    <p className="text-[11px] text-[var(--text-muted)] mt-1">Nitel meta-sentez çalışmaları için tema bazlı bulgu sentezi.</p>
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-secondary)]">{t("qmars.title")}</h2>
+                    <p className="text-[11px] text-[var(--text-muted)] mt-1">{t("qmars.subtitle")}</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Button variant="outline" size="sm" className="gap-2 h-8 text-[11px]" onClick={handleExportQmars}>
                         <Download className="h-3.5 w-3.5" />
-                        Tabloyu İndir (HTML)
+                        {t("qmars.downloadHtml")}
                     </Button>
                 </div>
             </div>
@@ -141,11 +143,11 @@ Sentez metni kısa, öz ve akademik dilde olmalıdır (3-5 cümle). Doğrudan se
                 <table className="w-full text-left border-collapse text-sm">
                     <thead className="sticky top-0 bg-[var(--bg-secondary)] shadow-sm z-10">
                         <tr>
-                            <th className="p-4 font-semibold text-[var(--text-secondary)] border-b border-[var(--border)] w-[20%]">Tema (Kod)</th>
-                            <th className="p-4 font-semibold text-[var(--text-secondary)] border-b border-[var(--border)] w-[15%] text-center">Çalışma Sayısı (k)</th>
+                            <th className="p-4 font-semibold text-[var(--text-secondary)] border-b border-[var(--border)] w-[20%]">{t("qmars.theme")}</th>
+                            <th className="p-4 font-semibold text-[var(--text-secondary)] border-b border-[var(--border)] w-[15%] text-center">{t("qmars.studyCount")}</th>
                             <th className="p-4 font-semibold text-[var(--text-secondary)] border-b border-[var(--border)] w-[65%]">
                                 <div className="flex items-center justify-between">
-                                    <span>Sentezlenmiş Bulgu (Synthesized Finding)</span>
+                                    <span>{t("qmars.synthesizedFinding")}</span>
                                 </div>
                             </th>
                         </tr>
@@ -170,7 +172,7 @@ Sentez metni kısa, öz ve akademik dilde olmalıdır (3-5 cümle). Doğrudan se
                                             <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{row.synthesis}</p>
                                         ) : (
                                             <p className="text-sm text-[var(--text-muted)] italic font-light">
-                                                Bu tema için henüz meta-sentez oluşturulmadı.
+                                                {t("qmars.notSynthesizedYet")}
                                             </p>
                                         )}
                                         <div className="mt-2">
@@ -182,7 +184,7 @@ Sentez metni kısa, öz ve akademik dilde olmalıdır (3-5 cümle). Doğrudan se
                                                 disabled={generatingId === row.code.id || row.studyCount === 0}
                                             >
                                                 {generatingId === row.code.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                                                {row.synthesis ? "Yeniden Sentezle (AI)" : "Sentez Oluştur (AI)"}
+                                                {row.synthesis ? t("qmars.resynthesize") : t("qmars.synthesize")}
                                             </Button>
                                         </div>
                                     </div>
@@ -192,7 +194,7 @@ Sentez metni kısa, öz ve akademik dilde olmalıdır (3-5 cümle). Doğrudan se
                         {tableData.length === 0 && (
                             <tr>
                                 <td colSpan={3} className="p-8 text-center text-[var(--text-muted)]">
-                                    Henüz kod oluşturulmamış.
+                                    {t("qmars.noCodes")}
                                 </td>
                             </tr>
                         )}

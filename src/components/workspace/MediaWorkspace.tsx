@@ -4,6 +4,7 @@ import { FileAudio, FileVideo, Loader2, Pause, Play, Import } from "lucide-react
 import { convertFileSrc } from "@tauri-apps/api/core";
 import type { Document, Code } from "@/types";
 import { useProjectStore } from "@/store/project.store";
+import { useAppStore } from "@/store/app.store";
 import { SearchHighlighter } from "@/components/editor/SearchHighlighter";
 import { FloatingMenu, type FloatingMenuPos } from "@/components/editor/FloatingMenu";
 import { CodeAssignPanel } from "@/components/editor/CodeAssignPanel";
@@ -298,6 +299,10 @@ export function MediaWorkspace({ doc }: MediaWorkspaceProps) {
                 }}
                 onAskAI={() => { }}
                 onSummarize={() => { }}
+                onFindSimilar={(pos: FloatingMenuPos) => {
+                    setFloatPos(null);
+                    useAppStore.getState().openSemanticSearch(pos.text);
+                }}
                 onDismiss={() => setFloatPos(null)}
             />
 

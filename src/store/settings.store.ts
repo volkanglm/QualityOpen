@@ -11,6 +11,12 @@ export type DefaultProvider = "auto" | "openai" | "anthropic" | "gemini" | "olla
 const DEFAULT_OLLAMA_URL = "http://127.0.0.1:11434";
 const DEFAULT_OLLAMA_MODEL = "llama3.1:8b";
 
+/** Semantic-search embedding source. (Anthropic has no embeddings API.) */
+export type EmbedProvider = "ollama" | "openai" | "gemini";
+const DEFAULT_EMBED_PROVIDER: EmbedProvider = "ollama";
+const DEFAULT_EMBED_MODEL = "nomic-embed-text";
+const DEFAULT_CHUNK_SIZE = 1200;
+
 const SERVICE = "qualityopen";
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -22,6 +28,14 @@ interface SettingsStore {
   /** Local LLM (Ollama) connection — non-sensitive, persisted */
   ollamaBaseUrl: string;
   ollamaModel: string;
+
+  /** Semantic search (embeddings) config — non-sensitive, persisted */
+  embedProvider: EmbedProvider;
+  embedModel: string;
+  embedChunkSize: number;
+  /** When true, raw document text is chunked + indexed (cross-file content
+   *  search). Off by default — keeps the index small / fast. */
+  embedIndexDocuments: boolean;
 
   /** In-memory only — loaded from OS keychain at startup, never persisted to localStorage */
   _openai: string;
@@ -53,6 +67,10 @@ interface SettingsStore {
   setDefaultProvider: (p: DefaultProvider) => void;
   setOllamaBaseUrl: (url: string) => void;
   setOllamaModel: (model: string) => void;
+  setEmbedProvider: (p: EmbedProvider) => void;
+  setEmbedModel: (m: string) => void;
+  setEmbedChunkSize: (n: number) => void;
+  setEmbedIndexDocuments: (b: boolean) => void;
   clearKeys: () => Promise<void>;
 }
 
@@ -62,6 +80,10 @@ export const useSettingsStore = create<SettingsStore>()(
       defaultProvider: "auto",
       ollamaBaseUrl: DEFAULT_OLLAMA_URL,
       ollamaModel: DEFAULT_OLLAMA_MODEL,
+      embedProvider: DEFAULT_EMBED_PROVIDER,
+      embedModel: DEFAULT_EMBED_MODEL,
+      embedChunkSize: DEFAULT_CHUNK_SIZE,
+      embedIndexDocuments: false,
       _openai: "",
       _anthropic: "",
       _gemini: "",
@@ -195,6 +217,10 @@ export const useSettingsStore = create<SettingsStore>()(
       setDefaultProvider: (p) => set({ defaultProvider: p }),
       setOllamaBaseUrl: (url) => set({ ollamaBaseUrl: url }),
       setOllamaModel: (model) => set({ ollamaModel: model }),
+      setEmbedProvider: (p) => set({ embedProvider: p }),
+      setEmbedModel: (m) => set({ embedModel: m }),
+      setEmbedChunkSize: (n) => set({ embedChunkSize: n }),
+      setEmbedIndexDocuments: (b) => set({ embedIndexDocuments: b }),
 
       clearKeys: async () => {
         set({ _openai: "", _anthropic: "", _gemini: "" });
@@ -216,6 +242,10 @@ export const useSettingsStore = create<SettingsStore>()(
         defaultProvider: state.defaultProvider,
         ollamaBaseUrl: state.ollamaBaseUrl,
         ollamaModel: state.ollamaModel,
+        embedProvider: state.embedProvider,
+        embedModel: state.embedModel,
+        embedChunkSize: state.embedChunkSize,
+        embedIndexDocuments: state.embedIndexDocuments,
       }),
     }
   )

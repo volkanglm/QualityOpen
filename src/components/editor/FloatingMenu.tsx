@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Tag, Sparkles, Highlighter, AlignLeft } from "lucide-react";
+import { Tag, Sparkles, Highlighter, AlignLeft, ScanSearch } from "lucide-react";
 import { useT } from "@/hooks/useT";
 
 export interface FloatingMenuPos {
@@ -21,17 +21,19 @@ interface FloatingMenuProps {
   onAskAI: (pos: FloatingMenuPos) => void;
   onHighlight: (pos: FloatingMenuPos) => void;
   onSummarize: (pos: FloatingMenuPos) => void;
+  onFindSimilar: (pos: FloatingMenuPos) => void;
   onDismiss: () => void;
 }
 
 const MENU_HEIGHT = 44;
-const MENU_WIDTH = 270;
+const MENU_WIDTH = 330;
 const GAP = 10;
 
 const ACTION_IDS = [
   { id: "code", icon: Tag, color: "var(--accent)" },
   { id: "highlight", icon: Highlighter, color: "var(--code-5)" },
   { id: "summarize", icon: AlignLeft, color: "var(--code-8)" },
+  { id: "similar", icon: ScanSearch, color: "var(--code-6)" },
   { id: "ai", icon: Sparkles, color: "var(--code-3)" },
 ] as const;
 
@@ -41,6 +43,7 @@ export function FloatingMenu({
   onAskAI,
   onHighlight,
   onSummarize,
+  onFindSimilar,
   onDismiss,
 }: FloatingMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -50,7 +53,8 @@ export function FloatingMenu({
     { ...ACTION_IDS[0], label: t("float.assign") },
     { ...ACTION_IDS[1], label: t("float.highlight") },
     { ...ACTION_IDS[2], label: t("float.summarize") },
-    { ...ACTION_IDS[3], label: t("float.askAi") },
+    { ...ACTION_IDS[3], label: "Benzer bul" },
+    { ...ACTION_IDS[4], label: t("float.askAi") },
   ];
 
   /* Close on outside click */
@@ -92,6 +96,7 @@ export function FloatingMenu({
       else if (action === "ai") onAskAI(pos);
       else if (action === "highlight") onHighlight(pos);
       else if (action === "summarize") onSummarize(pos);
+      else if (action === "similar") onFindSimilar(pos);
     }, 0);
   };
 

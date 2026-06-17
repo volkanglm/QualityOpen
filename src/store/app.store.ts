@@ -41,6 +41,12 @@ interface AppStore extends AppState {
   setFilterLogic: (logic: "AND" | "OR") => void;
   setChatOpen: (open: boolean) => void;
   setSearchQuery: (q: string) => void;
+  // Semantic (vector) search panel
+  semanticOpen: boolean;
+  /** When set, the semantic panel opens pre-filled and auto-runs this query. */
+  semanticPrefill: string | null;
+  setSemanticOpen: (open: boolean) => void;
+  openSemanticSearch: (prefill?: string) => void;
   // Line numbers
   toggleLineNumbers: () => void;
   // Split view
@@ -69,6 +75,8 @@ export const useAppStore = create<AppStore>()(
       filterLogic: "OR",
       chatOpen: false,
       searchQuery: "",
+      semanticOpen: false,
+      semanticPrefill: null,
       showLineNumbers: false,
       splitView: false,
 
@@ -113,6 +121,8 @@ export const useAppStore = create<AppStore>()(
       setFilterLogic: (logic) => set({ filterLogic: logic }),
       setChatOpen: (open) => set({ chatOpen: open }),
       setSearchQuery: (q) => set({ searchQuery: q }),
+      setSemanticOpen: (open) => set({ semanticOpen: open, ...(open ? {} : { semanticPrefill: null }) }),
+      openSemanticSearch: (prefill) => set({ semanticOpen: true, semanticPrefill: prefill?.trim() || null }),
       toggleLineNumbers: () => set((s) => ({ showLineNumbers: !s.showLineNumbers })),
       setSplitView: (split) => set({ splitView: split }),
       toggleSplitView: () => set((s) => ({ splitView: !s.splitView })),

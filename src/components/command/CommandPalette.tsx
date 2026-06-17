@@ -7,7 +7,7 @@ import {
   Tag,
   CheckCircle2,
   AlertCircle,
-  Search, Key, LayoutGrid, FileText, MessageSquare
+  Search, Key, LayoutGrid, FileText, MessageSquare, ScanSearch
 } from "lucide-react";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
@@ -141,6 +141,7 @@ export function CommandPalette() {
     setCommandPaletteOpen,
     setChatOpen,
     setActiveDocument,
+    openSemanticSearch,
   } = useAppStore();
 
   const { codes, documents, createCode, addSegment } = useProjectStore();
@@ -256,6 +257,14 @@ export function CommandPalette() {
       category: t("cmd.catAi"),
       disabled: !activeProjectId,
     },
+    {
+      id: "semantic-search",
+      icon: <ScanSearch className="h-3.5 w-3.5" />,
+      label: "Anlamsal Arama",
+      description: t("cmd.semanticSearchDesc"),
+      category: t("cmd.catAi"),
+      disabled: !activeProjectId,
+    },
   ];
 
   const filtered = allCommands.filter((c) =>
@@ -308,6 +317,7 @@ export function CommandPalette() {
     if (id === "open-dashboard") { setActiveView("dashboard"); close(); return; }
     if (id === "open-documents") { setActiveView("documents"); close(); return; }
     if (id === "open-chat") { setChatOpen(true); close(); return; }
+    if (id === "semantic-search") { openSemanticSearch(); close(); return; }
 
     if (id.startsWith("doc-")) {
       const docId = id.replace("doc-", "");

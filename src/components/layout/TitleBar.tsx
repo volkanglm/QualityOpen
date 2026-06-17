@@ -31,18 +31,22 @@ export function TitleBar() {
   const { projects } = useProjectStore();
   const activeProject = projects.find((p) => p.id === activeProjectId);
   const win = getCurrentWindow();
+  // macOS shows native traffic lights (left); other platforms get our custom
+  // min/max/close (right). Inset the bar on macOS so content clears the lights.
+  const isMac = typeof navigator !== "undefined" && navigator.userAgent.includes("Mac");
 
   return (
     <div
       data-tauri-drag-region
-      className="drag flex h-9 w-full flex-shrink-0 items-center justify-between px-3 border-b"
+      className="drag flex h-9 w-full flex-shrink-0 items-center gap-2 px-3 border-b"
       style={{
         background: "var(--bg-primary)",
         borderColor: "var(--border-subtle)",
+        paddingLeft: isMac ? 76 : undefined, // clear the native traffic lights
       }}
     >
       {/* ── Left — App logo + panel toggles ── */}
-      <div className="no-drag flex items-center gap-1">
+      <div className="no-drag flex items-center gap-1 flex-shrink-0">
         {/* Logo */}
         <div className="mr-1 flex-shrink-0">
           <AppLogo size={18} variant="mark" />
@@ -67,7 +71,7 @@ export function TitleBar() {
 
       {/* ── Center — Project + doc breadcrumb ── */}
       <div
-        className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 pointer-events-none"
+        className="flex-1 min-w-0 flex items-center justify-center gap-1.5 pointer-events-none"
       >
         {activeProject ? (
           <>
@@ -76,7 +80,7 @@ export function TitleBar() {
               style={{ background: activeProject.color ?? "var(--accent)" }}
             />
             <span
-              className="text-[12px] font-medium"
+              className="text-[12px] font-medium truncate"
               style={{ color: "var(--text-secondary)" }}
             >
               {activeProject.name}
@@ -91,7 +95,7 @@ export function TitleBar() {
       </div>
 
       {/* ── Right — Export + ⌘K + Theme + Window controls ── */}
-      <div className="no-drag flex items-center gap-0.5">
+      <div className="no-drag flex items-center gap-0.5 flex-shrink-0">
         {activeProjectId && (
           <>
             {/* QC button */}
@@ -180,27 +184,21 @@ export function TitleBar() {
           </motion.button>
         </Tooltip>
 
-        <div className="w-px h-4 mx-1" style={{ background: "var(--border)" }} />
-
-        {/* Window buttons */}
-        <WinBtn
-          onClick={() => win.minimize()}
-          hoverClass="hover-surface"
-        >
-          <Minus className="h-3 w-3" />
-        </WinBtn>
-        <WinBtn
-          onClick={() => win.toggleMaximize()}
-          hoverClass="hover-surface"
-        >
-          <Square className="h-3 w-3" />
-        </WinBtn>
-        <WinBtn
-          onClick={() => win.close()}
-          hoverClass="hover-danger"
-        >
-          <X className="h-3 w-3" />
-        </WinBtn>
+        {/* Window buttons — Windows/Linux only; macOS uses native traffic lights */}
+        {!isMac && (
+          <>
+            <div className="w-px h-4 mx-1" style={{ background: "var(--border)" }} />
+            <WinBtn onClick={() => win.minimize()} hoverClass="hover-surface">
+              <Minus className="h-3 w-3" />
+            </WinBtn>
+            <WinBtn onClick={() => win.toggleMaximize()} hoverClass="hover-surface">
+              <Square className="h-3 w-3" />
+            </WinBtn>
+            <WinBtn onClick={() => win.close()} hoverClass="hover-danger">
+              <X className="h-3 w-3" />
+            </WinBtn>
+          </>
+        )}
       </div>
 
       <JarsChecklist open={jarsOpen} onClose={() => setJarsOpen(false)} />

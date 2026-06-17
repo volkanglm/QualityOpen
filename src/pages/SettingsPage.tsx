@@ -94,7 +94,7 @@ function ApiKeyInput({
               style={{ color: "var(--text-muted)" }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--danger)"; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-muted)"; }}
-              title="Anahtarı sil"
+              title={t("settings.deleteKey")}
             >
               <Trash2 className="h-3 w-3" />
             </button>

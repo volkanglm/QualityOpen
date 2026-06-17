@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { WifiOff } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
+import { useT } from "@/hooks/useT";
 
 /**
  * Mounted globally in App.tsx.
@@ -9,6 +10,7 @@ import { useAuthStore } from "@/store/auth.store";
  * Shows a calm tooltip on hover — no alarming colours.
  */
 export function OfflineBadge() {
+  const t = useT();
   const { offlineMode } = useAuthStore();
   const [tip, setTip]   = useState(false);
   const ref             = useRef<HTMLDivElement>(null);
@@ -37,7 +39,7 @@ export function OfflineBadge() {
             }}
           >
             <WifiOff className="h-3 w-3" />
-            <span className="text-[10px] font-medium">Çevrimdışı</span>
+            <span className="text-[10px] font-medium">{t("offline.badge")}</span>
           </div>
 
           {/* Tooltip */}

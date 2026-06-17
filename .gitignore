@@ -31,3 +31,7 @@ sos.md
 *.log
 tauri.key
 tauri.pub
+
+# ─── Local-only planning / tooling (do not commit) ───────────────────────────
+ROADMAP_NICE_TO_HAVE.md
+docs/superpowers/

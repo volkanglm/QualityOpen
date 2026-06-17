@@ -90,6 +90,7 @@ export function CenterPanel() {
     toggleLineNumbers,
     splitView,
     toggleSplitView,
+    openSemanticSearch,
   } = useAppStore();
 
   const {
@@ -281,6 +282,12 @@ export function CenterPanel() {
     // Open chat with pre-filled question
     setChatOpen(true);
     void pos; // used by chat context
+  };
+
+  const handleFindSimilar = (pos: FloatingMenuPos) => {
+    // Open the semantic panel pre-filled with the selected text; the panel's
+    // search() embeds it on the fly and returns the closest segments.
+    openSemanticSearch(pos.text);
   };
 
   const handleHighlight = (pos: FloatingMenuPos) => {
@@ -927,6 +934,7 @@ export function CenterPanel() {
         onAskAI={handleAskAI}
         onHighlight={handleHighlight}
         onSummarize={(pos) => void handleSummarize(pos)}
+        onFindSimilar={handleFindSimilar}
         onDismiss={() => setFloatPos(null)}
       />
 
