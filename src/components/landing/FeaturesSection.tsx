@@ -174,15 +174,11 @@ export function FeaturesSection() {
               ))}
             </div>
             <p className="text-sm font-bold text-[var(--text-secondary)]">
-              {lang === "en" 
-                ? "Trusted by 5,000+ academics worldwide." 
+              {lang === "en"
+                ? "Trusted by 5,000+ academics worldwide."
                 : "Dünya çapında 5.000'den fazla akademisyen tarafından güveniliyor."}
             </p>
           </div>
-
-          <button className="px-8 py-4 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-full font-black text-sm hover:scale-105 transition-transform active:scale-95 shadow-xl shadow-white/5">
-            {lang === "en" ? "GET LIFETIME LICENSE — $149" : "ÖMÜR BOYU LİSANS AL — $149"}
-          </button>
         </motion.div>
       </div>
     </section>

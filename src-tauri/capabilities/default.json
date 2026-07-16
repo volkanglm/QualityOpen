@@ -54,9 +54,6 @@
       "identifier": "http:default",
       "allow": [
         {
-          "url": "https://api.lemonsqueezy.com/*"
-        },
-        {
           "url": "https://api.openai.com/*"
         },
         {
