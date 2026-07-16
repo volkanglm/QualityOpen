@@ -49,6 +49,19 @@ echo "  ✓ app, entitlements, both certs, and provisioning profile present."
 echo "▶ Embedding provisioning profile…"
 cp "$MAS_PROFILE" "$APP/Contents/embedded.provisionprofile"
 
+# ITMS-91109: the App Store rejects any file carrying the com.apple.quarantine
+# xattr (the downloaded provisioning profile brings it in). Strip ALL xattrs
+# from the bundle BEFORE signing.
+echo "▶ Stripping extended attributes (quarantine)…"
+xattr -cr "$APP"
+
+# Optional: override the build number (CFBundleVersion) for a fresh upload —
+# Apple rejects re-using a build number from a prior delivery.
+if [[ -n "${MAS_BUILD:-}" ]]; then
+  /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $MAS_BUILD" "$APP/Contents/Info.plist"
+  echo "  ✓ CFBundleVersion set to $MAS_BUILD"
+fi
+
 echo "▶ Signing app bundle…"
 codesign --force --sign "$APP_CERT" \
   --entitlements "$ENTITLEMENTS" \
