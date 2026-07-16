@@ -4,6 +4,9 @@ use tauri::{AppHandle, Emitter};
 
 mod local_http;
 
+#[cfg(target_os = "macos")]
+mod bookmarks;
+
 /// Starts a one-shot HTTP server on a dynamically assigned loopback port.
 /// The OS picks a free port (bind to 0), so this never fails due to a
 /// port being in TIME_WAIT after a previous auth attempt.
@@ -289,7 +292,11 @@ pub fn run() {
             exchange_google_code,
             local_http::local_http,
             local_http::local_http_stream,
-            local_http::local_ai_health
+            local_http::local_ai_health,
+            #[cfg(target_os = "macos")]
+            bookmarks::create_bookmark,
+            #[cfg(target_os = "macos")]
+            bookmarks::resolve_bookmark
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
