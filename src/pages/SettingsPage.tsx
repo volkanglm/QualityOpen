@@ -282,6 +282,10 @@ export function SettingsPage() {
 
       if (selected && typeof selected === "string") {
         useAuthStore.getState().setLocalFolderPath(selected);
+        const { createFolderBookmark, resetLocalFolderAccess } = await import("@/lib/localSync");
+        const bm = await createFolderBookmark(selected);
+        useAuthStore.getState().setLocalFolderBookmark(bm);
+        resetLocalFolderAccess();
       }
     } catch (err) {
       console.error("Folder selection failed:", err);
@@ -694,8 +698,11 @@ export function SettingsPage() {
                       <RefreshCw className="h-3 w-3" />
                     </button>
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         useAuthStore.getState().setLocalFolderPath(null);
+                        useAuthStore.getState().setLocalFolderBookmark(null);
+                        const { resetLocalFolderAccess } = await import("@/lib/localSync");
+                        resetLocalFolderAccess();
                       }}
                       className="p-1 hover:text-[var(--danger)] transition-colors"
                     >
