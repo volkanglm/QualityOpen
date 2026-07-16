@@ -53,7 +53,8 @@ cp "$MAS_PROFILE" "$APP/Contents/embedded.provisionprofile"
 # xattr (the downloaded provisioning profile brings it in). Strip ALL xattrs
 # from the bundle BEFORE signing.
 echo "▶ Stripping extended attributes (quarantine)…"
-xattr -cr "$APP"
+# Not all macOS `xattr` builds support -r; clear per-node via find for portability.
+find "$APP" -exec xattr -c {} \; 2>/dev/null || true
 
 # Optional: override the build number (CFBundleVersion) for a fresh upload —
 # Apple rejects re-using a build number from a prior delivery.
