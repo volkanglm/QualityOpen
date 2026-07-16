@@ -17,5 +17,10 @@
     <!-- App-scoped bookmarks for persistent folder access across launches -->
     <key>com.apple.security.files.bookmarks.app-scope</key>
     <true/>
+    <!-- MAS: app identifier must match the provisioning profile (clears TestFlight warning 90886) -->
+    <key>com.apple.application-identifier</key>
+    <string>R2SG7U8DN9.com.ivg.qualityopen</string>
+    <key>com.apple.developer.team-identifier</key>
+    <string>R2SG7U8DN9</string>
 </dict>
 </plist>

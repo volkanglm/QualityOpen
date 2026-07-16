@@ -6,6 +6,7 @@
   "bundle": {
     "createUpdaterArtifacts": false,
     "targets": ["app"],
+    "category": "Productivity",
     "macOS": {
       "entitlements": "Entitlements.appstore.plist"
     }

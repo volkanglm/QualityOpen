@@ -25,7 +25,7 @@ APP_CERT="${MAS_APP_CERT:-Apple Distribution: ismail volkan gulum ($TEAM_ID)}"
 INSTALLER_CERT="${MAS_INSTALLER_CERT:-3rd Party Mac Developer Installer: ismail volkan gulum ($TEAM_ID)}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APP="${MAS_APP:-$REPO_ROOT/src-tauri/target/release/bundle/macos/QualityOpen.app}"
+APP="${MAS_APP:-$REPO_ROOT/src-tauri/target/universal-apple-darwin/release/bundle/macos/QualityOpen.app}"
 ENTITLEMENTS="$REPO_ROOT/src-tauri/Entitlements.appstore.plist"
 PKG="$REPO_ROOT/QualityOpen.pkg"
 DO_UPLOAD="no"
