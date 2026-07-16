@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { check, Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
+import { IS_APP_STORE } from "@/lib/appStore";
 
 type UpdateStep = "idle" | "checking" | "available" | "downloading" | "ready" | "error";
 
@@ -27,6 +28,7 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
   dismissed: false,
 
   checkForUpdates: async (manual = false) => {
+    if (IS_APP_STORE) return;
     set({ step: "checking", error: null, dismissed: false });
     try {
       const res = await check();

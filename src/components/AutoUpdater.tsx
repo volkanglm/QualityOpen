@@ -3,12 +3,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useUpdateStore } from "@/store/update.store";
 import { X, Download, RefreshCw } from "lucide-react";
 import { useT } from "@/lib/i18n";
+import { IS_APP_STORE } from "@/lib/appStore";
 
 export function AutoUpdater() {
     const t = useT();
     const { latestVersion, step, progress, dismissed, checkForUpdates, downloadAndInstall, restart, setDismissed } = useUpdateStore();
 
     useEffect(() => {
+        if (IS_APP_STORE) return;
         const timer = setTimeout(() => {
             checkForUpdates().catch((e) => {
                 console.error("[AutoUpdater] Check failed:", e);
@@ -16,6 +18,8 @@ export function AutoUpdater() {
         }, 3000);
         return () => clearTimeout(timer);
     }, []);
+
+    if (IS_APP_STORE) return null;
 
     if (!["available", "downloading", "ready"].includes(step) || dismissed) return null;
 

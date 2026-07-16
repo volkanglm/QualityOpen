@@ -1,5 +1,8 @@
 # QualityOpen — App Store Review Notes
 
+## Build command
+The Mac App Store (MAS) build is produced ONLY with `pnpm build:appstore`. This single command sets BOTH the Rust `appstore` cargo feature (compiles out the self-updater plugin) AND `VITE_APP_STORE=true` (compiles out all frontend update UI/logic via `src-tauri/tauri.appstore.conf.json`'s `build.beforeBuildCommand`). Do not build the MAS artifact any other way.
+
 Notes for the App Review team (paste into App Store Connect → App Review Information → Notes).
 
 ## About the app

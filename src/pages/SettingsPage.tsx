@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { useT } from "@/lib/i18n";
 import { SyncManager } from "@/components/sync/SyncManager";
 import { LocalAiPanel } from "@/components/settings/LocalAiPanel";
+import { IS_APP_STORE } from "@/lib/appStore";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -737,7 +738,7 @@ export function SettingsPage() {
                 <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
                   v{appVersion} · Qualitative Data Analysis
                 </p>
-                <CheckUpdateButton />
+                {!IS_APP_STORE && <CheckUpdateButton />}
               </div>
             </div>
           </div>
