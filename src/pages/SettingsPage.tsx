@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { useT } from "@/lib/i18n";
 import { SyncManager } from "@/components/sync/SyncManager";
 import { LocalAiPanel } from "@/components/settings/LocalAiPanel";
+import { IS_APP_STORE } from "@/lib/appStore";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -282,6 +283,10 @@ export function SettingsPage() {
 
       if (selected && typeof selected === "string") {
         useAuthStore.getState().setLocalFolderPath(selected);
+        const { createFolderBookmark, resetLocalFolderAccess } = await import("@/lib/localSync");
+        const bm = await createFolderBookmark(selected);
+        useAuthStore.getState().setLocalFolderBookmark(bm);
+        resetLocalFolderAccess();
       }
     } catch (err) {
       console.error("Folder selection failed:", err);
@@ -694,8 +699,11 @@ export function SettingsPage() {
                       <RefreshCw className="h-3 w-3" />
                     </button>
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         useAuthStore.getState().setLocalFolderPath(null);
+                        useAuthStore.getState().setLocalFolderBookmark(null);
+                        const { resetLocalFolderAccess } = await import("@/lib/localSync");
+                        resetLocalFolderAccess();
                       }}
                       className="p-1 hover:text-[var(--danger)] transition-colors"
                     >
@@ -730,7 +738,7 @@ export function SettingsPage() {
                 <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
                   v{appVersion} · Qualitative Data Analysis
                 </p>
-                <CheckUpdateButton />
+                {!IS_APP_STORE && <CheckUpdateButton />}
               </div>
             </div>
           </div>

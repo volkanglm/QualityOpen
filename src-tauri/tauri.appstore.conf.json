@@ -1,0 +1,14 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "build": {
+    "beforeBuildCommand": "VITE_APP_STORE=true pnpm build"
+  },
+  "bundle": {
+    "createUpdaterArtifacts": false,
+    "targets": ["app"],
+    "category": "Productivity",
+    "macOS": {
+      "entitlements": "Entitlements.appstore.plist"
+    }
+  }
+}

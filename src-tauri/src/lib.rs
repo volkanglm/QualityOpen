@@ -4,6 +4,9 @@ use tauri::{AppHandle, Emitter};
 
 mod local_http;
 
+#[cfg(target_os = "macos")]
+mod bookmarks;
+
 /// Starts a one-shot HTTP server on a dynamically assigned loopback port.
 /// The OS picks a free port (bind to 0), so this never fails due to a
 /// port being in TIME_WAIT after a previous auth attempt.
@@ -254,14 +257,22 @@ fn encode_base64(bytes: &[u8]) -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    #[allow(unused_mut)]
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_process::init());
+
+    // Updater is disabled in the App Store build (Apple manages updates there).
+    #[cfg(not(feature = "appstore"))]
+    {
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    }
+
+    builder
         .setup(|_app| {
             // macOS keeps native decorations + Overlay title bar (traffic lights).
             // Other platforms use a fully custom, borderless title bar.
@@ -281,7 +292,11 @@ pub fn run() {
             exchange_google_code,
             local_http::local_http,
             local_http::local_http_stream,
-            local_http::local_ai_health
+            local_http::local_ai_health,
+            #[cfg(target_os = "macos")]
+            bookmarks::create_bookmark,
+            #[cfg(target_os = "macos")]
+            bookmarks::resolve_bookmark
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

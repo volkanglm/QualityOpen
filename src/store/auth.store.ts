@@ -31,6 +31,7 @@ interface AuthStore {
   offlineMode: boolean;          // true when running from offline cache
   booting: boolean;          // true during splash screen (initial boot)
   localFolderPath: string | null; // Path to local backup folder
+  localFolderBookmark: number[] | null; // macOS security-scoped bookmark bytes
 
   // ── Actions ──
   signIn: () => Promise<void>;
@@ -45,6 +46,7 @@ interface AuthStore {
   _setOffline: (v: boolean) => void;
   _setBooting: (v: boolean) => void;
   setLocalFolderPath: (path: string | null) => void;
+  setLocalFolderBookmark: (bm: number[] | null) => void;
 }
 
 // ─── Store ─────────────────────────────────────────────────────────────────────
@@ -58,6 +60,14 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   offlineMode: false,
   booting: true,   // show splash while finding user
   localFolderPath: localStorage.getItem("qo_local_folder_path"),
+  localFolderBookmark: (() => {
+    try {
+      const s = localStorage.getItem("qo_local_folder_bookmark");
+      return s ? (JSON.parse(s) as number[]) : null;
+    } catch {
+      return null;
+    }
+  })(),
 
   // ── Sign in ──
   signIn: async () => {
@@ -122,6 +132,11 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     if (path) localStorage.setItem("qo_local_folder_path", path);
     else localStorage.removeItem("qo_local_folder_path");
     set({ localFolderPath: path });
+  },
+  setLocalFolderBookmark: (bm) => {
+    if (bm && bm.length) localStorage.setItem("qo_local_folder_bookmark", JSON.stringify(bm));
+    else localStorage.removeItem("qo_local_folder_bookmark");
+    set({ localFolderBookmark: bm });
   },
 }));
 
