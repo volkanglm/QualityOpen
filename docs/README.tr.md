@@ -29,7 +29,7 @@ En son güncellemeler, dokümantasyon ve topluluk kaynakları için **[qualityop
 
 Başlamanın en kolay yolu, önceden derlenmiş bir sürüm indirmektir:
 
-**[Sürümlerden İndir](https://github.com/YOUR_ORG/qualityopen/releases)**
+**[Sürümlerden İndir](https://github.com/volkanglm/QualityOpen/releases/latest)**
 
 Şunlar için mevcuttur:
 - macOS (Intel ve Apple Silicon)
@@ -44,8 +44,8 @@ Gereksinimler:
 
 ```bash
 # Depoyu klonlayın
-git clone https://github.com/YOUR_ORG/qualityopen.git
-cd qualityopen
+git clone https://github.com/volkanglm/QualityOpen.git
+cd QualityOpen
 
 # Bağımlılıkları yükleyin
 pnpm install
