@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.1] - 2026-10-08
+
+### Fixed
+- Claude (Anthropic) AI features failed because the default model `claude-3-5-haiku` was retired on 2026-02-19; the default is now `claude-haiku-5-5`
+- README download and clone links pointed to a placeholder repository
+
 ## [1.4.0] - 2026-06-17
 
 ### Added

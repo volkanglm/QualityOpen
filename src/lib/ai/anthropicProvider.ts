@@ -11,7 +11,8 @@ import type {
   AiRequest,
 } from "@/lib/ai/provider";
 
-const DEFAULT_MODEL = "claude-3-5-haiku-latest";
+// claude-3-5-haiku was retired on 2026-02-19; requests to it fail.
+const DEFAULT_MODEL = "claude-haiku-5-5";
 const DEFAULT_MAX_TOKENS = 1024;
 
 interface AnthropicMessagesResponse {

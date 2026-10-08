@@ -29,7 +29,7 @@ Visita **[qualityopen.com](https://qualityopen.com)** para obtener las últimas 
 
 La forma más fácil de comenzar es descargar una versión precompilada:
 
-**[Descargar desde Releases](https://github.com/YOUR_ORG/qualityopen/releases)**
+**[Descargar desde Releases](https://github.com/volkanglm/QualityOpen/releases/latest)**
 
 Disponible para:
 - macOS (Intel y Apple Silicon)
@@ -44,8 +44,8 @@ Requisitos:
 
 ```bash
 # Clonar el repositorio
-git clone https://github.com/YOUR_ORG/qualityopen.git
-cd qualityopen
+git clone https://github.com/volkanglm/QualityOpen.git
+cd QualityOpen
 
 # Instalar dependencias
 pnpm install
