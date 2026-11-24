@@ -568,5 +568,7 @@ export const tr = {
     "protocol.saveTitle": "Versiyonu Kaydet",
     "protocol.saveDesc": "Bu versiyonda neler değişti? Kısa bir özet yazarak takibini kolaylaştırabilirsiniz.",
     "protocol.changeLog": "Değişim Günlüğü (Change Log)",
-    "protocol.changeLogPlaceholder": "Örn: 2. Soru daha açık hale getirildi, demografi bölümü eklendi."
+    "protocol.changeLogPlaceholder": "Örn: 2. Soru daha açık hale getirildi, demografi bölümü eklendi.",
+    "welcome.browseProjects": "Projelere Göz At",
+    "welcome.hint": "Komut paleti için Cmd+K veya Ctrl+K kullanın"
   };

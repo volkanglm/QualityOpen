@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.2] - 2026-11-24
+
+### Added
+- Completed all missing translations across Turkish (`tr`), German (`de`), Spanish (`es`), French (`fr`), Italian (`it`), Dutch (`nl`), and Portuguese (`pt`) — 100% key parity across all 8 languages
+- Enabled the 22 i18n completeness tests in Vitest and added Rust unit tests (`cargo test`) to CI
+- Mac App Store build support (`build:appstore`, sandboxed entitlements, security-scoped folder bookmarks, and `VITE_APP_STORE` updater gating) unified onto `main`
+
+### Changed
+- Upgraded GitHub Actions workflow steps (`checkout`, `cache`, `setup-node`, `pnpm/action-setup`, `action-gh-release`) to Node 24–native versions
+- Removed obsolete `updater.json` and `scripts/update-updater.js` targeting the legacy `QualityOpen-Releases` repository
+
 ## [1.4.1] - 2026-10-08
 
 ### Fixed
