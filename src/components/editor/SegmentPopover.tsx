@@ -12,6 +12,7 @@ interface SegmentPopoverProps {
   autoFocusMemo?: boolean;
   onRemoveCode: (segId: string, codeId: string) => void;
   onAddCode: (segId: string, codeId: string) => void;
+  onCreateAndAddCode?: (segId: string, codeName: string) => void;
   onSaveMemo: (segId: string, memo: string) => void;
   onSetWeight: (segId: string, weight: number | undefined) => void;
   onDeleteSegment: (segId: string) => void;
@@ -28,6 +29,7 @@ export function SegmentPopover({
   autoFocusMemo = false,
   onRemoveCode,
   onAddCode,
+  onCreateAndAddCode,
   onSaveMemo,
   onSetWeight,
   onDeleteSegment,
@@ -173,48 +175,87 @@ export function SegmentPopover({
           </p>
         )}
 
-        {showAddCode && (
-          <div
-            className="mt-1 rounded-lg border p-1.5 flex flex-col gap-1"
-            style={{ background: "var(--surface)", borderColor: "var(--border-subtle)" }}
-          >
-            <input
-              type="text"
-              value={codeQuery}
-              onChange={(e) => setCodeQuery(e.target.value)}
-              placeholder={t("canvas.search")}
-              className="w-full bg-transparent text-[11px] px-1.5 py-1 outline-none border-b"
-              style={{ color: "var(--text-primary)", borderColor: "var(--border-subtle)" }}
-              autoFocus
-            />
-            <div className="max-h-28 overflow-y-auto custom-scrollbar space-y-0.5">
-              {availableCodes.length === 0 ? (
-                <p className="text-[10px] px-1.5 py-1" style={{ color: "var(--text-muted)" }}>
-                  {t("segment.noAvailableCodes")}
-                </p>
-              ) : (
-                availableCodes.map((c) => (
+        {showAddCode && (() => {
+          const trimmedQuery = codeQuery.trim();
+          const exactExisting = trimmedQuery
+            ? codes.find((c) => c.name.toLowerCase() === trimmedQuery.toLowerCase())
+            : undefined;
+          const canCreateNew = Boolean(trimmedQuery && !exactExisting && onCreateAndAddCode);
+
+          const commitQuery = () => {
+            if (!trimmedQuery) return;
+            if (exactExisting) {
+              if (!segment.codeIds.includes(exactExisting.id)) {
+                onAddCode(segment.id, exactExisting.id);
+              }
+            } else if (onCreateAndAddCode) {
+              onCreateAndAddCode(segment.id, trimmedQuery);
+            }
+            setShowAddCode(false);
+            setCodeQuery("");
+          };
+
+          return (
+            <div
+              className="mt-1 rounded-lg border p-1.5 flex flex-col gap-1"
+              style={{ background: "var(--surface)", borderColor: "var(--border-subtle)" }}
+            >
+              <input
+                type="text"
+                value={codeQuery}
+                onChange={(e) => setCodeQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    commitQuery();
+                  }
+                }}
+                placeholder={t("segment.addOrCreateCode")}
+                className="w-full bg-transparent text-[11px] px-1.5 py-1 outline-none border-b"
+                style={{ color: "var(--text-primary)", borderColor: "var(--border-subtle)" }}
+                autoFocus
+              />
+              <div className="max-h-32 overflow-y-auto custom-scrollbar space-y-0.5">
+                {canCreateNew && (
                   <button
-                    key={c.id}
-                    onClick={() => {
-                      onAddCode(segment.id, c.id);
-                      setShowAddCode(false);
-                      setCodeQuery("");
-                    }}
-                    className="w-full flex items-center gap-1.5 px-1.5 py-1 rounded text-left text-[11px] hover:bg-[var(--surface-hover)] transition-colors"
-                    style={{ color: "var(--text-primary)" }}
+                    onClick={commitQuery}
+                    className="w-full flex items-center gap-1.5 px-1.5 py-1.5 rounded text-left text-[11px] font-medium hover:bg-[var(--surface-hover)] transition-colors"
+                    style={{ color: "var(--accent)" }}
                   >
-                    <span
-                      className="h-2 w-2 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: c.color }}
-                    />
-                    <span className="truncate">{c.name}</span>
+                    <Plus className="h-3 w-3 flex-shrink-0" />
+                    <span className="truncate">
+                      {t("segment.createAndAssign").replace("{name}", trimmedQuery)}
+                    </span>
                   </button>
-                ))
-              )}
+                )}
+                {availableCodes.length === 0 && !canCreateNew ? (
+                  <p className="text-[10px] px-1.5 py-1" style={{ color: "var(--text-muted)" }}>
+                    {t("segment.noAvailableCodes")}
+                  </p>
+                ) : (
+                  availableCodes.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => {
+                        onAddCode(segment.id, c.id);
+                        setShowAddCode(false);
+                        setCodeQuery("");
+                      }}
+                      className="w-full flex items-center gap-1.5 px-1.5 py-1 rounded text-left text-[11px] hover:bg-[var(--surface-hover)] transition-colors"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      <span
+                        className="h-2 w-2 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: c.color }}
+                      />
+                      <span className="truncate">{c.name}</span>
+                    </button>
+                  ))
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* Weight score (1-5) */}

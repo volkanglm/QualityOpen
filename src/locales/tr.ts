@@ -59,8 +59,8 @@ export const tr = {
   "center.import": "İçe Aktar",
   "center.search": "Ara",
   "center.chat": "Sohbet",
-  "center.docNote": "Belge Notu",
-  "center.addNote": "Belge notu ekle…",
+  "center.docNote": "Belge Memo'su",
+  "center.addNote": "Belge memo'su ekle…",
   "center.words": "kelime",
   "center.coded": "kodlama",
   "center.searchPlaceholder": "Metin içinde ara…",
@@ -463,7 +463,7 @@ export const tr = {
   "center.applyCodeToAll": "Tüm sonuçlara aynı kodu ata",
   "center.applyCodeToCount": "Tüm {count} Sonucu Kodla",
   "center.assignCodeToCount": "{count} adet sonuca kod ata:",
-  "center.addNoteHint": "Bu belge hakkında araştırmacı notunuzu buraya yazın…",
+  "center.addNoteHint": "Bu belge hakkında araştırmacı memo'nuzu buraya yazın…",
   "center.comparisonPanel": "Kıyaslama Paneli",
   "center.comparisonNotSupported": "Bu dosya türü için kıyaslama şu an desteklenmiyor",
   "center.selectDocToSeeInfo": "Bilgileri görmek için bir belge seçin.",
@@ -635,5 +635,11 @@ export const tr = {
   "analysis.export.qdpxDesc": "MAXQDA / NVivo / ATLAS.ti uyumlu",
   "qdpx.importButton": "REFI-QDA İçe Aktar (.qdpx / .qde)",
   "qdpx.importSuccess": "'{name}' içe aktarıldı ({docs} belge, {codes} kod)",
-  "qdpx.importError": "REFI-QDA dosyası içe aktarılamadı."
+  "qdpx.importError": "REFI-QDA dosyası içe aktarılamadı.",
+  "right.tabs.memos": "Memo'lar",
+  "right.memos.passages": "Anlatı Memo'ları",
+  "right.memos.codes": "Kod / Tema Memo'ları",
+  "right.memos.openAll": "Tüm Memo'ları Aç",
+  "segment.addOrCreateCode": "Kod ara veya yeni kod adı yaz...",
+  "segment.createAndAssign": "\"{name}\" oluştur ve kodla"
 };

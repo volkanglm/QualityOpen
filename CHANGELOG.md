@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.1] - 2026-11-24
+
+### Added
+- **Right Panel Memos tab (`Codes` | `Memos` | `Info`):** View, scroll to, edit, and delete active document passage memos and code/theme memos directly from the right sidebar
+- **Create & assign new codes from Segment Popover:** Typing a new code name inside `+ Add Code` in the Segment Popover (e.g. from `Add Memo`) now creates the code in the project and assigns it immediately via Enter or click
+
+### Changed
+- Unified all remaining "Note / Notes" UI terminology to "Memo / Memos" across all 8 languages (`en, tr, de, es, fr, it, nl, pt`)
+
 ## [1.5.0] - 2026-11-24
 
 ### Added

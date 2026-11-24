@@ -482,17 +482,19 @@ function TreeLines({ flatCodes }: { flatCodes: FlatCode[] }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function RightPanel() {
-  const { activeProjectId, activeDocumentId, activeCodeFilters, toggleCodeFilter } = useAppStore();
+  const { activeProjectId, activeDocumentId, activeCodeFilters, toggleCodeFilter, setActiveView } = useAppStore();
   const t = useT();
   const { codes, segments, documents, memos, createCode, updateCode, deleteCode, moveCode,
-    updateDocument, toggleDisconfirming, removeSegmentCode, createMemo, updateMemo
+    updateDocument, toggleDisconfirming, removeSegmentCode, updateSegmentMemo, createMemo, updateMemo
   } = useProjectStore();
 
   const projectCodes = codes.filter((c) => c.projectId === activeProjectId);
   const activeDoc = documents.find((d) => d.id === activeDocumentId);
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<"codes" | "info">("codes");
+  const [activeTab, setActiveTab] = useState<"codes" | "memos" | "info">("codes");
+  const [editingSegMemoId, setEditingSegMemoId] = useState<string | null>(null);
+  const [editingSegMemoDraft, setEditingSegMemoDraft] = useState("");
 
   // ── UI state ──
   const [expandedCode, setExpandedCode] = useState<string | null>(null);
@@ -758,7 +760,7 @@ export function RightPanel() {
       <div className="flex items-center border-b flex-shrink-0"
         style={{ borderColor: "var(--border-subtle)" }}>
         <button
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-widest transition-colors min-w-0"
+          className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 text-[11px] font-semibold uppercase tracking-widest transition-colors min-w-0"
           style={{
             color: activeTab === "codes" ? "var(--accent)" : "var(--text-muted)",
             borderBottom: activeTab === "codes" ? "2px solid var(--accent)" : "2px solid transparent",
@@ -769,7 +771,18 @@ export function RightPanel() {
           <span className="truncate">{t("right.tabs.codes")}</span>
         </button>
         <button
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-widest transition-colors min-w-0"
+          className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 text-[11px] font-semibold uppercase tracking-widest transition-colors min-w-0"
+          style={{
+            color: activeTab === "memos" ? "var(--accent)" : "var(--text-muted)",
+            borderBottom: activeTab === "memos" ? "2px solid var(--accent)" : "2px solid transparent",
+          }}
+          onClick={() => setActiveTab("memos")}
+        >
+          <StickyNote className="h-3.5 w-3.5 flex-shrink-0" />
+          <span className="truncate">{t("right.tabs.memos")}</span>
+        </button>
+        <button
+          className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 text-[11px] font-semibold uppercase tracking-widest transition-colors min-w-0"
           style={{
             color: activeTab === "info" ? "var(--accent)" : "var(--text-muted)",
             borderBottom: activeTab === "info" ? "2px solid var(--accent)" : "2px solid transparent",
@@ -940,6 +953,190 @@ export function RightPanel() {
               <StatChip icon={<Tag className="h-3 w-3" />}
                 value={segments.filter((s) => s.projectId === activeProjectId).length} label={t("analysis.segments")} />
             </div>
+          </motion.div>
+        ) : activeTab === "memos" ? (
+          <motion.div
+            key="memos"
+            className="flex-1 flex flex-col overflow-hidden"
+            initial={{ opacity: 0, x: 6 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -6 }}
+            transition={{ duration: 0.15 }}
+          >
+            {(() => {
+              const docSegMemos = activeDoc
+                ? segments.filter((s) => s.documentId === activeDoc.id && Boolean(s.memo?.trim()))
+                : [];
+              const codeMemos = memos.filter(
+                (m) => m.projectId === activeProjectId && Boolean(m.linkedCodes?.length) && Boolean(m.content.trim())
+              );
+
+              const scrollToSeg = (segId: string) => {
+                const el = document.querySelector(`[data-segment-id="${segId}"]`) as HTMLElement | null;
+                if (!el) return;
+                el.scrollIntoView({ behavior: "smooth", block: "center" });
+                const prev = el.style.boxShadow;
+                el.style.transition = "box-shadow 0.2s ease";
+                el.style.boxShadow = "0 0 0 3px var(--accent)";
+                setTimeout(() => { el.style.boxShadow = prev; }, 1200);
+              };
+
+              return (
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-4">
+                  {/* Section 1: Passage / Segment Memos in active document */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
+                        {t("right.memos.passages")} ({docSegMemos.length})
+                      </span>
+                    </div>
+                    {docSegMemos.length === 0 ? (
+                      <p className="text-[11px] italic py-2" style={{ color: "var(--text-disabled)" }}>
+                        {t("notes.empty")}
+                      </p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {docSegMemos.map((seg) => {
+                          const firstCode = projectCodes.find((c) => seg.codeIds.includes(c.id));
+                          const isEditing = editingSegMemoId === seg.id;
+                          return (
+                            <div
+                              key={seg.id}
+                              onClick={() => !isEditing && scrollToSeg(seg.id)}
+                              className="group rounded-lg border p-2.5 transition-colors cursor-pointer hover:bg-[var(--surface-hover)]"
+                              style={{ background: "var(--surface)", borderColor: "var(--border-subtle)" }}
+                            >
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <span
+                                  className="h-2 w-2 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: firstCode?.color ?? seg.highlightColor ?? "var(--accent)" }}
+                                />
+                                <span className="text-[10px] font-medium truncate flex-1" style={{ color: "var(--text-muted)" }}>
+                                  {firstCode?.name ?? t("notes.labelNote")}
+                                </span>
+                                {!isEditing && (
+                                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                      onClick={() => {
+                                        setEditingSegMemoId(seg.id);
+                                        setEditingSegMemoDraft(seg.memo ?? "");
+                                      }}
+                                      className="p-0.5 rounded hover:bg-[var(--surface-dark)]"
+                                      style={{ color: "var(--text-muted)" }}
+                                      title={t("segment.editMemo")}
+                                    >
+                                      <Pencil className="h-2.5 w-2.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => updateSegmentMemo(seg.id, "")}
+                                      className="p-0.5 rounded hover:bg-red-500/10"
+                                      style={{ color: "var(--text-muted)" }}
+                                      title={t("segment.deleteMemo")}
+                                    >
+                                      <Trash2 className="h-2.5 w-2.5" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                              <p className="text-[10px] italic line-clamp-1 mb-1" style={{ color: "var(--text-muted)" }}>
+                                “{seg.text}”
+                              </p>
+                              {isEditing ? (
+                                <div className="space-y-1.5" onClick={(e) => e.stopPropagation()}>
+                                  <textarea
+                                    rows={3}
+                                    autoFocus
+                                    value={editingSegMemoDraft}
+                                    onChange={(e) => setEditingSegMemoDraft(e.target.value)}
+                                    className="w-full rounded border px-1.5 py-1 text-[11px] outline-none resize-none"
+                                    style={{ background: "var(--bg-secondary)", borderColor: "var(--border)", color: "var(--text-primary)" }}
+                                  />
+                                  <div className="flex justify-end gap-1">
+                                    <button
+                                      onClick={() => setEditingSegMemoId(null)}
+                                      className="px-2 py-0.5 rounded text-[10px]"
+                                      style={{ color: "var(--text-muted)" }}
+                                    >
+                                      {t("common.cancel")}
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        updateSegmentMemo(seg.id, editingSegMemoDraft);
+                                        setEditingSegMemoId(null);
+                                      }}
+                                      className="px-2 py-0.5 rounded text-[10px] font-semibold"
+                                      style={{ background: "var(--accent)", color: "var(--accent-fg, #09090b)" }}
+                                    >
+                                      {t("segment.saveMemo")}
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="text-[11px] leading-relaxed whitespace-pre-wrap" style={{ color: "var(--text-secondary)" }}>
+                                  {seg.memo}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Section 2: Code & Theme Memos */}
+                  <div className="space-y-2 pt-3 border-t" style={{ borderColor: "var(--border-subtle)" }}>
+                    <span className="text-[10px] font-bold uppercase tracking-widest block" style={{ color: "var(--text-muted)" }}>
+                      {t("right.memos.codes")} ({codeMemos.length})
+                    </span>
+                    {codeMemos.length === 0 ? (
+                      <p className="text-[11px] italic py-1" style={{ color: "var(--text-disabled)" }}>
+                        {t("memos.empty")}
+                      </p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {codeMemos.map((m) => {
+                          const linkedCode = projectCodes.find((c) => m.linkedCodes?.includes(c.id));
+                          return (
+                            <button
+                              key={m.id}
+                              onClick={() => linkedCode && handleOpenCodeMemo(linkedCode.id)}
+                              className="w-full text-left rounded-lg border p-2.5 transition-colors hover:bg-[var(--surface-hover)]"
+                              style={{ background: "var(--surface)", borderColor: "var(--border-subtle)" }}
+                            >
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <span
+                                  className="h-2 w-2 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: linkedCode?.color ?? "var(--accent)" }}
+                                />
+                                <span className="text-[11px] font-semibold truncate" style={{ color: "var(--text-primary)" }}>
+                                  {m.title}
+                                </span>
+                              </div>
+                              <p className="text-[11px] line-clamp-3 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                                {m.content}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Open full Memos workspace */}
+                  <div className="pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-center text-xs"
+                      onClick={() => setActiveView("memos")}
+                    >
+                      <StickyNote className="h-3.5 w-3.5" />
+                      {t("right.memos.openAll")}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })()}
           </motion.div>
         ) : (
           <motion.div

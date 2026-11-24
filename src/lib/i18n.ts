@@ -95,11 +95,11 @@ const extraStrings = {
   "semantic.model.gemini004": { tr: "text-embedding-004 — Google", en: "text-embedding-004 — Google" },
   "semantic.model.geminiNew": { tr: "gemini-embedding-001 — yeni", en: "gemini-embedding-001 — new" },
 
-  // ── Notes Panel ─────────────────────────────────────────────────────────────
-  "notes.title": { tr: "Notlar", en: "Notes" },
-  "notes.empty": { tr: "Henüz not yok", en: "No notes yet" },
+  // ── Memos Panel ─────────────────────────────────────────────────────────────
+  "notes.title": { tr: "Memo'lar", en: "Memos" },
+  "notes.empty": { tr: "Henüz memo yok", en: "No memos yet" },
   "notes.close": { tr: "Kapat", en: "Close" },
-  "notes.labelNote": { tr: "Not", en: "Note" },
+  "notes.labelNote": { tr: "Memo", en: "Memo" },
   "notes.labelCode": { tr: "Kod", en: "Code" },
 
   // ── Local AI Panel ──────────────────────────────────────────────────────────

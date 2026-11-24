@@ -41,8 +41,8 @@ export const nl = {
   "center.import": "Importeren",
   "center.search": "Zoeken",
   "center.chat": "Chat",
-  "center.docNote": "Documentnotitie",
-  "center.addNote": "Documentnotitie toevoegen...",
+  "center.docNote": "Documentmemo",
+  "center.addNote": "Documentmemo toevoegen...",
   "center.words": "woorden",
   "center.coded": "gecodeerd",
   "center.searchPlaceholder": "Zoeken in tekst...",
@@ -288,7 +288,7 @@ export const nl = {
   "center.applyCodeToAll": "Code toewijzen aan alle resultaten",
   "center.applyCodeToCount": "Alle {count} resultaten coderen",
   "center.assignCodeToCount": "Code toewijzen aan {count} resultaten:",
-  "center.addNoteHint": "Schrijf hier uw onderzoeksnotitie over dit document...",
+  "center.addNoteHint": "Schrijf hier uw onderzoeksmemo over dit document...",
   "center.comparisonPanel": "Vergelijkingspaneel",
   "center.comparisonNotSupported": "Vergelijking wordt nog niet ondersteund voor dit bestandstype",
 
@@ -617,5 +617,11 @@ export const nl = {
   "analysis.export.qdpxDesc": "MAXQDA / NVivo / ATLAS.ti uitwisseling",
   "qdpx.importButton": "REFI-QDA importeren (.qdpx / .qde)",
   "qdpx.importSuccess": "'{name}' geïmporteerd ({docs} docs, {codes} codes)",
-  "qdpx.importError": "Kan REFI-QDA-bestand niet importeren."
+  "qdpx.importError": "Kan REFI-QDA-bestand niet importeren.",
+  "right.tabs.memos": "Memo's",
+  "right.memos.passages": "Passagememo's",
+  "right.memos.codes": "Code- / Themamemo's",
+  "right.memos.openAll": "Alle memo's openen",
+  "segment.addOrCreateCode": "Zoek of typ een nieuwe codenaam...",
+  "segment.createAndAssign": "\"{name}\" maken & toewijzen"
 };

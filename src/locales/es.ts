@@ -41,8 +41,8 @@ export const es = {
     "center.import": "Importar",
     "center.search": "Buscar",
     "center.chat": "Chat",
-    "center.docNote": "Nota del documento",
-    "center.addNote": "Añadir nota al documento...",
+    "center.docNote": "Memo del documento",
+    "center.addNote": "Añadir memo al documento...",
     "center.words": "palabras",
     "center.coded": "codificado",
     "center.searchPlaceholder": "Buscar en el texto...",
@@ -287,7 +287,7 @@ export const es = {
     "center.applyCodeToAll": "Asignar código a todos los resultados",
     "center.applyCodeToCount": "Codificar los {count} resultados",
     "center.assignCodeToCount": "Asignar código a {count} resultados:",
-    "center.addNoteHint": "Escriba aquí su nota de investigación sobre este documento...",
+    "center.addNoteHint": "Escriba aquí su memo de investigación sobre este documento...",
     "center.comparisonPanel": "Panel de comparación",
     "center.comparisonNotSupported": "La comparación aún no es compatible con este tipo de archivo",
 
@@ -616,5 +616,11 @@ export const es = {
     "analysis.export.qdpxDesc": "Intercambio MAXQDA / NVivo / ATLAS.ti",
     "qdpx.importButton": "Importar REFI-QDA (.qdpx / .qde)",
     "qdpx.importSuccess": "'{name}' importado ({docs} docs, {codes} códigos)",
-    "qdpx.importError": "Error al importar el archivo REFI-QDA."
+    "qdpx.importError": "Error al importar el archivo REFI-QDA.",
+    "right.tabs.memos": "Memos",
+    "right.memos.passages": "Memos de pasajes",
+    "right.memos.codes": "Memos de códigos / temas",
+    "right.memos.openAll": "Abrir todos los memos",
+    "segment.addOrCreateCode": "Buscar o escribir un nuevo código...",
+    "segment.createAndAssign": "Crear y asignar \"{name}\""
   };

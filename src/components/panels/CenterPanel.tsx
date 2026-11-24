@@ -1017,6 +1017,11 @@ export function CenterPanel() {
               autoFocusMemo={activeSegPopover.autoFocusMemo}
               onRemoveCode={removeSegmentCode}
               onAddCode={addCodeToSegment}
+              onCreateAndAddCode={(segId, name) => {
+                if (!activeProjectId || !name.trim()) return;
+                const created = createCode(activeProjectId, name.trim());
+                addCodeToSegment(segId, created.id);
+              }}
               onSaveMemo={updateSegmentMemo}
               onSetWeight={setSegmentWeight}
               onDeleteSegment={deleteSegment}
