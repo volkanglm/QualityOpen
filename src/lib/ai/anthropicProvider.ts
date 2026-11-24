@@ -19,6 +19,19 @@ interface AnthropicMessagesResponse {
   content?: { text: string }[];
 }
 
+function buildAnthropicBody(req: AiRequest): string {
+  const payload: Record<string, unknown> = {
+    model: req.model ?? DEFAULT_MODEL,
+    max_tokens: req.maxTokens ?? DEFAULT_MAX_TOKENS,
+    system: req.systemPrompt,
+    messages: req.messages.map((m) => ({ role: m.role, content: m.content })),
+  };
+  if (req.temperature !== undefined) {
+    payload.temperature = req.temperature;
+  }
+  return JSON.stringify(payload);
+}
+
 export class AnthropicProvider implements AiProvider {
   readonly type: AiProviderType = "anthropic";
   readonly isLocal = false;
@@ -34,13 +47,7 @@ export class AnthropicProvider implements AiProvider {
         "x-api-key": this.apiKey,
         "anthropic-version": "2023-06-01",
       },
-      body: JSON.stringify({
-        model: req.model ?? DEFAULT_MODEL,
-        max_tokens: req.maxTokens ?? DEFAULT_MAX_TOKENS,
-        ...(req.temperature !== undefined ? { temperature: req.temperature } : {}),
-        system: req.systemPrompt,
-        messages: req.messages.map((m) => ({ role: m.role, content: m.content })),
-      }),
+      body: buildAnthropicBody(req),
     });
 
     if (res.status < 200 || res.status >= 300) {
@@ -68,13 +75,13 @@ export class AnthropicProvider implements AiProvider {
   }
 
   /** Lightweight: healthy iff a key is present. No network round-trip. */
-  async healthCheck(): Promise<AiHealth> {
+  healthCheck(): Promise<AiHealth> {
     if (!this.apiKey) {
-      return {
+      return Promise.resolve({
         status: "unreachable",
         message: "No Anthropic API key configured.",
-      };
+      });
     }
-    return { status: "healthy" };
+    return Promise.resolve({ status: "healthy" });
   }
 }

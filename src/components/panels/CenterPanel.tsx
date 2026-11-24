@@ -39,6 +39,7 @@ import { ContextCodeMenu } from "@/components/editor/ContextCodeMenu";
 import { CodeAssignPanel } from "@/components/editor/CodeAssignPanel";
 import { CodingStripes } from "@/components/editor/CodingStripes";
 import { NotesPanel } from "@/components/editor/NotesPanel";
+import { SegmentPopover } from "@/components/editor/SegmentPopover";
 import { LineNumbers } from "@/components/editor/LineNumbers";
 import { PdfRenderer } from "@/components/editor/PdfRenderer";
 import { DatabaseView } from "@/components/panels/DatabaseView";
@@ -101,6 +102,11 @@ export function CenterPanel() {
     createDocument,
     addSegment,
     addSegments,
+    addCodeToSegment,
+    removeSegmentCode,
+    updateSegmentMemo,
+    setSegmentWeight,
+    deleteSegment,
     updateDocument,
     undo,
     redo,
@@ -121,6 +127,13 @@ export function CenterPanel() {
   const [floatPos, setFloatPos] = useState<FloatingMenuPos | null>(null);
   const [codePanelSel, setCodePanelSel] = useState<FloatingMenuPos | null>(null);
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; pos: FloatingMenuPos } | null>(null);
+  const [activeSegPopover, setActiveSegPopover] = useState<{
+    segmentId: string;
+    x: number;
+    y: number;
+    autoFocusMemo?: boolean;
+    cleanupIfEmpty?: boolean;
+  } | null>(null);
   const [importing, setImporting] = useState(false);
   const isDragOver = useAppStore((s) => s.isDragOver);
   const [pdfTextLength, setPdfTextLength] = useState(0);
@@ -277,6 +290,46 @@ export function CenterPanel() {
 
   // ── Floating menu actions ────────────────────────────────────────────────
   const handleAssignCode = (pos: FloatingMenuPos) => { setCodePanelSel(pos); };
+
+  const handleAddMemo = (pos: FloatingMenuPos) => {
+    if (!doc || !activeProjectId) return;
+    const existing = docSegments.find((s) => s.start === pos.start && s.end === pos.end);
+    const targetSeg = existing ?? addSegment({
+      documentId: doc.id,
+      start: pos.start,
+      end: pos.end,
+      text: pos.text,
+      codeIds: [],
+      isHighlight: true,
+      highlightColor: HIGHLIGHT_COLOR,
+      pdfRects: pos.pdfRects,
+    });
+    window.getSelection()?.removeAllRanges();
+    setActiveSegPopover({
+      segmentId: targetSeg.id,
+      x: pos.centerX,
+      y: pos.topY + 12,
+      autoFocusMemo: true,
+      cleanupIfEmpty: !existing,
+    });
+  };
+
+  const handleReaderClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (editMode) return;
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) return;
+    const target = (e.target as HTMLElement).closest("[data-segment-id]") as HTMLElement | null;
+    if (!target) return;
+    const segId = target.getAttribute("data-segment-id");
+    if (!segId) return;
+    const rect = target.getBoundingClientRect();
+    setFloatPos(null);
+    setActiveSegPopover({
+      segmentId: segId,
+      x: rect.left + rect.width / 2,
+      y: rect.bottom,
+    });
+  }, [editMode]);
 
   const handleAskAI = (pos: FloatingMenuPos) => {
     // Open chat with pre-filled question
@@ -803,6 +856,7 @@ export function CenterPanel() {
                 className="flex-1 overflow-y-auto doc-reader relative"
                 ref={readerRef}
                 onMouseUp={handleMouseUp}
+                onClick={handleReaderClick}
                 onContextMenu={handleContextMenu}
               >
                 {editMode ? (
@@ -844,6 +898,14 @@ export function CenterPanel() {
                       contentLength={format === "pdf" ? pdfTextLength : doc.content.length}
                       containerHeight={readerHeight}
                       containerRef={readerContainerRef}
+                      onStripeClick={(segId, rect) => {
+                        setFloatPos(null);
+                        setActiveSegPopover({
+                          segmentId: segId,
+                          x: rect.right + 120,
+                          y: rect.top,
+                        });
+                      }}
                     />
 
                     <div
@@ -889,6 +951,7 @@ export function CenterPanel() {
                   open={notesOpen}
                   segments={docSegments}
                   codes={projectCodes}
+                  onUpdateMemo={updateSegmentMemo}
                   onClose={() => setNotesOpen(false)}
                 />
               )}
@@ -931,12 +994,45 @@ export function CenterPanel() {
       <FloatingMenu
         pos={floatPos}
         onAssignCode={handleAssignCode}
+        onAddMemo={handleAddMemo}
         onAskAI={handleAskAI}
         onHighlight={handleHighlight}
         onSummarize={(pos) => void handleSummarize(pos)}
         onFindSimilar={handleFindSimilar}
         onDismiss={() => setFloatPos(null)}
       />
+
+      {/* ── Inline segment popover (uncoding + segment memo) ── */}
+      <AnimatePresence>
+        {activeSegPopover && (() => {
+          const activeSeg = docSegments.find((s) => s.id === activeSegPopover.segmentId);
+          if (!activeSeg) return null;
+          return (
+            <SegmentPopover
+              key={activeSeg.id}
+              segment={activeSeg}
+              codes={projectCodes}
+              x={activeSegPopover.x}
+              y={activeSegPopover.y}
+              autoFocusMemo={activeSegPopover.autoFocusMemo}
+              onRemoveCode={removeSegmentCode}
+              onAddCode={addCodeToSegment}
+              onSaveMemo={updateSegmentMemo}
+              onSetWeight={setSegmentWeight}
+              onDeleteSegment={deleteSegment}
+              onClose={() => {
+                if (activeSegPopover.cleanupIfEmpty) {
+                  const latest = useProjectStore.getState().segments.find((s) => s.id === activeSeg.id);
+                  if (latest && latest.codeIds.length === 0 && !latest.memo?.trim()) {
+                    deleteSegment(latest.id);
+                  }
+                }
+                setActiveSegPopover(null);
+              }}
+            />
+          );
+        })()}
+      </AnimatePresence>
 
       {/* ── Right-click context code menu ── */}
       <AnimatePresence>

@@ -19,9 +19,15 @@ import {
   BookOpen,
   UserCheck,
   Tag,
+  CheckCircle2,
+  Circle,
+  SlidersHorizontal,
+  FolderArchive,
+  X,
 } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { exportMemberCheckHTML } from "@/lib/exportUtils";
+import { importQdpx } from "@/lib/qdpx";
 import { useAppStore } from "@/store/app.store";
 import { useProjectStore } from "@/store/project.store";
 import { useAuthStore } from "@/store/auth.store";
@@ -55,9 +61,13 @@ export function LeftPanel() {
     activeProjectId,
     activeDocumentId,
     activeView,
+    activatedDocumentIds,
     setActiveProject,
     setActiveDocument,
     setActiveView,
+    toggleDocumentActivation,
+    setActivatedDocuments,
+    clearDocumentActivation,
   } = useAppStore();
   const t = useT();
   const { getProvider } = useSettingsStore();
@@ -78,10 +88,77 @@ export function LeftPanel() {
   const [renameVal, setRenameVal] = useState("");
   const [colorPickerDoc, setColorPickerDoc] = useState<string | null>(null);
   const [infoDocId, setInfoDocId] = useState<string | null>(null);
+  const [groupDocId, setGroupDocId] = useState<string | null>(null);
+  const [groupInput, setGroupInput] = useState("");
+  const [varActivateOpen, setVarActivateOpen] = useState(false);
+  const [selectedVarKey, setSelectedVarKey] = useState("");
+  const [selectedVarVal, setSelectedVarVal] = useState("");
   const [importing, setImporting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const qdpxInputRef = useRef<HTMLInputElement>(null);
   const pushToast = useToastStore((s) => s.push);
+
+  const handleImportQdpx = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      const parsed = await importQdpx(file);
+      const store = useProjectStore.getState();
+      const proj = store.createProject(parsed.project.name, parsed.project.description);
+      const now = Date.now();
+      const newDocs: Document[] = parsed.documents.map((d) => ({
+        ...d,
+        projectId: proj.id,
+        createdAt: now,
+        updatedAt: now,
+      }));
+      const newCodes = parsed.codes.map((c) => ({
+        ...c,
+        projectId: proj.id,
+        createdAt: now,
+      }));
+      const newSegs = parsed.segments.map((s) => ({
+        ...s,
+        projectId: proj.id,
+        createdAt: now,
+      }));
+      const newMemos = parsed.memos.map((m) => ({
+        ...m,
+        projectId: proj.id,
+        createdAt: now,
+        updatedAt: now,
+      }));
+
+      useProjectStore.setState((s) => ({
+        documents: [...s.documents, ...newDocs],
+        codes: [...s.codes, ...newCodes],
+        segments: [...s.segments, ...newSegs],
+        memos: [...s.memos, ...newMemos],
+      }));
+
+      setExpandedProjects((prev) => new Set(prev).add(proj.id));
+      setActiveProject(proj.id);
+      if (newDocs[0]) {
+        setActiveDocument(newDocs[0].id);
+        setActiveView("coding");
+      }
+      pushToast(
+        t("qdpx.importSuccess")
+          .replace("{name}", proj.name)
+          .replace("{docs}", String(newDocs.length))
+          .replace("{codes}", String(newCodes.length)),
+        "success"
+      );
+    } catch (err) {
+      console.error("REFI-QDA import failed:", err);
+      pushToast(err instanceof Error ? err.message : t("qdpx.importError"), "error");
+    } finally {
+      setImporting(false);
+      if (qdpxInputRef.current) qdpxInputRef.current.value = "";
+    }
+  };
 
   const toggleProject = (id: string) => {
     setExpandedProjects((prev) => {
@@ -385,15 +462,86 @@ export function LeftPanel() {
                           </p>
                         </motion.div>
                       ) : (
-                        docs.map((doc) => {
+                        <>
+                          {/* Document Groups & Variable Activation bar */}
+                          {(() => {
+                            const groupNames = Array.from(
+                              new Set(docs.map((d) => d.group?.trim()).filter(Boolean) as string[])
+                            );
+                            const activeInProj = docs.filter((d) => activatedDocumentIds.includes(d.id)).length;
+                            const hasProps = docs.some((d) => Object.keys(d.properties ?? {}).length > 0);
+                            return (
+                              <div className="pl-6 pr-2 py-1 flex flex-wrap items-center gap-1">
+                                {groupNames.map((gName) => {
+                                  const gDocIds = docs.filter((d) => d.group?.trim() === gName).map((d) => d.id);
+                                  const allActive = gDocIds.every((id) => activatedDocumentIds.includes(id));
+                                  return (
+                                    <button
+                                      key={gName}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveProject(project.id);
+                                        setActivatedDocuments(allActive ? [] : gDocIds);
+                                      }}
+                                      className="px-1.5 py-0.5 rounded text-[9px] font-semibold border transition-colors"
+                                      style={{
+                                        background: allActive ? "var(--accent-subtle)" : "var(--surface)",
+                                        borderColor: allActive ? "var(--accent)" : "var(--border-subtle)",
+                                        color: allActive ? "var(--accent)" : "var(--text-muted)",
+                                      }}
+                                      title={t("activation.groupHint")}
+                                    >
+                                      {gName} ({gDocIds.length})
+                                    </button>
+                                  );
+                                })}
+                                {hasProps && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveProject(project.id);
+                                      const firstKey = Object.keys(
+                                        docs.find((d) => Object.keys(d.properties ?? {}).length > 0)?.properties ?? {}
+                                      )[0] ?? "";
+                                      setSelectedVarKey(firstKey);
+                                      setSelectedVarVal("");
+                                      setVarActivateOpen(true);
+                                    }}
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium border hover:bg-[var(--surface-hover)] transition-colors"
+                                    style={{ borderColor: "var(--border-subtle)", color: "var(--text-muted)" }}
+                                    title={t("activation.byVariable")}
+                                  >
+                                    <SlidersHorizontal className="h-2.5 w-2.5" />
+                                    {t("activation.byVariableShort")}
+                                  </button>
+                                )}
+                                {activeInProj > 0 && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      clearDocumentActivation();
+                                    }}
+                                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-semibold"
+                                    style={{ background: "var(--accent-subtle)", color: "var(--accent)" }}
+                                    title={t("activation.clear")}
+                                  >
+                                    {activeInProj}/{docs.length}
+                                    <X className="h-2.5 w-2.5" />
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })()}
+                          {docs.map((doc) => {
                           const isDocActive = doc.id === activeDocumentId;
+                          const isDocActivated = activatedDocumentIds.includes(doc.id);
                           const docSegmentCount = segments.filter((s) => s.documentId === doc.id).length;
 
                           return (
                             <div
                               key={doc.id}
                               className={cn(
-                                "group/doc flex items-center gap-2 pl-7 pr-2 py-1.5 mx-1 rounded-[var(--radius-sm)] cursor-pointer transition-colors",
+                                "group/doc flex items-center gap-1.5 pl-5 pr-2 py-1.5 mx-1 rounded-[var(--radius-sm)] cursor-pointer transition-colors",
                                 isDocActive
                                   ? "bg-[var(--accent-subtle)]"
                                   : "hover:bg-[var(--surface-hover)]"
@@ -405,9 +553,27 @@ export function LeftPanel() {
                                 setContextMenuPos({ x: e.clientX, y: e.clientY });
                               }}
                             >
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleDocumentActivation(doc.id);
+                                }}
+                                title={t("activation.toggleDoc")}
+                                className={cn(
+                                  "flex-shrink-0 transition-opacity",
+                                  isDocActivated ? "opacity-100" : "opacity-25 group-hover/doc:opacity-80"
+                                )}
+                                style={{ color: isDocActivated ? "var(--accent)" : "var(--text-muted)" }}
+                              >
+                                {isDocActivated ? (
+                                  <CheckCircle2 className="h-3 w-3" />
+                                ) : (
+                                  <Circle className="h-3 w-3" />
+                                )}
+                              </button>
                               <FileText
                                 className="h-4 w-4 flex-shrink-0"
-                                style={{ color: "var(--text-muted)" }}
+                                style={{ color: doc.color ?? "var(--text-muted)" }}
                               />
                               <span
                                 className="flex-1 text-[12px] truncate"
@@ -417,6 +583,15 @@ export function LeftPanel() {
                               >
                                 {doc.name}
                               </span>
+                              {doc.group && (
+                                <span
+                                  className="text-[9px] px-1 rounded truncate max-w-[56px] flex-shrink-0"
+                                  style={{ background: "var(--surface)", color: "var(--text-muted)" }}
+                                  title={doc.group}
+                                >
+                                  {doc.group}
+                                </span>
+                              )}
                               {docSegmentCount > 0 && (
                                 <span
                                   className="text-[10px] tabular-nums flex-shrink-0"
@@ -476,6 +651,16 @@ export function LeftPanel() {
                                         }}
                                       />
                                       <ContextItem
+                                        icon={<Folder className="h-3 w-3" />}
+                                        label={t("activation.assignGroup")}
+                                        onClick={() => {
+                                          setGroupDocId(doc.id);
+                                          setGroupInput(doc.group ?? "");
+                                          setContextMenu(null);
+                                          setContextMenuPos(null);
+                                        }}
+                                      />
+                                      <ContextItem
                                         icon={<Download className="h-3 w-3" />}
                                         label={t('left.exportDoc')}
                                         onClick={() => {
@@ -525,7 +710,8 @@ export function LeftPanel() {
                               </div>
                             </div>
                           );
-                        })
+                        })}
+                        </>
                       )}
                     </motion.div>
                   )}
@@ -586,6 +772,16 @@ export function LeftPanel() {
               {t("left.supportedFiles")}
             </p>
           </div>
+          <button
+            type="button"
+            disabled={importing}
+            onClick={() => qdpxInputRef.current?.click()}
+            className="mt-2 w-full flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-lg border text-[11px] font-medium hover:bg-[var(--surface-hover)] transition-colors"
+            style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+          >
+            <FolderArchive className="h-3.5 w-3.5" style={{ color: "var(--accent)" }} />
+            <span>{t("qdpx.importButton")}</span>
+          </button>
         </div>
         {!activeProjectId && (
           <p className="text-[10px] mt-2 text-center text-zinc-600">
@@ -594,13 +790,20 @@ export function LeftPanel() {
         )}
       </div>
 
-      {/* Hidden file input */}
+      {/* Hidden file inputs */}
       <input
         ref={fileInputRef}
         type="file"
         accept={ACCEPTED_EXTENSIONS}
         className="hidden"
         onChange={handleImportFile}
+      />
+      <input
+        ref={qdpxInputRef}
+        type="file"
+        accept=".qdpx,.qde,.xml"
+        className="hidden"
+        onChange={handleImportQdpx}
       />
       {/* ── Settings / API nav footer ── */}
       <div
@@ -816,6 +1019,156 @@ export function LeftPanel() {
         docId={infoDocId} 
         onClose={() => setInfoDocId(null)} 
       />
+
+      {/* Document Group Modal */}
+      <Modal
+        open={Boolean(groupDocId)}
+        onClose={() => setGroupDocId(null)}
+        title={t("activation.assignGroup")}
+      >
+        <div className="space-y-3">
+          <Input
+            label={t("activation.groupName")}
+            placeholder={t("activation.groupPlaceholder")}
+            value={groupInput}
+            onChange={(e) => setGroupInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && groupDocId) {
+                updateDocument(groupDocId, { group: groupInput.trim() || undefined });
+                setGroupDocId(null);
+              }
+            }}
+            autoFocus
+          />
+          {(() => {
+            const existingGroups = Array.from(
+              new Set(
+                documents
+                  .filter((d) => d.projectId === activeProjectId)
+                  .map((d) => d.group?.trim())
+                  .filter(Boolean) as string[]
+              )
+            );
+            if (existingGroups.length === 0) return null;
+            return (
+              <div className="flex flex-wrap gap-1.5">
+                {existingGroups.map((g) => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => setGroupInput(g)}
+                    className="px-2 py-0.5 rounded-full text-[11px] border hover:bg-[var(--surface-hover)]"
+                    style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" onClick={() => setGroupDocId(null)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (groupDocId) {
+                  updateDocument(groupDocId, { group: groupInput.trim() || undefined });
+                }
+                setGroupDocId(null);
+              }}
+            >
+              {t("segment.saveMemo")}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Activate by Variable Modal */}
+      <Modal
+        open={varActivateOpen}
+        onClose={() => setVarActivateOpen(false)}
+        title={t("activation.byVariable")}
+      >
+        {(() => {
+          const projDocs = documents.filter((d) => d.projectId === activeProjectId);
+          const allKeys = Array.from(
+            new Set(projDocs.flatMap((d) => Object.keys(d.properties ?? {})))
+          );
+          const activeKey = selectedVarKey || allKeys[0] || "";
+          const allVals = Array.from(
+            new Set(
+              projDocs
+                .map((d) => d.properties?.[activeKey])
+                .filter((v): v is string => Boolean(v))
+            )
+          );
+          const activeVal = selectedVarVal || allVals[0] || "";
+          const matchingDocs = projDocs.filter(
+            (d) => activeKey && activeVal && d.properties?.[activeKey] === activeVal
+          );
+
+          return (
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+                  {t("activation.variableKey")}
+                </label>
+                <select
+                  value={activeKey}
+                  onChange={(e) => {
+                    setSelectedVarKey(e.target.value);
+                    setSelectedVarVal("");
+                  }}
+                  className="w-full rounded-lg border px-2.5 py-2 text-xs outline-none"
+                  style={{ background: "var(--bg-tertiary)", borderColor: "var(--border)", color: "var(--text-primary)" }}
+                >
+                  {allKeys.map((k) => (
+                    <option key={k} value={k}>{k}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+                  {t("activation.variableValue")}
+                </label>
+                <select
+                  value={activeVal}
+                  onChange={(e) => setSelectedVarVal(e.target.value)}
+                  className="w-full rounded-lg border px-2.5 py-2 text-xs outline-none"
+                  style={{ background: "var(--bg-tertiary)", borderColor: "var(--border)", color: "var(--text-primary)" }}
+                >
+                  {allVals.map((v) => (
+                    <option key={v} value={v}>{v}</option>
+                  ))}
+                </select>
+              </div>
+
+              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                {t("activation.matchCount").replace("{count}", String(matchingDocs.length))}
+              </p>
+
+              <div className="flex justify-end gap-2 pt-1">
+                <Button variant="ghost" onClick={() => setVarActivateOpen(false)}>
+                  {t("common.cancel")}
+                </Button>
+                <Button
+                  variant="primary"
+                  disabled={matchingDocs.length === 0}
+                  onClick={() => {
+                    setActivatedDocuments(matchingDocs.map((d) => d.id));
+                    setVarActivateOpen(false);
+                  }}
+                >
+                  {t("activation.apply")}
+                </Button>
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
 
       {
         contextMenu && contextMenuPos && (

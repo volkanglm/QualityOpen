@@ -21,6 +21,8 @@ import {
   Sparkles,
   Download,
   Search,
+  Star,
+  Filter,
 } from "lucide-react";
 import React from "react";
 import { useAppStore } from "@/store/app.store";
@@ -63,7 +65,16 @@ type TabId = "dashboard" | "overview" | "cloud" | "matrix" | "network" | "synthe
 
 export function AnalysisPage() {
   const t = useT();
-  const { activeProjectId, activeDocumentId, setActiveProject, setActiveDocument } = useAppStore();
+  const {
+    activeProjectId,
+    activeDocumentId,
+    activatedDocumentIds,
+    minSegmentWeight,
+    setActiveProject,
+    setActiveDocument,
+    clearDocumentActivation,
+    setMinSegmentWeight,
+  } = useAppStore();
   const { projects, documents, codes, segments } = useProjectStore();
 
   const [activeTab, setActiveTab] = useState<TabId>("dashboard");
@@ -73,21 +84,34 @@ export function AnalysisPage() {
   const [tabZoom, setTabZoom] = useState(1.0);
   const [segSearchOpen, setSegSearchOpen] = useState(false);
 
-  const projectDocs = useMemo(() => documents.filter((d) => d.projectId === activeProjectId), [documents, activeProjectId]);
+  const allProjectDocs = useMemo(() => documents.filter((d) => d.projectId === activeProjectId), [documents, activeProjectId]);
+  const hasActivatedDocs = activatedDocumentIds.length > 0;
+  const projectDocs = useMemo(
+    () => (hasActivatedDocs ? allProjectDocs.filter((d) => activatedDocumentIds.includes(d.id)) : allProjectDocs),
+    [allProjectDocs, hasActivatedDocs, activatedDocumentIds]
+  );
   const projectCodes = useMemo(() => codes.filter((c) => c.projectId === activeProjectId), [codes, activeProjectId]);
-  const projectSegments = useMemo(() => segments.filter((s) => s.projectId === activeProjectId), [segments, activeProjectId]);
+  const projectSegments = useMemo(() => {
+    const allowedDocIds = hasActivatedDocs ? new Set(activatedDocumentIds) : null;
+    return segments.filter((s) => {
+      if (s.projectId !== activeProjectId) return false;
+      if (allowedDocIds && !allowedDocIds.has(s.documentId)) return false;
+      if (minSegmentWeight > 0 && (s.weight ?? 0) < minSegmentWeight) return false;
+      return true;
+    });
+  }, [segments, activeProjectId, hasActivatedDocs, activatedDocumentIds, minSegmentWeight]);
 
   const activeDoc = useMemo(() => projectDocs.find((d) => d.id === activeDocumentId) || projectDocs[0], [projectDocs, activeDocumentId]);
 
   const scopedSegments = useMemo(() => {
-    if (isProjectScope) return projectSegments;
+    if (isProjectScope || hasActivatedDocs) return projectSegments;
     return projectSegments.filter(s => s.documentId === activeDoc?.id);
-  }, [isProjectScope, projectSegments, activeDoc]);
+  }, [isProjectScope, hasActivatedDocs, projectSegments, activeDoc]);
 
   const scopedDocs = useMemo(() => {
-    if (isProjectScope) return projectDocs;
+    if (isProjectScope || hasActivatedDocs) return projectDocs;
     return activeDoc ? [activeDoc] : [];
-  }, [isProjectScope, projectDocs, activeDoc]);
+  }, [isProjectScope, hasActivatedDocs, projectDocs, activeDoc]);
 
   // Derived data for legacy views
   const codeFrequency = useMemo(() => {
@@ -149,6 +173,52 @@ export function AnalysisPage() {
             </div>
 
             <div className="w-px h-8 bg-[var(--border)] mx-2 hidden lg:block" />
+
+            {/* Mixed Methods Activation & Min Weight filter badges */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {hasActivatedDocs && (
+                <button
+                  onClick={clearDocumentActivation}
+                  className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-full text-[11px] font-semibold border transition-colors"
+                  style={{
+                    background: "var(--accent-subtle)",
+                    borderColor: "var(--accent)",
+                    color: "var(--accent)",
+                  }}
+                  title={t("activation.clear")}
+                >
+                  <Filter className="h-3 w-3" />
+                  <span>
+                    {t("activation.activeCount")
+                      .replace("{active}", String(projectDocs.length))
+                      .replace("{total}", String(allProjectDocs.length))}
+                  </span>
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+
+              <div
+                className="inline-flex items-center gap-0.5 h-8 px-2 rounded-full border text-[10px] font-semibold"
+                style={{ background: "var(--bg-tertiary)", borderColor: "var(--border)" }}
+                title={t("segment.weightFilter")}
+              >
+                <Star className="h-3 w-3 text-amber-400 mr-1" />
+                {[0, 3, 4, 5].map((w) => (
+                  <button
+                    key={w}
+                    onClick={() => setMinSegmentWeight(w)}
+                    className={cn(
+                      "px-1.5 py-0.5 rounded-full transition-colors",
+                      minSegmentWeight === w
+                        ? "bg-amber-400/20 text-amber-400"
+                        : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                    )}
+                  >
+                    {w === 0 ? t("memos.filterAll") : `${w}+`}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* Scope-aware Selector Dropdown */}
             <div className="relative group/selector">

@@ -43,6 +43,8 @@ export interface Document {
   mediaDuration?: number;
   /** Document-level researcher note */
   note?: string;
+  /** Optional document group / set name (MAXQDA-style Document Groups) */
+  group?: string;
   /** Custom color assigned via context menu */
   color?: string;
   /** Custom metadata properties (e.g. Age, Gender, Education) */
@@ -62,6 +64,12 @@ export interface Code {
   projectId: ID;
   name: string;
   description?: string;
+  /** Formal Codebook: when to apply this code */
+  inclusionCriteria?: string;
+  /** Formal Codebook: when NOT to apply this code */
+  exclusionCriteria?: string;
+  /** Formal Codebook: exemplar / anchor quotation */
+  exampleQuote?: string;
   color: string;
   parentId?: ID;
   createdAt: number;
@@ -106,6 +114,8 @@ export interface Segment {
   /** PDF page-space bounding boxes — one rect per text item/line.
    *  When present, used for rendering instead of char-offset fallback. */
   pdfRects?: PdfRect[];
+  /** Optional relevance / strength weight score (1–5, MAXQDA-style Weight Score) */
+  weight?: number;
 }
 
 export interface Memo {
@@ -200,6 +210,10 @@ export interface AppState {
   commandPaletteOpen: boolean;
   /** Code ID filters for segment retrieval view (empty = normal document view) */
   activeCodeFilters: ID[];
+  /** Activated document IDs for Mixed Methods / Analysis scope (empty = all documents active) */
+  activatedDocumentIds: ID[];
+  /** Minimum segment weight score filter (0 = all segments, 1–5 = minimum weight) */
+  minSegmentWeight: number;
   /** Logic for multi-code filtering */
   filterLogic: "AND" | "OR";
   /** Whether AI chat panel is open */

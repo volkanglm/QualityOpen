@@ -38,6 +38,10 @@ interface AppStore extends AppState {
   // Retrieval / search / filters
   toggleCodeFilter: (id: ID) => void;
   clearCodeFilters: () => void;
+  toggleDocumentActivation: (id: ID) => void;
+  setActivatedDocuments: (ids: ID[]) => void;
+  clearDocumentActivation: () => void;
+  setMinSegmentWeight: (weight: number) => void;
   setFilterLogic: (logic: "AND" | "OR") => void;
   setChatOpen: (open: boolean) => void;
   setSearchQuery: (q: string) => void;
@@ -72,6 +76,8 @@ export const useAppStore = create<AppStore>()(
       activeSelection: null,
       commandPaletteOpen: false,
       activeCodeFilters: [],
+      activatedDocumentIds: [],
+      minSegmentWeight: 0,
       filterLogic: "OR",
       chatOpen: false,
       searchQuery: "",
@@ -81,7 +87,7 @@ export const useAppStore = create<AppStore>()(
       splitView: false,
 
       // ── navigation ──
-      setActiveProject: (id) => set({ activeProjectId: id, activeDocumentId: null }),
+      setActiveProject: (id) => set({ activeProjectId: id, activeDocumentId: null, activatedDocumentIds: [], minSegmentWeight: 0 }),
       setActiveDocument: (id) => set({ activeDocumentId: id }),
       setActiveView: (view) => set({ activeView: view }),
 
@@ -118,6 +124,16 @@ export const useAppStore = create<AppStore>()(
         return { activeCodeFilters: next };
       }),
       clearCodeFilters: () => set({ activeCodeFilters: [] }),
+      toggleDocumentActivation: (id) => set((s) => {
+        const next = [...s.activatedDocumentIds];
+        const idx = next.indexOf(id);
+        if (idx > -1) next.splice(idx, 1);
+        else next.push(id);
+        return { activatedDocumentIds: next };
+      }),
+      setActivatedDocuments: (ids) => set({ activatedDocumentIds: ids }),
+      clearDocumentActivation: () => set({ activatedDocumentIds: [] }),
+      setMinSegmentWeight: (weight) => set({ minSegmentWeight: Math.max(0, Math.min(5, weight)) }),
       setFilterLogic: (logic) => set({ filterLogic: logic }),
       setChatOpen: (open) => set({ chatOpen: open }),
       setSearchQuery: (q) => set({ searchQuery: q }),

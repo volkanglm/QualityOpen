@@ -110,12 +110,15 @@ interface ProjectStore {
   // Segments
   addSegment: (seg: Omit<Segment, "id" | "createdAt" | "projectId">) => Segment;
   addSegments: (segs: Omit<Segment, "id" | "createdAt" | "projectId">[]) => Segment[];
+  addCodeToSegment: (segId: ID, codeId: ID) => void;
   removeSegmentCode: (segId: ID, codeId: ID) => void;
+  updateSegmentMemo: (segId: ID, memo: string) => void;
+  setSegmentWeight: (segId: ID, weight: number | undefined) => void;
   deleteSegment: (id: ID) => void;
   toggleDisconfirming: (id: ID, note?: string) => void;
 
   // Memos
-  createMemo: (projectId: ID, title: string) => Memo;
+  createMemo: (projectId: ID, title: string, links?: { linkedCodes?: ID[]; linkedSegments?: ID[] }) => Memo;
   updateMemo: (id: ID, patch: Partial<Memo>) => void;
   deleteMemo: (id: ID) => void;
 
@@ -470,11 +473,51 @@ export const useProjectStore = create<ProjectStore>()(
           });
           return newSegs;
         },
+        addCodeToSegment: (segId, codeId) => {
+          get().pushHistory();
+          set((s) => ({
+            segments: s.segments.map((sg) => {
+              if (sg.id !== segId) return sg;
+              if (sg.codeIds.includes(codeId)) return sg;
+              return { ...sg, codeIds: [...sg.codeIds, codeId], isHighlight: false };
+            }),
+          }));
+        },
         removeSegmentCode: (segId, codeId) => {
           get().pushHistory();
           set((s) => ({
+            segments: s.segments
+              .map((sg) =>
+                sg.id === segId ? { ...sg, codeIds: sg.codeIds.filter((c) => c !== codeId) } : sg
+              )
+              .filter((sg) => {
+                if (sg.id !== segId) return true;
+                // Remove orphaned segment when its last code is removed and it has no highlight/memo
+                return sg.codeIds.length > 0 || sg.isHighlight || Boolean(sg.memo?.trim());
+              }),
+          }));
+        },
+        updateSegmentMemo: (segId, memo) => {
+          get().pushHistory();
+          const trimmed = memo.trim();
+          set((s) => ({
+            segments: s.segments
+              .map((sg) =>
+                sg.id === segId ? { ...sg, memo: trimmed || undefined } : sg
+              )
+              .filter((sg) => {
+                if (sg.id !== segId) return true;
+                // If a pure note-only highlight has its memo cleared, clean it up
+                return sg.codeIds.length > 0 || Boolean(sg.memo?.trim()) || !sg.isHighlight;
+              }),
+          }));
+        },
+        setSegmentWeight: (segId, weight) => {
+          get().pushHistory();
+          const normalized = weight === undefined ? undefined : Math.max(1, Math.min(5, Math.round(weight)));
+          set((s) => ({
             segments: s.segments.map((sg) =>
-              sg.id === segId ? { ...sg, codeIds: sg.codeIds.filter((c) => c !== codeId) } : sg
+              sg.id === segId ? { ...sg, weight: normalized } : sg
             ),
           }));
         },
@@ -491,12 +534,14 @@ export const useProjectStore = create<ProjectStore>()(
           }));
         },
 
-        createMemo: (projectId, title) => {
+        createMemo: (projectId, title, links) => {
           const memo: Memo = {
             id: uuid(),
             projectId,
             title,
             content: "",
+            ...(links?.linkedCodes?.length ? { linkedCodes: links.linkedCodes } : {}),
+            ...(links?.linkedSegments?.length ? { linkedSegments: links.linkedSegments } : {}),
             createdAt: Date.now(),
             updatedAt: Date.now(),
           };

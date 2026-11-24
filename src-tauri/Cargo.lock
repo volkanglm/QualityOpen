@@ -3204,7 +3204,7 @@ dependencies = [
 
 [[package]]
 name = "qualityopen"
-version = "1.4.2"
+version = "1.5.0"
 dependencies = [
  "objc2",
  "objc2-foundation",

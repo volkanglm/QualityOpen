@@ -25,6 +25,7 @@ interface CodingStripesProps {
      * to compute pixel-precise positions.
      */
     containerRef?: React.RefObject<HTMLElement | null>;
+    onStripeClick?: (segmentId: string, rect: DOMRect) => void;
 }
 
 /**
@@ -37,6 +38,7 @@ export function CodingStripes({
     contentLength,
     containerHeight,
     containerRef,
+    onStripeClick,
 }: CodingStripesProps) {
     const [hoveredId, setHoveredId] = useState<string | null>(null);
     const selfRef = useRef<HTMLDivElement>(null);
@@ -126,13 +128,17 @@ export function CodingStripes({
                 return (
                     <motion.div
                         key={stripe.id}
-                        className="absolute left-1 cursor-default"
+                        className="absolute left-1 cursor-pointer"
                         style={{
                             top: topPx,
                             height: heightPx,
                         }}
                         onMouseEnter={() => setHoveredId(stripe.id)}
                         onMouseLeave={() => setHoveredId(null)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onStripeClick?.(stripe.id, e.currentTarget.getBoundingClientRect());
+                        }}
                     >
                         {/* The stripe line */}
                         <motion.div

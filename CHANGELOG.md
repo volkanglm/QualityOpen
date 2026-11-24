@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.0] - 2026-11-24
+
+### Added
+- **Individual segment uncoding & inline Segment Popover:** Click any coded text/PDF passage or margin stripe to remove individual codes from that sentence without deleting the entire code, add extra codes, rate weight (1–5), or write/edit a segment memo; also added per-segment uncoding in the Right Panel
+- **Code, Theme & Narrative Memos:** Added "Add Memo" action in the Floating Menu, inline editing/deletion in the Notes Panel, per-code/theme memo buttons in the Right Panel, and code/narrative linking + category filters in MemosPage
+- **Formal Codebook (APA 7):** Added definition, inclusion criteria, exclusion criteria, and example/anchor quote fields on codes with a dedicated Codebook Drawer and one-click APA 7 Word (`.docx`) & HTML export
+- **Mixed Methods Document Groups & Variable Activation:** Assign documents to groups, toggle individual document activation, or bulk-activate documents by variable/property values (`Document.properties`) — automatically applied across the Analysis Dashboard
+- **Segment Weight Score (1–5):** Rate coded passages from 1–5 stars and filter Analysis views by minimum weight (`All / 3+ / 4+ / 5`)
+- **Hardened REFI-QDA (`.qdpx` / `.qde`) MAXQDA & NVivo Migration:** Real `.qdpx` ZIP archive reader/writer (supporting external `plainTextPath="internal://..."` sources, `<Coding><CodeRef/>`, `<Variables>`/`<VariableValue>`, `<Sets>`/`<MemberSource>`, weights, and `<NoteRef>` code memos), wired into Left Panel import and Export Menu, with ZIP-bomb & XXE guards and unit tests
+
+### Changed
+- Refactored `anthropicProvider.ts` to reduce cyclomatic complexity and remove unnecessary `async` on `healthCheck()`
+- Updated `COMPREHENSIVE_FEATURES.md` to reflect AGPL-3.0 free & open-source licensing
+- Added 8-language translations (`en, tr, de, es, fr, it, nl, pt`) for all new features
+
 ## [1.4.2] - 2026-11-24
 
 ### Added

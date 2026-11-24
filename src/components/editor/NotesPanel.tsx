@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { StickyNote, X, ChevronDown } from "lucide-react";
+import { StickyNote, X, ChevronDown, Pencil, Trash2, Check } from "lucide-react";
 import type { Segment, Code } from "@/types";
 import { useT } from "@/hooks/useT";
 
@@ -8,6 +8,7 @@ interface NotesPanelProps {
   open: boolean;
   segments: Segment[];
   codes: Code[];
+  onUpdateMemo?: (segId: string, memo: string) => void;
   onClose: () => void;
 }
 
@@ -41,7 +42,7 @@ function scrollToSegment(id: string) {
  * active document. Replaces the old always-on MarginMemos overlay. Clicking a
  * note scrolls the document to its source highlight.
  */
-export function NotesPanel({ open, segments, codes, onClose }: NotesPanelProps) {
+export function NotesPanel({ open, segments, codes, onUpdateMemo, onClose }: NotesPanelProps) {
   const t = useT();
   const notes = useMemo<NoteItem[]>(() => {
     return segments
@@ -61,6 +62,8 @@ export function NotesPanel({ open, segments, codes, onClose }: NotesPanelProps) 
   }, [segments, codes, t]);
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draftMemo, setDraftMemo] = useState("");
 
   return (
     <AnimatePresence>
@@ -115,21 +118,20 @@ export function NotesPanel({ open, segments, codes, onClose }: NotesPanelProps) 
             ) : (
               notes.map((note) => {
                 const expanded = expandedId === note.id;
+                const isEditing = editingId === note.id;
                 return (
-                  <button
+                  <div
                     key={note.id}
-                    // Click expands the note (read full text) AND scrolls the doc to it.
                     onClick={() => {
+                      if (isEditing) return;
                       setExpandedId(expanded ? null : note.id);
                       scrollToSegment(note.id);
                     }}
-                    className="w-full text-left rounded-md border p-2.5 transition-colors"
+                    className="group w-full text-left rounded-md border p-2.5 transition-colors cursor-pointer"
                     style={{
                       background: "var(--surface)",
                       borderColor: "var(--border-subtle)",
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-hover)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "var(--surface)")}
                   >
                     {/* Label */}
                     <div className="flex items-center gap-1.5 mb-1">
@@ -143,6 +145,33 @@ export function NotesPanel({ open, segments, codes, onClose }: NotesPanelProps) 
                       >
                         {note.label}
                       </span>
+                      {onUpdateMemo && !isEditing && (
+                        <div
+                          className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            onClick={() => {
+                              setEditingId(note.id);
+                              setExpandedId(note.id);
+                              setDraftMemo(note.memo);
+                            }}
+                            className="p-0.5 rounded hover:bg-[var(--surface-hover)]"
+                            style={{ color: "var(--text-muted)" }}
+                            title={t("segment.editMemo")}
+                          >
+                            <Pencil className="h-2.5 w-2.5" />
+                          </button>
+                          <button
+                            onClick={() => onUpdateMemo(note.id, "")}
+                            className="p-0.5 rounded hover:bg-red-500/10"
+                            style={{ color: "var(--text-muted)" }}
+                            title={t("segment.deleteMemo")}
+                          >
+                            <Trash2 className="h-2.5 w-2.5" />
+                          </button>
+                        </div>
+                      )}
                       <ChevronDown
                         className="h-3 w-3 flex-shrink-0 transition-transform"
                         style={{
@@ -160,14 +189,54 @@ export function NotesPanel({ open, segments, codes, onClose }: NotesPanelProps) 
                       “{note.excerpt}”
                     </p>
 
-                    {/* Memo body */}
-                    <p
-                      className={`text-[11px] leading-relaxed ${expanded ? "whitespace-pre-wrap" : "line-clamp-3"}`}
-                      style={{ color: "var(--text-secondary)" }}
-                    >
-                      {note.memo}
-                    </p>
-                  </button>
+                    {/* Memo body or inline editor */}
+                    {isEditing && onUpdateMemo ? (
+                      <div className="space-y-1.5" onClick={(e) => e.stopPropagation()}>
+                        <textarea
+                          rows={3}
+                          autoFocus
+                          value={draftMemo}
+                          onChange={(e) => setDraftMemo(e.target.value)}
+                          className="w-full rounded border px-1.5 py-1 text-[11px] leading-relaxed outline-none resize-none"
+                          style={{
+                            background: "var(--bg-secondary)",
+                            borderColor: "var(--border)",
+                            color: "var(--text-primary)",
+                          }}
+                        />
+                        <div className="flex justify-end gap-1">
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="px-2 py-0.5 rounded text-[10px] hover:bg-[var(--surface-hover)]"
+                            style={{ color: "var(--text-muted)" }}
+                          >
+                            {t("common.cancel")}
+                          </button>
+                          <button
+                            onClick={() => {
+                              onUpdateMemo(note.id, draftMemo);
+                              setEditingId(null);
+                            }}
+                            className="flex items-center gap-0.5 px-2 py-0.5 rounded text-[10px] font-semibold"
+                            style={{
+                              background: "var(--accent)",
+                              color: "var(--accent-fg, #09090b)",
+                            }}
+                          >
+                            <Check className="h-2.5 w-2.5" />
+                            {t("segment.saveMemo")}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p
+                        className={`text-[11px] leading-relaxed ${expanded ? "whitespace-pre-wrap" : "line-clamp-3"}`}
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        {note.memo}
+                      </p>
+                    )}
+                  </div>
                 );
               })
             )}

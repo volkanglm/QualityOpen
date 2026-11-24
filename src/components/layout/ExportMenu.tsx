@@ -8,6 +8,7 @@ import {
   Table2,
   ChevronDown,
   Loader2,
+  FolderArchive,
 } from "lucide-react";
 import { useT } from "@/hooks/useT";
 import { useAppStore } from "@/store/app.store";
@@ -19,10 +20,11 @@ import {
   exportWordAPA7,
   exportChartImage,
 } from "@/lib/exportData";
+import { exportQdpx } from "@/lib/qdpx";
 
 // ─── Menu items ───────────────────────────────────────────────────────────────
 
-type ExportFormat = "csv" | "excel" | "word" | "png" | "jpeg";
+type ExportFormat = "csv" | "excel" | "word" | "qdpx" | "png" | "jpeg";
 
 const MENU_ITEMS: {
   id: ExportFormat;
@@ -48,6 +50,12 @@ const MENU_ITEMS: {
       labelKey: "Word (APA 7)",
       subKey: "analysis.export.wordDesc",
       icon: FileText,
+    },
+    {
+      id: "qdpx",
+      labelKey: "REFI-QDA (.qdpx)",
+      subKey: "analysis.export.qdpxDesc",
+      icon: FolderArchive,
       divider: true,
     },
     {
@@ -73,7 +81,7 @@ export function ExportMenu() {
   const menuRef = useRef<HTMLDivElement>(null);
 
   const { activeProjectId, activeView } = useAppStore();
-  const { projects, documents, codes, segments, syntheses, auditLog } = useProjectStore();
+  const { projects, documents, codes, segments, memos, syntheses, auditLog } = useProjectStore();
   const { push } = useToastStore();
   const t = useT();
 
@@ -120,6 +128,9 @@ export function ExportMenu() {
       } else if (format === "word") {
         await exportWordAPA7(payload);
         push(t("analysis.export.success").replace("{name}", project.name).replace("{format}", "Word (APA 7)"), "success");
+      } else if (format === "qdpx") {
+        await exportQdpx(project, documents, codes, segments, memos);
+        push(t("analysis.export.success").replace("{name}", project.name).replace("{format}", "REFI-QDA (.qdpx)"), "success");
       } else if (format === "png" || format === "jpeg") {
         // Find the chart SVG in the DOM (Analysis page or Dashboard must be active)
         if (activeView !== "analysis" && activeView !== "dashboard") {

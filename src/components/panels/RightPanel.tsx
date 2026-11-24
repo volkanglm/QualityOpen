@@ -36,6 +36,9 @@ import {
   History,
   AlertTriangle,
   Zap,
+  StickyNote,
+  BookOpen,
+  Star,
 } from "lucide-react";
 import { codesToCSV, codesToText, downloadFile } from "@/lib/exportUtils";
 import { useAppStore } from "@/store/app.store";
@@ -49,6 +52,7 @@ import { CODE_COLORS } from "@/lib/constants";
 import type { Code, Segment } from "@/types";
 import { flattenCodes, FlatCode } from "@/lib/tree";
 import { CodeEvolutionDrawer } from "@/components/modals/CodeEvolutionDrawer";
+import { CodebookDrawer } from "@/components/modals/CodebookDrawer";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const INDENT_W = 16; // px per depth level
@@ -166,6 +170,9 @@ interface CodeRowProps {
   onAddSubCode: (parentId: string) => void;
   onFilterClick: (id: string) => void;
   onMoveCode: (id: string) => void;
+  onOpenMemo: (codeId: string) => void;
+  onRemoveSegmentCode: (segId: string, codeId: string) => void;
+  hasMemo?: boolean;
   isPotentialParent?: boolean;
   isFilterActive?: boolean;
   t: any;
@@ -180,6 +187,7 @@ function CodeRow(props: CodeRowProps) {
     onToggleExpand, onToggleParent,
     onStartEdit, onCommitEdit, onCancelEdit, onEditName,
     onDelete, onColorClick, onAddSubCode, onFilterClick, onMoveCode,
+    onOpenMemo, onRemoveSegmentCode, hasMemo = false,
     isPotentialParent = false, isFilterActive = false,
     t, toggleDisconfirming
   } = props;
@@ -258,6 +266,19 @@ function CodeRow(props: CodeRowProps) {
           </span>
         )}
 
+        {/* Memo indicator (always visible when code/theme has a linked memo) */}
+        {!isEditing && hasMemo && (
+          <Tooltip content={t("right.codeMemo")} side="top">
+            <button
+              onClick={() => onOpenMemo(code.id)}
+              className="flex-shrink-0 p-0.5 rounded hover:bg-[var(--surface-hover)] transition-colors"
+              style={{ color: code.color }}
+            >
+              <StickyNote className="h-3 w-3" />
+            </button>
+          </Tooltip>
+        )}
+
         {/* Usage */}
         <span className="text-[10px] font-mono flex-shrink-0 min-w-[14px] text-right"
           style={{ color: usageCount > 0 ? code.color : "var(--text-disabled)" }}>
@@ -272,6 +293,12 @@ function CodeRow(props: CodeRowProps) {
           </div>
         ) : (
           <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Tooltip content={t("right.codeMemo")} side="top">
+              <button onClick={() => onOpenMemo(code.id)} style={{ color: hasMemo ? code.color : "var(--text-muted)" }}
+                className="hover:text-[var(--text-primary)] transition-colors">
+                <StickyNote className="h-3 w-3" />
+              </button>
+            </Tooltip>
             {depth < MAX_DEPTH && (
               <Tooltip content={t("right.addSubCode", { level: depth + 2 })} side="top">
                 <button onClick={() => onAddSubCode(code.id)} style={{ color: "var(--text-muted)" }}
@@ -324,6 +351,12 @@ function CodeRow(props: CodeRowProps) {
                   <div className="flex items-start gap-2">
                     <p className="flex-1 text-[11px] leading-relaxed line-clamp-3" style={{ color: "var(--text-secondary)" }}>
                       <span style={{ color: code.color }}>&quot;</span>{seg.text}<span style={{ color: code.color }}>&quot;</span>
+                      {seg.weight && (
+                        <span className="inline-flex items-center gap-0.5 ml-1.5 text-[9px] font-semibold text-amber-400 align-middle">
+                          <Star className="h-2.5 w-2.5 fill-amber-400" />
+                          {seg.weight}
+                        </span>
+                      )}
                     </p>
                     <div className="flex items-center gap-1 opacity-0 group-hover/seg:opacity-100 transition-opacity flex-shrink-0">
                       <Tooltip content={seg.isDisconfirming ? t("right.markNormal") : t("right.markDisconfirming")} side="top">
@@ -332,6 +365,14 @@ function CodeRow(props: CodeRowProps) {
                           className={cn("p-1 rounded hover:bg-[var(--surface-dark)]", seg.isDisconfirming ? "text-orange-500" : "text-[var(--text-disabled)]")}
                         >
                           <Zap className="h-3 w-3" />
+                        </button>
+                      </Tooltip>
+                      <Tooltip content={t("segment.removeCode")} side="top">
+                        <button
+                          onClick={() => onRemoveSegmentCode(seg.id, code.id)}
+                          className="p-1 rounded hover:bg-red-500/10 text-[var(--text-disabled)] hover:text-red-400 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
                         </button>
                       </Tooltip>
                     </div>
@@ -443,8 +484,8 @@ function TreeLines({ flatCodes }: { flatCodes: FlatCode[] }) {
 export function RightPanel() {
   const { activeProjectId, activeDocumentId, activeCodeFilters, toggleCodeFilter } = useAppStore();
   const t = useT();
-  const { codes, segments, documents, createCode, updateCode, deleteCode, moveCode,
-    updateDocument, toggleDisconfirming
+  const { codes, segments, documents, memos, createCode, updateCode, deleteCode, moveCode,
+    updateDocument, toggleDisconfirming, removeSegmentCode, createMemo, updateMemo
   } = useProjectStore();
 
   const projectCodes = codes.filter((c) => c.projectId === activeProjectId);
@@ -468,6 +509,33 @@ export function RightPanel() {
   const [newCodeModal, setNewCodeModal] = useState(false);
   const [newCodeName, setNewCodeName] = useState("");
   const [newCodeParentId, setNewCodeParentId] = useState<string | null>(null);
+  const [codeMemoId, setCodeMemoId] = useState<string | null>(null);
+  const [codeMemoDraft, setCodeMemoDraft] = useState("");
+  const [showCodebookDrawer, setShowCodebookDrawer] = useState(false);
+
+  const handleOpenCodeMemo = (codeId: string) => {
+    const existing = memos.find(
+      (m) => m.projectId === activeProjectId && m.linkedCodes?.includes(codeId)
+    );
+    setCodeMemoId(codeId);
+    setCodeMemoDraft(existing?.content ?? "");
+  };
+
+  const handleSaveCodeMemo = () => {
+    if (!activeProjectId || !codeMemoId) return;
+    const code = projectCodes.find((c) => c.id === codeMemoId);
+    if (!code) return;
+    const existing = memos.find(
+      (m) => m.projectId === activeProjectId && m.linkedCodes?.includes(codeMemoId)
+    );
+    if (existing) {
+      updateMemo(existing.id, { content: codeMemoDraft });
+    } else if (codeMemoDraft.trim()) {
+      const created = createMemo(activeProjectId, code.name, { linkedCodes: [codeMemoId] });
+      updateMemo(created.id, { content: codeMemoDraft });
+    }
+    setCodeMemoId(null);
+  };
   const [subCodeParent, setSubCodeParent] = useState<string | null>(null);
   const [subCodeName, setSubCodeName] = useState("");
   const [moveCodeId, setMoveCodeId] = useState<string | null>(null);
@@ -637,6 +705,8 @@ export function RightPanel() {
       setMoveCodeId(id);
       setMoveTargetId(projectCodes.find((c) => c.id === id)?.parentId ?? null);
     },
+    onOpenMemo: handleOpenCodeMemo,
+    onRemoveSegmentCode: removeSegmentCode,
     toggleDisconfirming,
   };
 
@@ -736,6 +806,11 @@ export function RightPanel() {
                 </button>
               </div>
             </div>
+            <Tooltip content={t("codebook.title")} side="left">
+              <Button size="icon" variant="ghost" className="h-6 w-6" disabled={!activeProjectId} onClick={() => setShowCodebookDrawer(true)}>
+                <BookOpen className="h-3.5 w-3.5" />
+              </Button>
+            </Tooltip>
             <Tooltip content="Code Evolution Log" side="left">
               <Button size="icon" variant="ghost" className="h-6 w-6" disabled={!activeProjectId} onClick={() => setShowEvolutionDrawer(true)}>
                 <History className="h-3.5 w-3.5" />
@@ -798,12 +873,19 @@ export function RightPanel() {
 
                       {flatCodes.map((code) => {
                         const isPotentialParent = projection?.parentId === code.id;
+                        const hasMemo = memos.some(
+                          (m) =>
+                            m.projectId === activeProjectId &&
+                            m.linkedCodes?.includes(code.id) &&
+                            m.content.trim().length > 0
+                        );
                         return (
                           <SortableCodeItem
                             key={code.id}
                             id={code.id}
                             {...rowProps}
                             code={code}
+                            hasMemo={hasMemo}
                             isActive={code.id === activeId}
                             isFilterActive={activeCodeFilters.includes(code.id)}
                             overId={overId}
@@ -1158,6 +1240,44 @@ export function RightPanel() {
           />
         )}
       </AnimatePresence>
+
+      <Modal
+        open={Boolean(codeMemoId)}
+        onClose={() => setCodeMemoId(null)}
+        title={`${t("right.codeMemo")}: ${projectCodes.find((c) => c.id === codeMemoId)?.name ?? ""}`}
+      >
+        <div className="space-y-3">
+          <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+            {t("right.codeMemoHint")}
+          </p>
+          <textarea
+            rows={6}
+            autoFocus
+            value={codeMemoDraft}
+            onChange={(e) => setCodeMemoDraft(e.target.value)}
+            placeholder={t("memos.placeholder")}
+            className="w-full rounded-lg border px-3 py-2 text-xs leading-relaxed outline-none resize-none"
+            style={{
+              background: "var(--surface)",
+              borderColor: "var(--border)",
+              color: "var(--text-primary)",
+            }}
+          />
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="ghost" onClick={() => setCodeMemoId(null)}>
+              {t("common.cancel")}
+            </Button>
+            <Button variant="primary" onClick={handleSaveCodeMemo}>
+              {t("segment.saveMemo")}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <CodebookDrawer
+        open={showCodebookDrawer}
+        onClose={() => setShowCodebookDrawer(false)}
+      />
 
       <CodeEvolutionDrawer
         open={showEvolutionDrawer}

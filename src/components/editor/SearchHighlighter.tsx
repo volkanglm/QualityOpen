@@ -118,7 +118,7 @@ export function SearchHighlighter({
               paddingLeft: "1px",
               paddingRight: "1px",
               color: "var(--text-primary)", // Explicitly use theme text color
-              cursor: "default",
+              cursor: "pointer",
             }}
           >
             <span>

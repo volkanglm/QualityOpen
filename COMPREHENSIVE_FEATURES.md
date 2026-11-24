@@ -51,7 +51,7 @@
 
 ### 🛡️ 7. Security, Sync & System
 - **100% Offline Power**: Work without internet; your data never leaves your device by default.
-- **Lifetime License**: One-time payment ($149), no subscriptions, forever yours.
+- **100% Free & Open Source (AGPL-3.0)**: No subscriptions, no paywalls, forever free and open.
 - **Privacy-First Sync**: Optional encrypted backup to your own Google Drive.
 - **Local Folder Sync**: Premium feature to mirror your project data to a local directory for redundant backup.
 - **Hardware-Locked Security**: Military-grade local encryption tied to your device.
@@ -106,7 +106,7 @@
 
 ### 🛡️ 7. Güvenlik, Senkronizasyon ve Sistem
 - **%100 Çevrimdışı Güç**: İnternet olmadan çalışın; verileriniz varsayılan olarak cihazınızdan asla ayrılmaz.
-- **Ömür Boyu Lisans**: Tek seferlik ödeme ($149), abonelik yok, sonsuza kadar sizin.
+- **%100 Ücretsiz ve Açık Kaynak (AGPL-3.0)**: Abonelik yok, kısıtlama yok, sonsuza kadar ücretsiz ve açık.
 - **Gizlilik Odaklı Senkronizasyon**: Kendi Google Drive'ınıza isteğe bağlı şifreli yedekleme.
 - **Yerel Klasör Senkronizasyonu**: Proje verilerinizi yedekli depolama için yerel bir dizine kopyalayan premium özellik.
 - **Donanım Kilitli Güvenlik**: Cihazınıza bağlı askeri düzeyde yerel şifreleme.
